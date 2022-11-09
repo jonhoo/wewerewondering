@@ -1,7 +1,5 @@
 import { writable } from "svelte/store";
 
-// TODO: auto-update these in case local storage changes
-
 const storedVotedFor = JSON.parse(localStorage.getItem("votedFor"));
 export const votedFor = writable(!storedVotedFor ? {} : storedVotedFor);
 votedFor.subscribe(value => {
@@ -20,4 +18,12 @@ questionTexts.subscribe(value => {
     } else {
         localStorage.removeItem("questions");
     }
+});
+
+window.addEventListener('storage', (e) => {
+	if (e.key == "votedFor") {
+		votedFor.set(JSON.parse(e.newValue));
+	} else if (e.key == "questions") {
+		questionTexts.set(JSON.parse(e.newValue));
+	}
 });
