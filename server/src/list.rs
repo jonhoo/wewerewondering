@@ -161,6 +161,8 @@ async fn list_inner(
                         .collect()
                 })
                 .unwrap_or_default();
+
+            // TODO: cache header (no-cache w/ secret)
             Ok(Json(serde_json::Value::from(questions)))
         }
         Err(e) => {

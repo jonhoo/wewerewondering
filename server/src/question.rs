@@ -52,6 +52,8 @@ pub(super) async fn question(
                 .and_then(|i| i.get("text"))
                 .and_then(|t| t.as_s().ok())
             {
+                // TODO: never-expire cache header
+                // TODO: also include `when`
                 Ok(text.clone())
             } else {
                 warn!(%qid, ?v, "invalid question data");

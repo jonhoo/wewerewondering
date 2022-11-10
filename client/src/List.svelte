@@ -23,6 +23,7 @@
 
 	async function ask() {
 		let q = prompt("Question:");
+		// TODO: handle "cancel", reject URL-only early, handle error
 		let resp = await fetch(`http://localhost:3000/event/${event.id}`, {
 			"method": "POST",
 			"body": q,
