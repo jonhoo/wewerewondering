@@ -68,7 +68,10 @@ pub(super) async fn ask(
     body: String,
     Extension(dynamo): Extension<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    if http::Uri::try_from(body.trim()).is_ok() {
+    if body.trim().is_empty() {
+        warn!(%eid, "ignoring empty question");
+        return Err(http::StatusCode::BAD_REQUEST);
+    } else if http::Uri::try_from(body.trim()).is_ok() {
         warn!(%eid, body, "rejecting URL-only question");
         return Err(http::StatusCode::BAD_REQUEST);
     }
