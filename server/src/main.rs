@@ -18,6 +18,7 @@ use std::{
     future::Future,
     pin::Pin,
     sync::{Arc, Mutex},
+    time::SystemTime,
 };
 use tower::Layer;
 use tower_http::{compression::CompressionLayer, limit::RequestBodyLimitLayer};
@@ -50,6 +51,16 @@ impl Backend {
                     .table_name("events")
                     .item("id", AttributeValue::S(eid.to_string()))
                     .item("secret", AttributeValue::S(secret.into()))
+                    .item(
+                        "when",
+                        AttributeValue::N(
+                            SystemTime::now()
+                                .duration_since(SystemTime::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs()
+                                .to_string(),
+                        ),
+                    )
                     .send()
                     .await
             }
@@ -82,6 +93,16 @@ impl Backend {
             ("eid", AttributeValue::S(eid.to_string())),
             ("votes", AttributeValue::N(1.to_string())),
             ("text", AttributeValue::S(text.into())),
+            (
+                "when",
+                AttributeValue::N(
+                    SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs()
+                        .to_string(),
+                ),
+            ),
             ("hidden", AttributeValue::Bool(false)),
             ("answered", AttributeValue::Bool(false)),
         ];
