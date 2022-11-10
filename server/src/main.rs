@@ -25,6 +25,9 @@ use tower_http::{compression::CompressionLayer, limit::RequestBodyLimitLayer};
 use tower_service::Service;
 use uuid::Uuid;
 
+#[cfg(debug_assertions)]
+const SEED: &str = include_str!("test.json");
+
 #[derive(Clone, Debug)]
 enum Backend {
     Dynamo(aws_sdk_dynamodb::Client),
@@ -554,6 +557,17 @@ async fn toggle(
     }
 }
 
+#[cfg(debug_assertions)]
+#[derive(Deserialize)]
+struct LiveAskQuestion {
+    likes: usize,
+    text: String,
+    hidden: bool,
+    answered: bool,
+    #[serde(rename = "createTimeUnix")]
+    created: usize,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
@@ -565,7 +579,34 @@ async fn main() -> Result<(), Error> {
     let config = aws_config::load_from_env().await;
 
     let backend = if cfg!(debug_assertions) {
-        Backend::Local(Default::default())
+        let mut state = Local::default();
+        let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
+        let seed_e = "00000000-0000-0000-0000-000000000000";
+        let seed_e = Uuid::parse_str(seed_e).unwrap();
+        state.events.insert(seed_e.clone(), String::from("secret"));
+        state.questions_by_eid.insert(seed_e.clone(), Vec::new());
+        let mut state = Backend::Local(Arc::new(Mutex::new(state)));
+        let mut qs = Vec::new();
+        for q in seed {
+            let qid = uuid::Uuid::new_v4();
+            state.ask(&seed_e, &qid, q.text).await.unwrap();
+            qs.push((qid, q.created, q.likes, q.hidden, q.answered));
+        }
+        {
+            let Backend::Local(ref mut state): Backend = state else {
+                unreachable!();
+            };
+            let state = Arc::get_mut(state).unwrap();
+            let state = Mutex::get_mut(state).unwrap();
+            for (qid, created, votes, hidden, answered) in qs {
+                let q = state.questions.get_mut(&qid).unwrap();
+                q.insert("votes", AttributeValue::N(votes.to_string()));
+                q.insert("answered", AttributeValue::Bool(answered));
+                q.insert("hidden", AttributeValue::Bool(hidden));
+                q.insert("when", AttributeValue::N(created.to_string()));
+            }
+        }
+        state
     } else {
         Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
     };
