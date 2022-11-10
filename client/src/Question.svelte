@@ -9,6 +9,8 @@
 			return qs[question.qid];
 		}
 
+        // TODO: rate-limit how many we do of these at once
+        //       or at least batch the initial fetch.
 		let t = await fetch(`http://localhost:3000/question/${question.qid}`)
 			.then(r => r.text())
 			.then(data => {
@@ -62,51 +64,47 @@
 	async function hidden() {
 		toggle("hidden");
 	}
+
+	function qclass(q) {
+		if (q.hidden && q.answered) {
+			return "p-4 bg-white text-lime-500";
+		} else if (q.hidden) {
+			return "p-4 bg-white text-slate-400";
+		} else if (q.answered) {
+			return "p-4 bg-white text-green-700";
+		} else {
+			return "p-4 bg-white";
+		}
+	}
 </script>
 
-<article>
-	<p>{text} {question.votes}</p>
-	{#if liked}
-		<button on:click={vote}>Unvote</button>
-	{:else}
-		<button on:click={vote}>Vote</button>
-	{/if}
-	{#if event.secret}
-		{#if question.answered}
-			<button on:click={answered}>Answered</button>
+<article class={qclass(question)}>
+	<div class="flex items-center">
+	<div class="mr-4 w-8 grow-0 shrink-0 text-center">
+		{#if liked}
+		<button class="hover:opacity-50" title="Retract vote" on:click={vote}>▲</button>
 		{:else}
-			<button on:click={answered}>Mark answered</button>
+		<button class="opacity-30 hover:opacity-100" title="Vote" on:click={vote}>△</button>
 		{/if}
-		{#if question.hidden}
-			<button on:click={hidden}>Hidden</button>
-		{:else}
-			<button on:click={hidden}>Mark hidden</button>
+		<div class="font-bold text-black">{question.votes}</div>
+	</div>
+	<div class="pr-4 flex-1">
+		<p class="text-xl">{text}</p>
+		{#if event.secret}
+			<div class="text-slate-400 pt-1 text-right">
+			{#if question.answered}
+				<button on:click={answered}>Mark as not answered</button>
+			{:else}
+				<button on:click={answered}>Mark as answered</button>
+			{/if}
+			|
+			{#if question.hidden}
+				<button on:click={hidden}>Unhide</button>
+			{:else}
+				<button on:click={hidden}>Hide</button>
+			{/if}
+			</div>
 		{/if}
-	{:else}
-		{#if question.answered}
-			Answered
-		{/if}
-	{/if}
+	</div>
+	</div>
 </article>
-
-<style>
-	article {
-		position: relative;
-		padding: 0 0 0 2em;
-		border-bottom: 1px solid #eee;
-	}
-
-	h2 {
-		font-size: 1em;
-		margin: 0.5em 0;
-	}
-
-	span {
-		position: absolute;
-		left: 0;
-	}
-
-	a {
-		color: #333;
-	}
-</style>

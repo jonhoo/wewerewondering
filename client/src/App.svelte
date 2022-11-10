@@ -21,7 +21,6 @@
 					"id": id
 				};
 			}
-			window.scrollTo(0,0);
 		} else {
 			event = null;
 		}
@@ -37,32 +36,20 @@
 	onMount(hashchange);
 </script>
 
+<style global lang="postcss">
+@tailwind utilities;
+@tailwind components;
+@tailwind base;
+</style>
+
 <svelte:window on:hashchange={hashchange}/>
 
-<main>
-	{#if event}
+{#if event}
+	<main class="max-w-4xl mx-auto my-8 px-8">
 		<List {event} />
-	{:else}
-		<button on:click={create}>Create new event</button>
-	{/if}
-</main>
-
-<style>
-	main {
-		position: relative;
-		max-width: 800px;
-		margin: 0 auto;
-		min-height: 101vh;
-		padding: 1em;
-	}
-
-	main :global(.meta) {
-		color: #999;
-		font-size: 12px;
-		margin: 0 0 1em 0;
-	}
-
-	main :global(a) {
-		color: rgb(0,0,150);
-	}
-</style>
+	</main>
+{:else}
+	<div class="flex justify-center items-center h-screen">
+		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-500 hover:border-red-400" on:click={create}>Create new event</button>
+	</div>
+{/if}
