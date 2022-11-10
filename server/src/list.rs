@@ -5,7 +5,6 @@ use aws_sdk_dynamodb::{
     output::QueryOutput,
     types::SdkError,
 };
-use aws_smithy_http::body::SdkBody;
 use aws_smithy_types::Error;
 use axum::extract::{Extension, Path};
 use axum::response::Json;
