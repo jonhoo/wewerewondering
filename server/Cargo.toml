@@ -17,6 +17,8 @@ edition = "2021"
 [dependencies]
 aws-config = "0.51"
 aws-sdk-dynamodb = "0.21"
+aws-smithy-types = "0.51"
+aws-smithy-http = "0.51"
 axum = "0.5"
 http = "0.2"
 hyper = { version = "0.14", featurs = ["server", "http1", "http2"] }

@@ -11,7 +11,7 @@
 		if (interval) {
 			clearTimeout(interval);
 		}
-		// TODO: on error
+		// TODO: on error. esp 404 == show "no such event"
 		let url = e.secret
 			? `http://localhost:3000/event/${e.id}/${e.secret}`
 			: `http://localhost:3000/event/${e.id}`;

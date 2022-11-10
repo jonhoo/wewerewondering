@@ -1,4 +1,5 @@
-use aws_sdk_dynamodb::model::AttributeValue;
+use aws_sdk_dynamodb::{model::AttributeValue, types::SdkError};
+use aws_smithy_http::body::SdkBody;
 use axum::extract::Extension;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
@@ -81,6 +82,15 @@ async fn check_secret(dynamo: &Backend, eid: &Uuid, secret: &str) -> Result<(), 
                 Err(StatusCode::FORBIDDEN)
             }
         }
+    }
+}
+
+fn mint_service_error<E>(e: E) -> SdkError<E> {
+    SdkError::ServiceError {
+        err: e,
+        raw: aws_smithy_http::operation::Response::new(
+            http::Response::builder().body(SdkBody::empty()).unwrap(),
+        ),
     }
 }
 

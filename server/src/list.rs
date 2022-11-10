@@ -1,7 +1,12 @@
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
-    error::QueryError, model::AttributeValue, output::QueryOutput, types::SdkError,
+    error::{QueryError, QueryErrorKind, ResourceNotFoundException},
+    model::AttributeValue,
+    output::QueryOutput,
+    types::SdkError,
 };
+use aws_smithy_http::body::SdkBody;
+use aws_smithy_types::Error;
 use axum::extract::{Extension, Path};
 use axum::response::Json;
 use http::StatusCode;
@@ -39,8 +44,18 @@ impl Backend {
                 let Local {
                     questions,
                     questions_by_eid,
+                    events,
                     ..
                 } = &mut *local;
+
+                if !events.contains_key(&eid) {
+                    return Err(super::mint_service_error(QueryError::new(
+                        QueryErrorKind::ResourceNotFoundException(
+                            ResourceNotFoundException::builder().build(),
+                        ),
+                        Error::builder().build(),
+                    )));
+                }
 
                 let qs = questions_by_eid
                     .get_mut(eid)
@@ -149,6 +164,12 @@ async fn list_inner(
             Ok(Json(serde_json::Value::from(questions)))
         }
         Err(e) => {
+            if let SdkError::ServiceError { ref err, .. } = e {
+                if err.is_resource_not_found_exception() {
+                    warn!(%eid, error = %e, "request for non-existing event");
+                    return Err(http::StatusCode::NOT_FOUND);
+                }
+            }
             error!(%eid, error = %e, "dynamodb request for question list failed");
             Err(http::StatusCode::INTERNAL_SERVER_ERROR)
         }

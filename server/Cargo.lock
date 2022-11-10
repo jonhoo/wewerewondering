@@ -1299,6 +1299,8 @@ version = "0.1.0"
 dependencies = [
  "aws-config",
  "aws-sdk-dynamodb",
+ "aws-smithy-http",
+ "aws-smithy-types",
  "axum",
  "http",
  "hyper",
