@@ -53,14 +53,25 @@
 	}
 
 	async function ask() {
-		let q = prompt("Question:");
-		// TODO: handle "cancel", reject URL-only early, handle error
+		let q;
+		while (true) {
+			q = prompt("Question:", q || "");
+			if (q === null) {
+				return;
+			}
+			if (q.match(/^\s*\S*\s*$/)) {
+				alert("Use at least two words in your question.");
+			}
+			break;
+		}
+		// TODO: handle error
 		let resp = await fetch(`http://localhost:3000/event/${event.id}`, {
 			"method": "POST",
 			"body": q,
-		}).then(r => r.json());
+		});
+		let json = await resp.json();
 		votedFor.update(vf => {
-			vf[resp.id] = true;
+			vf[json.id] = true;
 			return vf;
 		});
 		event = event;

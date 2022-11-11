@@ -71,8 +71,8 @@ pub(super) async fn ask(
     if body.trim().is_empty() {
         warn!(%eid, "ignoring empty question");
         return Err(http::StatusCode::BAD_REQUEST);
-    } else if http::Uri::try_from(body.trim()).is_ok() {
-        warn!(%eid, body, "rejecting URL-only question");
+    } else if !body.trim().contains(' ') {
+        warn!(%eid, body, "rejecting single-word question");
         return Err(http::StatusCode::BAD_REQUEST);
     }
 
