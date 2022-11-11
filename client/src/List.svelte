@@ -13,8 +13,8 @@
 		}
 		interval = setTimeout(() => {event = event;}, 5000);
 		let url = e.secret
-			? `http://localhost:3000/event/${e.id}/${e.secret}`
-			: `http://localhost:3000/event/${e.id}`;
+			? `http://localhost:3000/event/${e.id}/questions/${e.secret}`
+			: `http://localhost:3000/event/${e.id}/questions`;
 		let r = await fetch(url);
 		if (!r.ok) {
 			console.error(r);

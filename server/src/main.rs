@@ -40,6 +40,7 @@ struct Local {
 }
 
 mod ask;
+mod event;
 mod list;
 mod new;
 mod questions;
@@ -162,8 +163,9 @@ async fn main() -> Result<(), Error> {
 
     let app = Router::new()
         .route("/event", post(new::new))
-        .route("/event/:eid", get(list::list))
-        .route("/event/:eid/:secret", get(list::list_all))
+        .route("/event/:eid", get(event::event))
+        .route("/event/:eid/questions", get(list::list))
+        .route("/event/:eid/questions/:secret", get(list::list_all))
         .route(
             "/event/:eid/:secret/:qid/toggle/:property",
             post(toggle::toggle),

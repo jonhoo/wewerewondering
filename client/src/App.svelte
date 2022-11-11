@@ -3,6 +3,7 @@
 	import List from './List.svelte';
 
 	let event;
+	let problum;
 
 	async function hashchange() {
 		// the poor man's router!
@@ -23,6 +24,21 @@
 				};
 			}
 			if (new_event != event) {
+				let r = await fetch(`http://localhost:3000/event/${new_event.id}`).catch((e) => {
+					problum = e;
+					setTimeout(hashchange, 5000);
+					throw e;
+				});
+				if (!r.ok) {
+					if (r.status === 404) {
+						event = null;
+					} else {
+						setTimeout(hashchange, 5000);
+					}
+					problum = r;
+					return;
+				}
+				problum = null;
 				event = new_event;
 			}
 		} else {
@@ -47,6 +63,22 @@
 </style>
 
 <svelte:window on:hashchange={hashchange}/>
+
+{#if problum}
+	<div class="fixed bottom-4 left-0 right-0">
+	<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
+	{#if problum.status}
+		{#if problum.status === 404}
+		Event not found.
+		{:else}
+		Connection problems: {problum.status}
+		{/if}
+	{:else}
+		Lost connection to the server&hellip; retrying.
+	{/if}
+	</p>
+	</div>
+{/if}
 
 {#if event}
 	<main class="max-w-4xl mx-auto my-8 px-8">
