@@ -22,7 +22,7 @@ pub(super) enum UpDown {
 }
 
 impl Backend {
-    async fn vote(
+    pub(super) async fn vote(
         &self,
         qid: &Uuid,
         direction: UpDown,

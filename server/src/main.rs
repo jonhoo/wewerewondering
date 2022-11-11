@@ -6,12 +6,14 @@ use axum::routing::{get, post};
 use axum::Router;
 use http::StatusCode;
 use lambda_http::Error;
+use rand::prelude::SliceRandom;
 use serde::Deserialize;
 use std::{
     collections::HashMap,
     future::Future,
     pin::Pin,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 use tower::Layer;
 use tower_http::{compression::CompressionLayer, limit::RequestBodyLimitLayer};
@@ -129,6 +131,7 @@ async fn main() -> Result<(), Error> {
             state.ask(&seed_e, &qid, q.text).await.unwrap();
             qs.push((qid, q.created, q.likes, q.hidden, q.answered));
         }
+        let mut qids = Vec::new();
         {
             let Backend::Local(ref mut state): Backend = state else {
                 unreachable!();
@@ -141,8 +144,17 @@ async fn main() -> Result<(), Error> {
                 q.insert("answered", AttributeValue::Bool(answered));
                 q.insert("hidden", AttributeValue::Bool(hidden));
                 q.insert("when", AttributeValue::N(created.to_string()));
+                qids.push(qid);
             }
         }
+        let cheat = state.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                let qid = qids.choose(&mut rand::thread_rng()).unwrap();
+                let _ = cheat.vote(qid, vote::UpDown::Up).await;
+            }
+        });
         state
     } else {
         Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
