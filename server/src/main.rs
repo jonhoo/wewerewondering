@@ -40,7 +40,7 @@ struct Local {
 mod ask;
 mod list;
 mod new;
-mod question;
+mod questions;
 mod toggle;
 mod vote;
 
@@ -158,7 +158,7 @@ async fn main() -> Result<(), Error> {
         )
         .route("/event/:eid", post(ask::ask))
         .route("/vote/:qid/:updown", post(vote::vote))
-        .route("/question/:qid", get(question::question))
+        .route("/questions/:qids", get(questions::questions))
         .layer(Extension(backend))
         .layer(CompressionLayer::new().gzip(true).deflate(true))
         .layer(RequestBodyLimitLayer::new(512));

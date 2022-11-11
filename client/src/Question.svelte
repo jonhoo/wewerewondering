@@ -1,33 +1,24 @@
 <script>
-	import {votedFor, questionTexts} from './store.js';
+	import { onMount } from 'svelte';
+	import {votedFor, questionCache, questionData} from './store.js';
 
 	export let question;
 	export let event;
 	export let resort;
 
-	async function questionText(question, qs) {
-		if (qs[question.qid]) {
-			return qs[question.qid];
-		}
+	let now = new Date();
+	onMount(() => {
+		const interval = setInterval(() => {
+			now = new Date();
+		}, 3000);
 
-        // TODO: rate-limit how many we do of these at once
-        //       or at least batch the initial fetch.
-		let t = await fetch(`http://localhost:3000/question/${question.qid}`)
-			.then(r => r.text())
-			.then(data => {
-				questionTexts.update(qs => {
-					qs[question.qid] = data;
-					return qs;
-				});
-				return data;
-			});
-		return t;
-	}
+		return () => {
+			clearInterval(interval);
+		};
+	});
 
 	$: liked = question.qid in $votedFor;
-
-	let text;
-	$: questionText(question, $questionTexts).then(data => text = data);
+	$: q = questionData(question.qid, $questionCache);
 
 	async function vote() {
 		let dir;
@@ -79,6 +70,22 @@
 			return "p-4 bg-white";
 		}
 	}
+
+	function since(q, now) {
+		let when = new Date(q.when * 1000);
+		let dur = (now - when) / 1000;
+		if (dur > 24 * 60 * 60) {
+			return parseInt(dur / (24 * 60 * 60)) + "d ago";
+		} else if (dur > 60*60) {
+			return parseInt(dur / (60 * 60)) + "h ago";
+		} else if (dur > 60) {
+			return parseInt(dur / 60) + "m ago";
+		} else if (dur < 10) {
+			return "just now";
+		} else {
+			return parseInt(dur) + "s";
+		}
+	}
 </script>
 
 <article class={qclass(question)}>
@@ -92,9 +99,14 @@
 		<div class="font-bold text-black">{question.votes}</div>
 	</div>
 	<div class="pr-4 flex-1">
-		<p class="text-xl">{text}</p>
+		{#await q}
+		<p class="text-xl">loading...</p>
+		{:then q}
+		<p class="text-xl">{q.text}</p>
+		<div class="text-slate-400 pt-1 text-right">
+		<span>{since(q, now)}</span>
 		{#if event.secret}
-			<div class="text-slate-400 pt-1 text-right">
+			—
 			{#if question.answered}
 				<button on:click={answered}>Mark as not answered</button>
 			{:else}
@@ -106,8 +118,9 @@
 			{:else}
 				<button on:click={hidden}>Hide</button>
 			{/if}
-			</div>
 		{/if}
+		</div>
+		{/await}
 	</div>
 	</div>
 </article>
