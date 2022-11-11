@@ -11,15 +11,19 @@
 		if (path.startsWith('/event')) {
 			const id = path.slice(7);
 			let i = id.indexOf("/");
+			let new_event;
 			if (i !== -1) {
-				event = {
+				new_event = {
 					"id": id.substring(0, i),
 					"secret": id.substring(i + 1)
 				};
 			} else {
-				event = {
+				new_event = {
 					"id": id
 				};
+			}
+			if (new_event != event) {
+				event = new_event;
 			}
 		} else {
 			event = null;
