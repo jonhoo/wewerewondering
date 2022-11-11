@@ -3,6 +3,7 @@
 
 	export let question;
 	export let event;
+	export let resort;
 
 	async function questionText(question, qs) {
 		if (qs[question.qid]) {
@@ -48,6 +49,8 @@
 		});
 		question.votes = resp.votes;
 		question = question;
+
+		resort();
 	}
 
 	async function toggle(what) {
