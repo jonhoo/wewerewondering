@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import Question from "./Question.svelte";
 	import { votedFor } from './store.js';
+	import { flip } from 'svelte/animate';
 
 	export let event;
 
@@ -107,7 +108,9 @@
 	<section class="pt-4">
 	<div class="flex flex-col divide-y">
 	{#each unanswered as question (question.qid)}
+		<div animate:flip="{{duration: 500}}">
 		<Question {event} bind:question={question} {resort} />
+		</div>
 	{/each}
 	</div>
 	</section>
@@ -115,7 +118,9 @@
 	<h2 class="text-2xl text-center text-green-700 mt-8 mb-4">Answered</h2>
 	<div class="flex flex-col divide-y">
 	{#each answered as question (question.qid)}
+		<div animate:flip="{{duration: 500}}">
 		<Question {event} bind:question={question} {resort} />
+		</div>
 	{/each}
 	</div>
 	</section>
@@ -124,7 +129,9 @@
 	<h2 class="text-2xl text-center text-slate-400 mt-8 mb-4">Hidden</h2>
 	<div class="flex flex-col divide-y">
 	{#each hidden as question (question.qid)}
+		<div animate:flip="{{duration: 500}}">
 		<Question {event} bind:question={question} {resort} />
+		</div>
 	{/each}
 	</div>
 	</section>
