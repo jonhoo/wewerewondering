@@ -46,7 +46,7 @@
 	});
 	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden)
 	$: answered = (questions || []).filter((q) => q.answered && !q.hidden)
-	$: hidden = (questions || []).filter((q) => !q.hidden)
+	$: hidden = (questions || []).filter((q) => q.hidden)
 
 	const resort = () => {
 		questions = questions.sort((a, b) => { return b.votes - a.votes; });
