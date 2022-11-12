@@ -1294,31 +1294,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "aws-config",
- "aws-sdk-dynamodb",
- "aws-smithy-http",
- "aws-smithy-types",
- "axum",
- "http",
- "hyper",
- "lambda_http",
- "lambda_runtime",
- "rand",
- "serde",
- "serde_json",
- "tokio",
- "tower",
- "tower-http",
- "tower-service",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
 name = "sharded-slab"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1727,6 +1702,31 @@ checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "wewerewondering-api"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-smithy-http",
+ "aws-smithy-types",
+ "axum",
+ "http",
+ "hyper",
+ "lambda_http",
+ "lambda_runtime",
+ "rand",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tower-service",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
