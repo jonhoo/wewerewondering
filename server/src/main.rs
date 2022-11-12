@@ -6,14 +6,11 @@ use axum::routing::{get, post};
 use axum::Router;
 use http::StatusCode;
 use lambda_http::Error;
-use rand::prelude::SliceRandom;
-use serde::Deserialize;
 use std::{
     collections::HashMap,
     future::Future,
     pin::Pin,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 use tower::Layer;
 use tower_http::{compression::CompressionLayer, limit::RequestBodyLimitLayer};
@@ -27,6 +24,7 @@ use tracing::{debug, error, info, trace, warn};
 const SEED: &str = include_str!("test.json");
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 enum Backend {
     Dynamo(aws_sdk_dynamodb::Client),
     Local(Arc<Mutex<Local>>),
@@ -97,17 +95,6 @@ fn mint_service_error<E>(e: E) -> SdkError<E> {
     }
 }
 
-#[cfg(debug_assertions)]
-#[derive(Deserialize)]
-struct LiveAskQuestion {
-    likes: usize,
-    text: String,
-    hidden: bool,
-    answered: bool,
-    #[serde(rename = "createTimeUnix")]
-    created: usize,
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
@@ -116,9 +103,23 @@ async fn main() -> Result<(), Error> {
         .without_time()
         .init();
 
-    let config = aws_config::load_from_env().await;
+    #[cfg(debug_assertions)]
+    let backend = {
+        use rand::prelude::SliceRandom;
+        use serde::Deserialize;
+        use std::time::Duration;
 
-    let backend = if cfg!(debug_assertions) {
+        #[cfg(debug_assertions)]
+        #[derive(Deserialize)]
+        struct LiveAskQuestion {
+            likes: usize,
+            text: String,
+            hidden: bool,
+            answered: bool,
+            #[serde(rename = "createTimeUnix")]
+            created: usize,
+        }
+
         let mut state = Local::default();
         let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
         let seed_e = "00000000-0000-0000-0000-000000000000";
@@ -157,7 +158,10 @@ async fn main() -> Result<(), Error> {
             }
         });
         state
-    } else {
+    };
+    #[cfg(not(debug_assertions))]
+    let backend = {
+        let config = aws_config::load_from_env().await;
         Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
     };
 
