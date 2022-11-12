@@ -13,8 +13,8 @@
 		}
 		interval = setTimeout(() => {event = event;}, 5000);
 		let url = e.secret
-			? `http://localhost:3000/event/${e.id}/questions/${e.secret}`
-			: `http://localhost:3000/event/${e.id}/questions`;
+			? `/api/event/${e.id}/questions/${e.secret}`
+			: `/api/event/${e.id}/questions`;
 		let r = await fetch(url);
 		if (!r.ok) {
 			console.error(r);
@@ -65,7 +65,7 @@
 			break;
 		}
 		// TODO: handle error
-		let resp = await fetch(`http://localhost:3000/event/${event.id}`, {
+		let resp = await fetch(`/api/event/${event.id}`, {
 			"method": "POST",
 			"body": q,
 		});

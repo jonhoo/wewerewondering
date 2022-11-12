@@ -163,14 +163,14 @@ async fn main() -> Result<(), Error> {
 
     let app = Router::new()
         .route("/event", post(new::new))
+        .route("/event/:eid", post(ask::ask))
         .route("/event/:eid", get(event::event))
         .route("/event/:eid/questions", get(list::list))
         .route("/event/:eid/questions/:secret", get(list::list_all))
         .route(
-            "/event/:eid/:secret/:qid/toggle/:property",
+            "/event/:eid/questions/:secret/:qid/toggle/:property",
             post(toggle::toggle),
         )
-        .route("/event/:eid", post(ask::ask))
         .route("/vote/:qid/:updown", post(vote::vote))
         .route("/questions/:qids", get(questions::questions))
         .layer(Extension(backend))

@@ -27,7 +27,7 @@
 		} else {
 			dir = "up";
 		}
-		let resp = await fetch(`http://localhost:3000/vote/${question.qid}/${dir}`, {
+		let resp = await fetch(`/api/vote/${question.qid}/${dir}`, {
 			"method": "POST",
 		}).then(r => r.json());
 		votedFor.update(vf => {
@@ -45,7 +45,7 @@
 	}
 
 	async function toggle(what) {
-		await fetch(`http://localhost:3000/event/${event.id}/${event.secret}/${question.qid}/toggle/${what}`, {
+		await fetch(`/api/event/${event.id}/questions/${event.secret}/${question.qid}/toggle/${what}`, {
 			"method": "POST",
 		});
 		question[what] = !question[what];

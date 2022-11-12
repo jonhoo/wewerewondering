@@ -24,7 +24,7 @@
 				};
 			}
 			if (new_event != event) {
-				let r = await fetch(`http://localhost:3000/event/${new_event.id}`).catch((e) => {
+				let r = await fetch(`/api/event/${new_event.id}`).catch((e) => {
 					problum = e;
 					setTimeout(hashchange, 5000);
 					throw e;
@@ -47,10 +47,10 @@
 	}
 
 	async function create() {
-		let resp = await fetch(`http://localhost:3000/event`, {
+		let resp = await fetch(`/api/event`, {
 			"method": "POST",
 		}).then(r => r.json());
-		window.location.hash = `/event/${resp.id}/${resp.secret}`;
+		window.location.hash = `/api/event/${resp.id}/${resp.secret}`;
 	}
 
 	onMount(hashchange);

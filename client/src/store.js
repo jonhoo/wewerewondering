@@ -85,7 +85,7 @@ export async function questionData(qid, qs) {
 	qids.sort();
 	let arg = qids.join(",");
 	// and go!
-	let data = await fetch(`http://localhost:3000/questions/${arg}`);
+	let data = await fetch(`/api/questions/${arg}`);
 	let json = await data.json();
 	// store back to cache
 	questionCache.update(qs => {
