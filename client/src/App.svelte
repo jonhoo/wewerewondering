@@ -5,9 +5,8 @@
 	let event;
 	let problum;
 
-	async function hashchange() {
-		// the poor man's router!
-		const path = window.location.hash.slice(1);
+	async function popstate() {
+		const path = window.location.pathname;
 
 		if (path.startsWith('/event')) {
 			const id = path.slice(7);
@@ -50,10 +49,12 @@
 		let resp = await fetch(`/api/event`, {
 			"method": "POST",
 		}).then(r => r.json());
-		window.location.hash = `/api/event/${resp.id}/${resp.secret}`;
+		// TODO: on failure
+		history.pushState(resp, `Q&A ${resp.id} (host view)`, `/event/${resp.id}/${resp.secret}`);
+		await popstate();
 	}
 
-	onMount(hashchange);
+	onMount(popstate);
 </script>
 
 <style global lang="postcss">
@@ -62,7 +63,7 @@
 @tailwind base;
 </style>
 
-<svelte:window on:hashchange={hashchange}/>
+<svelte:window on:popstate={popstate}/>
 
 {#if problum}
 	<div class="fixed bottom-4 left-0 right-0">
