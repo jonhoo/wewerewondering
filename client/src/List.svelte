@@ -61,6 +61,7 @@
 			}
 			if (q.match(/^\s*\S*\s*$/)) {
 				alert("Use at least two words in your question.");
+				continue;
 			}
 			break;
 		}
