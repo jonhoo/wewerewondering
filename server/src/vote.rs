@@ -95,32 +95,61 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let eid = Uuid::new_v4();
-        let secret = "cargo-test";
-        let _ = backend.new(&eid, secret).await.unwrap();
-        let qid1 = Uuid::new_v4();
-        backend.ask(&eid, &qid1, "hello world").await.unwrap();
-        let qid2 = Uuid::new_v4();
-        backend.ask(&eid, &qid2, "hello moon").await.unwrap();
+        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let _secret = e["secret"].as_str().unwrap();
+        let q1 = crate::ask::ask(
+            Path(eid.clone()),
+            String::from("hello world"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
+        let qid1 = Uuid::parse_str(q1["id"].as_str().unwrap()).unwrap();
+        let q2 = crate::ask::ask(
+            Path(eid.clone()),
+            String::from("hello moon"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
+        let qid2 = Uuid::parse_str(q2["id"].as_str().unwrap()).unwrap();
 
-        let check = |qids: aws_sdk_dynamodb::output::QueryOutput, expect: &[(&Uuid, usize)]| {
-            let qs = qids.items().into_iter().flatten();
-            for (was, should_be) in qs.zip(expect) {
-                assert_eq!(was["id"].as_s().unwrap(), &should_be.0.to_string());
-                assert_eq!(was["votes"].as_n().unwrap(), &should_be.1.to_string());
+        let check = |qs: serde_json::Value, expect: &[(&Uuid, u64)]| {
+            let qs = qs.as_array().unwrap();
+            for (was, should_be) in qs.iter().zip(expect) {
+                assert_eq!(was["qid"].as_str().unwrap(), should_be.0.to_string());
+                assert_eq!(was["votes"].as_u64().unwrap(), should_be.1);
             }
         };
 
-        backend.vote(&qid2, UpDown::Up).await.unwrap();
+        super::vote(Path((qid2.clone(), UpDown::Up)), Extension(backend.clone()))
+            .await
+            .unwrap();
         check(
-            backend.list(&eid, false).await.unwrap(),
+            crate::list::list(Path(eid.clone()), Extension(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
             &[(&qid2, 2), (&qid1, 1)],
         );
 
-        backend.vote(&qid1, UpDown::Up).await.unwrap();
-        backend.vote(&qid2, UpDown::Down).await.unwrap();
+        super::vote(Path((qid1.clone(), UpDown::Up)), Extension(backend.clone()))
+            .await
+            .unwrap();
+        super::vote(
+            Path((qid2.clone(), UpDown::Down)),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
         check(
-            backend.list(&eid, false).await.unwrap(),
+            crate::list::list(Path(eid.clone()), Extension(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
             &[(&qid1, 2), (&qid2, 1)],
         );
 

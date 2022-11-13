@@ -133,9 +133,9 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let eid = Uuid::new_v4();
-        let secret = "cargo-test";
-        let _ = backend.new(&eid, secret).await.unwrap();
+        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let _secret = e["secret"].as_str().unwrap();
         backend.delete(&eid).await;
     }
 

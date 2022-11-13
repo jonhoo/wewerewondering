@@ -96,11 +96,17 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let eid = Uuid::new_v4();
-        let secret = "cargo-test";
-        let _ = backend.new(&eid, secret).await.unwrap();
-        let qid = Uuid::new_v4();
-        backend.ask(&eid, &qid, "hello world").await.unwrap();
+        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let _secret = e["secret"].as_str().unwrap();
+        let q = super::ask(
+            Path(eid.clone()),
+            String::from("hello world"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
+        let _qid = Uuid::parse_str(q["id"].as_str().unwrap()).unwrap();
         // the list test checks that it's actually returned
         backend.delete(&eid).await;
     }

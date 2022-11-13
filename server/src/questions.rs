@@ -194,31 +194,38 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let eid = Uuid::new_v4();
-        let secret = "cargo-test";
-        let _ = backend.new(&eid, secret).await.unwrap();
-        let qid1 = Uuid::new_v4();
-        let qid1_v = AttributeValue::S(qid1.to_string());
-        backend.ask(&eid, &qid1, "hello world").await.unwrap();
-        let qid2 = Uuid::new_v4();
-        let qid2_v = AttributeValue::S(qid2.to_string());
-        backend.ask(&eid, &qid2, "hello moon").await.unwrap();
+        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let _secret = e["secret"].as_str().unwrap();
+        let q1 = crate::ask::ask(
+            Path(eid.clone()),
+            String::from("hello world"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
+        let qid1 = q1["id"].as_str().unwrap();
+        let q2 = crate::ask::ask(
+            Path(eid.clone()),
+            String::from("hello moon"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
+        let qid2 = q2["id"].as_str().unwrap();
 
-        let qids = backend
-            .questions(&[qid1.clone(), qid2.clone()])
+        let qids = super::questions(Path(format!("{qid1},{qid2}")), Extension(backend.clone()))
             .await
+            .1
             .unwrap();
 
-        let qids = qids.responses().unwrap();
-        let qids = &qids["questions"];
-        let q1 = qids.iter().find(|q| q["id"] == qid1_v).unwrap();
-        assert_eq!(q1["id"], AttributeValue::S(qid1.to_string()));
-        assert_eq!(q1["text"], AttributeValue::S("hello world".to_string()));
-        assert!(matches!(q1["when"], AttributeValue::N(_)));
-        let q2 = qids.iter().find(|q| q["id"] == qid2_v).unwrap();
-        assert_eq!(q2["id"], AttributeValue::S(qid2.to_string()));
-        assert_eq!(q2["text"], AttributeValue::S("hello moon".to_string()));
-        assert!(matches!(q2["when"], AttributeValue::N(_)));
+        let qids = qids.as_object().unwrap();
+        let q1 = &qids[qid1];
+        assert_eq!(q1["text"], "hello world");
+        assert!(q1["when"].is_u64());
+        let q2 = &qids[qid2];
+        assert_eq!(q2["text"], "hello moon");
+        assert!(q2["when"].is_u64());
 
         backend.delete(&eid).await;
     }

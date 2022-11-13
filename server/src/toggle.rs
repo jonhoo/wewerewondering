@@ -100,30 +100,32 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let eid = Uuid::new_v4();
-        let secret = "cargo-test";
-        let _ = backend.new(&eid, secret).await.unwrap();
-        let qid = Uuid::new_v4();
-        let qid_v = AttributeValue::S(qid.to_string());
-        backend.ask(&eid, &qid, "hello world").await.unwrap();
+        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let secret = e["secret"].as_str().unwrap();
+        let q = crate::ask::ask(
+            Path(eid.clone()),
+            String::from("hello world"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
+        let qid = q["id"].as_str().unwrap();
+        let qid_u = Uuid::parse_str(qid).unwrap();
 
-        let check = |qids: aws_sdk_dynamodb::output::QueryOutput,
-                     expect: Option<(bool, bool, usize)>| {
-            let q = qids
-                .items()
-                .into_iter()
-                .flatten()
-                .find(|q| q["id"] == qid_v);
+        let check = |qids: serde_json::Value, expect: Option<(bool, bool, u64)>| {
+            let qids = qids.as_array().unwrap();
+            let q = qids.iter().find(|q| dbg!(&q["qid"]) == dbg!(qid));
             if let Some((hidden, answered, votes)) = expect {
                 assert_ne!(
                     q, None,
                     "newly created question {qid} was not listed in {qids:?}"
                 );
                 let q = q.unwrap();
-                assert_eq!(q["votes"], AttributeValue::N(votes.to_string()));
-                assert_eq!(q["answered"], AttributeValue::Bool(answered));
-                assert_eq!(q["hidden"], AttributeValue::Bool(hidden));
-                assert_eq!(qids.count(), 1, "extra questions in response: {qids:?}");
+                assert_eq!(q["votes"].as_u64().unwrap(), votes);
+                assert_eq!(q["answered"].as_bool().unwrap(), answered);
+                assert_eq!(q["hidden"].as_bool().unwrap(), hidden);
+                assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
             } else {
                 assert_eq!(
                     q, None,
@@ -133,26 +135,81 @@ mod tests {
         };
 
         // only admin should see hidden
-        backend.toggle(&qid, Property::Hidden, true).await.unwrap();
+        super::toggle(
+            Path((
+                eid.clone(),
+                secret.to_string(),
+                qid_u.clone(),
+                Property::Hidden,
+            )),
+            String::from("on"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
         check(
-            backend.list(&eid, true).await.unwrap(),
+            crate::list::list_all(
+                Path((eid.clone(), secret.to_string())),
+                Extension(backend.clone()),
+            )
+            .await
+            .1
+            .unwrap()
+            .0,
             Some((true, false, 1)),
         );
-        check(backend.list(&eid, false).await.unwrap(), None);
+        check(
+            crate::list::list(Path(eid.clone()), Extension(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
+            None,
+        );
 
         // should toggle back
-        backend.toggle(&qid, Property::Hidden, false).await.unwrap();
+        super::toggle(
+            Path((
+                eid.clone(),
+                secret.to_string(),
+                qid_u.clone(),
+                Property::Hidden,
+            )),
+            String::from("off"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
         // and should now show up as answered
-        backend
-            .toggle(&qid, Property::Answered, true)
-            .await
-            .unwrap();
+        super::toggle(
+            Path((
+                eid.clone(),
+                secret.to_string(),
+                qid_u.clone(),
+                Property::Answered,
+            )),
+            String::from("on"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
         check(
-            backend.list(&eid, true).await.unwrap(),
+            crate::list::list_all(
+                Path((eid.clone(), secret.to_string())),
+                Extension(backend.clone()),
+            )
+            .await
+            .1
+            .unwrap()
+            .0,
             Some((false, true, 1)),
         );
         check(
-            backend.list(&eid, false).await.unwrap(),
+            crate::list::list(Path(eid.clone()), Extension(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
             Some((false, true, 1)),
         );
 

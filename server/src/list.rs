@@ -224,32 +224,49 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let eid = Uuid::new_v4();
-        let secret = "cargo-test";
-        let _ = backend.new(&eid, secret).await.unwrap();
-        let qid = Uuid::new_v4();
-        let qid_v = AttributeValue::S(qid.to_string());
-        backend.ask(&eid, &qid, "hello world").await.unwrap();
+        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let secret = e["secret"].as_str().unwrap();
+        let q = crate::ask::ask(
+            Path(eid.clone()),
+            String::from("hello world"),
+            Extension(backend.clone()),
+        )
+        .await
+        .unwrap();
+        let qid = q["id"].as_str().unwrap();
 
-        let check = |qids: QueryOutput| {
-            let q = qids
-                .items()
-                .into_iter()
-                .flatten()
-                .find(|q| q["id"] == qid_v);
+        let check = |qids: serde_json::Value| {
+            let qids = qids.as_array().unwrap();
+            let q = qids.iter().find(|q| q["qid"] == qid);
             assert!(
                 q.is_some(),
                 "newly created question {qid} was not listed in {qids:?}"
             );
             let q = q.unwrap();
-            assert_eq!(q["votes"], AttributeValue::N(1.to_string()));
-            assert_eq!(q["answered"], AttributeValue::Bool(false));
-            assert_eq!(q["hidden"], AttributeValue::Bool(false));
-            assert_eq!(qids.count(), 1, "extra questions in response: {qids:?}");
+            assert_eq!(q["votes"], 1);
+            assert_eq!(q["answered"], false);
+            assert_eq!(q["hidden"], false);
+            assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
         };
 
-        check(backend.list(&eid, true).await.unwrap());
-        check(backend.list(&eid, false).await.unwrap());
+        check(
+            super::list_all(
+                Path((eid.clone(), secret.to_string())),
+                Extension(backend.clone()),
+            )
+            .await
+            .1
+            .unwrap()
+            .0,
+        );
+        check(
+            super::list(Path(eid.clone()), Extension(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
+        );
 
         backend.delete(&eid).await;
     }
