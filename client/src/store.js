@@ -50,7 +50,6 @@ export async function questionData(qid, qs) {
 	let first = Object.keys(batch).length === 0;
 	batch[qid] = [promise, resolve_p, reject_p];
 
-	// TODO: max batch size for DynamoDB: 100 items
 	if (Object.keys(fetching).length > 0) {
 		if (first) {
 			// it's our job to do the next fetch
@@ -78,32 +77,65 @@ export async function questionData(qid, qs) {
 		reject = reject1;
 	});
 
-	// :ake the current batch of qids (and their promises).
-	fetching = batch;
-	batch = {};
-	// sort to improve cache hit rate
-	let qids = Object.entries(fetching).map(([qid, resolve, reject]) => qid);
-	qids.sort();
-	let arg = qids.join(",");
-	// and go!
-	// TODO: handle failure
-	let data = await fetch(`/api/questions/${arg}`);
-	let json = await data.json();
-	// store back to cache
-	questionCache.update(qs => {
-		for (const [qid, q] of Object.entries(json)) {
-			qs[qid] = q;
+	while (true) {
+		// make the current batch of qids (and their promises).
+		fetching = batch;
+		batch = {};
+		// sort to improve cache hit rate
+		let qids = Object.entries(fetching).map(([qid, resolve, reject]) => qid);
+		// dynamodb can fetch at most 100 keys, and at most 16MB,
+		// whichever is smaller. for 16MB to be smaller, entries
+		// would need to be >160k. we project id, text, and when.
+		// text is the only free-form field, and it's limited to 1k by
+		// the max request body size, so 100 will always be limit we
+		// care about. we want to make sure we don't _send_ more than
+		// 100 keys, because then the whole query will fail.
+		//
+		// separately, by keeping batches smaller, we increase the
+		// chances of cache hits becaues it's more likely two clients
+		// will request the same set of questions. so, we pick a number
+		// that's small-ish.
+		//
+		// ref https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchGetItem.html
+		if (qids.length > 25) {
+			qids = qids.slice(0, 25);
 		}
-		return qs;
-	});
-	// resolve anyone who's waiting
-	for (const [qid, [_, resolve, reject]] of Object.entries(fetching)) {
-		// TODO: not guaranteed that dynamo gave us back all the keys we requested
-		resolve(json[qid]);
+		qids.sort();
+		let arg = qids.join(",");
+		// and go!
+		// TODO: handle failure
+		let data = await fetch(`/api/questions/${arg}`);
+		let json = await data.json();
+		// store back to cache
+		questionCache.update(qs => {
+			for (const [qid, q] of Object.entries(json)) {
+				qs[qid] = q;
+			}
+			return qs;
+		});
+		// resolve anyone who's waiting
+		let added_back_to_batch = 0;
+		for (const [qid, [pr, res, rej]] of Object.entries(fetching)) {
+			// dynamodb does not guarantee that we get responses for all
+			// the keys, so we need to let them leak over into the next
+			// batch.
+			if (qid in json) {
+				res(json[qid]);
+			} else {
+				added_back_to_batch += 1;
+				batch[qid] = [pr, res, rej];
+			}
+		}
+		fetching = {};
+		if (added_back_to_batch > 0 && Object.keys(batch).length === added_back_to_batch) {
+			// we created a new batch and there's no-one else to
+			// pick it up, so it's on us.
+			continue;
+		}
+		// clear next batch to go
+		resolve(true);
+		break;
 	}
-	// and clear next batch to go
-	fetching = {};
-	resolve(true);
 
 	return await promise;
 }

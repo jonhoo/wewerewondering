@@ -190,7 +190,7 @@ async fn main() -> Result<(), Error> {
         .route("/vote/:qid/:updown", post(vote::vote))
         .route("/questions/:qids", get(questions::questions))
         .layer(Extension(backend))
-        .layer(RequestBodyLimitLayer::new(512));
+        .layer(RequestBodyLimitLayer::new(1024));
 
     if cfg!(debug_assertions) {
         let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
