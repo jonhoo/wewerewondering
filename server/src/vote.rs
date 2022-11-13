@@ -35,9 +35,10 @@ impl Backend {
                     .key("id", AttributeValue::S(qid.to_string()));
 
                 let upd = match direction {
-                    UpDown::Up => upd.update_expression("SET votes = votes + 1"),
-                    UpDown::Down => upd.update_expression("SET votes = votes - 1"),
+                    UpDown::Up => upd.update_expression("SET votes = votes + :one"),
+                    UpDown::Down => upd.update_expression("SET votes = votes - :one"),
                 };
+                let upd = upd.expression_attribute_values(":one", AttributeValue::N(1.to_string()));
 
                 upd.return_values(ReturnValue::AllNew).send().await
             }
@@ -86,5 +87,54 @@ pub(super) async fn vote(
             error!(%qid, error = %e, "dynamodb request to vote for question failed");
             Err(http::StatusCode::INTERNAL_SERVER_ERROR)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn inner(backend: Backend) {
+        let eid = Uuid::new_v4();
+        let secret = "cargo-test";
+        let _ = backend.new(&eid, secret).await.unwrap();
+        let qid1 = Uuid::new_v4();
+        backend.ask(&eid, &qid1, "hello world").await.unwrap();
+        let qid2 = Uuid::new_v4();
+        backend.ask(&eid, &qid2, "hello moon").await.unwrap();
+
+        let check = |qids: aws_sdk_dynamodb::output::QueryOutput, expect: &[(&Uuid, usize)]| {
+            let qs = qids.items().into_iter().flatten();
+            for (was, should_be) in qs.zip(expect) {
+                assert_eq!(was["id"].as_s().unwrap(), &should_be.0.to_string());
+                assert_eq!(was["votes"].as_n().unwrap(), &should_be.1.to_string());
+            }
+        };
+
+        backend.vote(&qid2, UpDown::Up).await.unwrap();
+        check(
+            backend.list(&eid, false).await.unwrap(),
+            &[(&qid2, 2), (&qid1, 1)],
+        );
+
+        backend.vote(&qid1, UpDown::Up).await.unwrap();
+        backend.vote(&qid2, UpDown::Down).await.unwrap();
+        check(
+            backend.list(&eid, false).await.unwrap(),
+            &[(&qid1, 2), (&qid2, 1)],
+        );
+
+        backend.delete(&eid).await;
+    }
+
+    #[tokio::test]
+    async fn local() {
+        inner(Backend::local().await).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn dynamodb() {
+        inner(Backend::dynamo().await).await;
     }
 }
