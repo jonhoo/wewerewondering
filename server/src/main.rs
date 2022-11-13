@@ -13,7 +13,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tower::Layer;
-use tower_http::limit::RequestBodyLimitLayer;
+use tower_http::{limit::RequestBodyLimitLayer, trace::TraceLayer};
 use tower_service::Service;
 use uuid::Uuid;
 
@@ -201,6 +201,7 @@ async fn main() -> Result<(), Error> {
         // If we compile in release mode, use the Lambda Runtime
         // To run with AWS Lambda runtime, wrap in our `LambdaLayer`
         let app = tower::ServiceBuilder::new()
+            .layer(TraceLayer::new_for_http())
             .layer(LambdaLayer::default())
             .service(app);
 
