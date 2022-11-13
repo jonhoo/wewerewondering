@@ -90,3 +90,29 @@ pub(super) async fn ask(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn inner(backend: Backend) {
+        let eid = Uuid::new_v4();
+        let secret = "cargo-test";
+        let _ = backend.new(&eid, secret).await.unwrap();
+        let qid = Uuid::new_v4();
+        backend.ask(&eid, &qid, "hello world").await.unwrap();
+        // the list test checks that it's actually returned
+        backend.delete(&eid).await;
+    }
+
+    #[tokio::test]
+    async fn local() {
+        inner(Backend::local().await).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn dynamodb() {
+        inner(Backend::dynamo().await).await;
+    }
+}
