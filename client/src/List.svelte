@@ -234,14 +234,25 @@
 	{/if}
 
 	<section class="pt-4">
-	<div class="flex flex-col divide-y">
-	{#each unanswered as question (question.qid)}
-		<div animate:flip="{{duration: 500}}">
-		<Question {event} bind:question={question} />
+	{#if unanswered.length > 0}
+		<div class="flex flex-col divide-y">
+		{#each unanswered as question (question.qid)}
+			<div animate:flip="{{duration: 500}}">
+			<Question {event} bind:question={question} />
+			</div>
+		{/each}
 		</div>
-	{/each}
-	</div>
+	{:else}
+		<h2 class="text-center text-slate-500 text-2xl my-8">
+			{#if answered.length > 0}
+			No unanswered questions.
+			{:else}
+			No unanswered questions (yet).
+			{/if}
+		</h2>
+	{/if}
 	</section>
+	{#if answered.length > 0}
 	<section>
 	<h2 class="text-2xl text-center text-green-700 mt-8 mb-4">Answered</h2>
 	<div class="flex flex-col divide-y">
@@ -252,7 +263,8 @@
 	{/each}
 	</div>
 	</section>
-	{#if event.secret}
+	{/if}
+	{#if event.secret && hidden.length > 0}
 	<section>
 	<h2 class="text-2xl text-center text-slate-400 mt-8 mb-4">Hidden</h2>
 	<div class="flex flex-col divide-y">
