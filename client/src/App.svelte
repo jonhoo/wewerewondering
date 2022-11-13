@@ -72,7 +72,7 @@
 		{#if problum.status === 404}
 		Event not found.
 		{:else}
-		Connection problems: {problum.status}
+		The server is having issues; got {problum.status} {problum.statusText}.
 		{/if}
 	{:else}
 		Lost connection to the server&hellip; retrying.

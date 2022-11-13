@@ -253,13 +253,13 @@
 	<div class="fixed bottom-4 left-0 right-0">
 	<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
 	{#if !problum.status}
-		Could not establish connection to the server.
+		Lost connection to the server&hellip; retrying.
 	{:else if problum.status == 404}
 		Event not found.
 	{:else if problum.status == 401}
 		Permission denied.
 	{:else}
-		The server is having issues; got {problum.status} status code.
+		The server is having issues; got {problum.status} {problum.statusText}.
 	{/if}
 	</p>
 	</div>
