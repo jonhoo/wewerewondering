@@ -11,7 +11,9 @@
 		if (interval) {
 			clearTimeout(interval);
 		}
-		interval = setTimeout(() => {event = event;}, 5000);
+		let next = e.secret ? 3000 : 10000;
+		// set early so we'll retry even if request fails
+		interval = setTimeout(() => {event = event;}, next);
 		let url = e.secret
 			? `/api/event/${e.id}/questions/${e.secret}`
 			: `/api/event/${e.id}/questions`;
@@ -23,7 +25,8 @@
 		if (interval) {
 			clearTimeout(interval);
 		}
-		interval = setTimeout(() => {event = event;}, 5000);
+		// re-set timeout so we count from when the reload actually happened
+		interval = setTimeout(() => {event = event;}, next);
 		return await r.json();
 	}
 
