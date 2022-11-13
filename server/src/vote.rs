@@ -100,7 +100,10 @@ mod tests {
         let _secret = e["secret"].as_str().unwrap();
         let q1 = crate::ask::ask(
             Path(eid.clone()),
-            String::from("hello world"),
+            Json(crate::ask::Question {
+                body: "hello world".into(),
+                asker: None,
+            }),
             Extension(backend.clone()),
         )
         .await
@@ -108,7 +111,10 @@ mod tests {
         let qid1 = Uuid::parse_str(q1["id"].as_str().unwrap()).unwrap();
         let q2 = crate::ask::ask(
             Path(eid.clone()),
-            String::from("hello moon"),
+            Json(crate::ask::Question {
+                body: "hello moon".into(),
+                asker: Some("person".into()),
+            }),
             Extension(backend.clone()),
         )
         .await

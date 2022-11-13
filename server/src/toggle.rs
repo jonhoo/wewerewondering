@@ -98,6 +98,7 @@ pub(super) async fn toggle(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::Json;
 
     async fn inner(backend: Backend) {
         let e = crate::new::new(Extension(backend.clone())).await.unwrap();
@@ -105,7 +106,10 @@ mod tests {
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
             Path(eid.clone()),
-            String::from("hello world"),
+            Json(crate::ask::Question {
+                body: "hello world".into(),
+                asker: None,
+            }),
             Extension(backend.clone()),
         )
         .await

@@ -163,10 +163,20 @@
 			}
 			break;
 		}
+		let who = prompt("Want to leave a signature? (optional)");
+		if (!who || who.match(/^\s*$/)) {
+		    who = null;
+		}
 		// TODO: handle error
 		let resp = await fetch(`/api/event/${event.id}`, {
 			"method": "POST",
-			"body": q,
+			"headers": {
+				'Content-Type': 'application/json',
+			},
+			"body": JSON.stringify({
+				"body": q,
+				"asker": who,
+			}),
 		});
 		let json = await resp.json();
 		votedFor.update(vf => {

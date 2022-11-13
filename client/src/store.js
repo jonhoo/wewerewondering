@@ -101,12 +101,13 @@ export async function questionData(qid, qs) {
 		// sort to improve cache hit rate
 		let qids = Object.entries(fetching).map(([qid, resolve, reject]) => qid);
 		// dynamodb can fetch at most 100 keys, and at most 16MB,
-		// whichever is smaller. for 16MB to be smaller, entries
-		// would need to be >160k. we project id, text, and when.
-		// text is the only free-form field, and it's limited to 1k by
-		// the max request body size, so 100 will always be limit we
-		// care about. we want to make sure we don't _send_ more than
-		// 100 keys, because then the whole query will fail.
+		// whichever is smaller. for 16MB to be smaller, entries would
+		// need to be >160k. we project id, text, who, and when. text
+		// and who are the only free-form fields, and they're
+		// collectively limited to 1k by the max request body size, so
+		// 100 will always be limit we care about. we want to make sure
+		// we don't _send_ more than 100 keys, because then the whole
+		// query will fail.
 		//
 		// separately, by keeping batches smaller, we increase the
 		// chances of cache hits becaues it's more likely two clients

@@ -229,7 +229,10 @@ mod tests {
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
             Path(eid.clone()),
-            String::from("hello world"),
+            Json(crate::ask::Question {
+                body: "hello world".into(),
+                asker: None,
+            }),
             Extension(backend.clone()),
         )
         .await

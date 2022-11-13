@@ -5,6 +5,7 @@ use aws_sdk_dynamodb::{
 use axum::extract::{Extension, Path};
 use axum::response::Json;
 use http::StatusCode;
+use serde::Deserialize;
 use std::{collections::HashMap, time::SystemTime};
 use uuid::Uuid;
 
@@ -16,13 +17,13 @@ impl Backend {
         &self,
         eid: &Uuid,
         qid: &Uuid,
-        text: impl Into<String>,
+        q: Question,
     ) -> Result<PutItemOutput, SdkError<PutItemError>> {
         let attrs = [
             ("id", AttributeValue::S(qid.to_string())),
             ("eid", AttributeValue::S(eid.to_string())),
             ("votes", AttributeValue::N(1.to_string())),
-            ("text", AttributeValue::S(text.into())),
+            ("text", AttributeValue::S(q.body.into())),
             (
                 "when",
                 AttributeValue::N(
@@ -42,6 +43,9 @@ impl Backend {
                 for (k, v) in attrs {
                     r = r.item(k, v);
                 }
+                if let Some(asker) = q.asker {
+                    r = r.item("who", AttributeValue::S(asker));
+                }
                 r.send().await
             }
             Self::Local(local) => {
@@ -52,7 +56,11 @@ impl Backend {
                     ..
                 } = &mut *local;
 
-                questions.insert(qid.clone(), HashMap::from_iter(attrs));
+                let mut question = HashMap::from_iter(attrs);
+                if let Some(asker) = q.asker {
+                    question.insert("who", AttributeValue::S(asker));
+                }
+                questions.insert(qid.clone(), question);
                 questions_by_eid
                     .get_mut(eid)
                     .expect("adding question to event that doesn't exist")
@@ -63,23 +71,29 @@ impl Backend {
     }
 }
 
+#[derive(Deserialize, Debug)]
+pub(super) struct Question {
+    pub(super) body: String,
+    pub(super) asker: Option<String>,
+}
+
 pub(super) async fn ask(
     Path(eid): Path<Uuid>,
-    body: String,
+    q: Json<Question>,
     Extension(dynamo): Extension<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    if body.trim().is_empty() {
+    if q.body.trim().is_empty() {
         warn!(%eid, "ignoring empty question");
         return Err(http::StatusCode::BAD_REQUEST);
-    } else if !body.trim().contains(' ') {
-        warn!(%eid, body, "rejecting single-word question");
+    } else if !q.body.trim().contains(' ') {
+        warn!(%eid, body = q.body, "rejecting single-word question");
         return Err(http::StatusCode::BAD_REQUEST);
     }
 
     // TODO: check that eid actually exists
     // TODO: UUIDv7
     let qid = uuid::Uuid::new_v4();
-    match dynamo.ask(&eid, &qid, &body).await {
+    match dynamo.ask(&eid, &qid, q.0).await {
         Ok(_) => {
             debug!(%eid, %qid, "created question");
             Ok(Json(serde_json::json!({ "id": qid.to_string() })))
@@ -101,7 +115,10 @@ mod tests {
         let _secret = e["secret"].as_str().unwrap();
         let q = super::ask(
             Path(eid.clone()),
-            String::from("hello world"),
+            Json(Question {
+                body: "hello world".into(),
+                asker: Some("person".into()),
+            }),
             Extension(backend.clone()),
         )
         .await

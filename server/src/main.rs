@@ -141,7 +141,17 @@ async fn main() -> Result<(), Error> {
         let mut qs = Vec::new();
         for q in seed {
             let qid = uuid::Uuid::new_v4();
-            state.ask(&seed_e, &qid, q.text).await.unwrap();
+            state
+                .ask(
+                    &seed_e,
+                    &qid,
+                    ask::Question {
+                        body: q.text,
+                        asker: None,
+                    },
+                )
+                .await
+                .unwrap();
             qs.push((qid, q.created, q.likes, q.hidden, q.answered));
         }
         let mut qids = Vec::new();

@@ -115,6 +115,9 @@
 		<p class="text-xl">{q.text}</p>
 		<div class="text-slate-400 pt-1 text-right">
 		<span>{since(q, now)}</span>
+		{#if q.who}
+		<span>by {q.who}</span>
+		{/if}
 		{#if event.secret}
 			—
 			{#if question.answered}

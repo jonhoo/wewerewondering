@@ -44,7 +44,7 @@ impl Backend {
                         "questions",
                         KeysAndAttributes::builder()
                             .set_keys(Some(keys))
-                            .projection_expression("id,#text,#when")
+                            .projection_expression("id,#text,#when,who")
                             .expression_attribute_names("#text", "text")
                             .expression_attribute_names("#when", "when")
                             .build(),
@@ -73,7 +73,7 @@ impl Backend {
                         String::from("questions"),
                         KeysAndAttributes::builder()
                             .set_keys(Some(unprocessed))
-                            .projection_expression("text,when")
+                            .projection_expression("text,when,who")
                             .build(),
                     )]))
                 };
@@ -88,7 +88,9 @@ impl Backend {
                                     questions
                                         .get(qid)?
                                         .iter()
-                                        .filter(|&(k, _)| matches!(*k, "id" | "text" | "when"))
+                                        .filter(|&(k, _)| {
+                                            matches!(*k, "id" | "text" | "when" | "who")
+                                        })
                                         .map(|(k, v)| (k.to_string(), v.clone()))
                                         .collect(),
                                 )
@@ -150,18 +152,22 @@ pub(super) async fn questions(
                         .and_then(|v| v.as_s().ok())
                         .and_then(|v| Uuid::parse_str(v).ok());
                     let text = q.get("text").and_then(|v| v.as_s().ok());
+                    let who = q.get("who").and_then(|v| v.as_s().ok());
                     let when = q
                         .get("when")
                         .and_then(|v| v.as_n().ok())
                         .and_then(|v| v.parse::<usize>().ok());
                     match (qid, text, when) {
-                        (Some(qid), Some(text), Some(when)) => Ok((
-                            qid.to_string(),
-                            serde_json::json!({
+                        (Some(qid), Some(text), Some(when)) => {
+                            let mut v = serde_json::json!({
                                 "text": text,
                                 "when": when,
-                            }),
-                        )),
+                            });
+                            if let Some(who) = who {
+                                v["who"] = who.clone().into();
+                            }
+                            Ok((qid.to_string(), v))
+                        }
                         _ => {
                             error!(?qids, ?q, "bad data types for id/text/when");
                             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -199,7 +205,10 @@ mod tests {
         let _secret = e["secret"].as_str().unwrap();
         let q1 = crate::ask::ask(
             Path(eid.clone()),
-            String::from("hello world"),
+            Json(crate::ask::Question {
+                body: "hello world".into(),
+                asker: None,
+            }),
             Extension(backend.clone()),
         )
         .await
@@ -207,7 +216,10 @@ mod tests {
         let qid1 = q1["id"].as_str().unwrap();
         let q2 = crate::ask::ask(
             Path(eid.clone()),
-            String::from("hello moon"),
+            Json(crate::ask::Question {
+                body: "hello moon".into(),
+                asker: Some("person".into()),
+            }),
             Extension(backend.clone()),
         )
         .await
@@ -222,9 +234,11 @@ mod tests {
         let qids = qids.as_object().unwrap();
         let q1 = &qids[qid1];
         assert_eq!(q1["text"], "hello world");
+        assert_eq!(q1["who"], serde_json::Value::Null);
         assert!(q1["when"].is_u64());
         let q2 = &qids[qid2];
         assert_eq!(q2["text"], "hello moon");
+        assert_eq!(q2["who"], "person");
         assert!(q2["when"].is_u64());
 
         backend.delete(&eid).await;
