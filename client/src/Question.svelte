@@ -93,7 +93,7 @@
 		} else if (dur < 10) {
 			return "just now";
 		} else {
-			return parseInt(dur) + "s";
+			return parseInt(dur) + "s ago";
 		}
 	}
 </script>
