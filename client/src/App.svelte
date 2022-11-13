@@ -84,6 +84,13 @@
 {#if event}
 	<main class="max-w-4xl mx-auto my-4 px-4">
 		<List {event} />
+		<div class="text-center text-slate-400 mt-4">
+			(
+			made
+			on <a class="hover:text-black" href="https://github.com/jonhoo/wewerewondering">github</a>
+			by <a class="hover:text-black" href="https://thesquareplanet.com/">jonhoo</a>
+			)
+		</div>
 	</main>
 {:else}
 	<div class="flex justify-center items-center h-screen">
