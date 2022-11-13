@@ -109,11 +109,7 @@ fn mint_service_error<E>(e: E) -> SdkError<E> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    tracing_subscriber::fmt()
-        // .with_max_level(tracing::Level::INFO)
-        .with_target(false)
-        .without_time()
-        .init();
+    tracing_subscriber::fmt().without_time().init();
 
     #[cfg(debug_assertions)]
     let backend = {
