@@ -28,12 +28,15 @@ impl Backend {
                     .index_name("top")
                     .scan_index_forward(false)
                     .key_condition_expression("eid = :eid")
-                    .expression_attribute_names("eid", eid.to_string());
+                    .expression_attribute_values(":eid", AttributeValue::S(eid.to_string()));
 
                 let query = if has_secret {
                     query
                 } else {
-                    query.filter_expression("NOT hidden")
+                    query
+                        .filter_expression("#hidden = :false")
+                        .expression_attribute_names("#hidden", "hidden".to_string())
+                        .expression_attribute_values(":false", AttributeValue::Bool(false))
                 };
 
                 query.send().await
@@ -70,6 +73,7 @@ impl Backend {
                 });
 
                 Ok(QueryOutput::builder()
+                    .set_count(Some(qs.len() as i32))
                     .set_items(Some(
                         qs.iter()
                             .filter_map(|qid| {
@@ -174,5 +178,52 @@ async fn list_inner(
             error!(%eid, error = %e, "dynamodb request for question list failed");
             Err(http::StatusCode::INTERNAL_SERVER_ERROR)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn inner(backend: Backend) {
+        let eid = Uuid::new_v4();
+        let secret = "cargo-test";
+        let _ = backend.new(&eid, secret).await.unwrap();
+        let qid = Uuid::new_v4();
+        let qid_v = AttributeValue::S(qid.to_string());
+        backend.ask(&eid, &qid, "hello world").await.unwrap();
+
+        let check = |qids: QueryOutput| {
+            let q = qids
+                .items()
+                .into_iter()
+                .flatten()
+                .find(|q| q["id"] == qid_v);
+            assert!(
+                q.is_some(),
+                "newly created question {qid} was not listed in {qids:?}"
+            );
+            let q = q.unwrap();
+            assert_eq!(q["votes"], AttributeValue::N(1.to_string()));
+            assert_eq!(q["answered"], AttributeValue::Bool(false));
+            assert_eq!(q["hidden"], AttributeValue::Bool(false));
+            assert_eq!(qids.count(), 1, "extra questions in response: {qids:?}");
+        };
+
+        check(backend.list(&eid, true).await.unwrap());
+        check(backend.list(&eid, false).await.unwrap());
+
+        backend.delete(&eid).await;
+    }
+
+    #[tokio::test]
+    async fn local() {
+        inner(Backend::local().await).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn dynamodb() {
+        inner(Backend::dynamo().await).await;
     }
 }

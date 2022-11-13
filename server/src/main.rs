@@ -30,6 +30,18 @@ enum Backend {
     Local(Arc<Mutex<Local>>),
 }
 
+#[cfg(test)]
+impl Backend {
+    async fn local() -> Self {
+        Backend::Local(Arc::new(Mutex::new(Local::default())))
+    }
+
+    async fn dynamo() -> Self {
+        let config = aws_config::load_from_env().await;
+        Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 struct Local {
     events: HashMap<Uuid, String>,
