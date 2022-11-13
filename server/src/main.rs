@@ -77,7 +77,7 @@ async fn check_secret(dynamo: &Backend, eid: &Uuid, secret: &str) -> Result<(), 
                         Ok(())
                     } else {
                         warn!(%eid, secret, "attempted to access event with incorrect secret");
-                        Err(StatusCode::FORBIDDEN)
+                        Err(StatusCode::UNAUTHORIZED)
                     }
                 }
                 Err(e) => {
@@ -92,7 +92,7 @@ async fn check_secret(dynamo: &Backend, eid: &Uuid, secret: &str) -> Result<(), 
             if events[eid] == secret {
                 Ok(())
             } else {
-                Err(StatusCode::FORBIDDEN)
+                Err(StatusCode::UNAUTHORIZED)
             }
         }
     }
