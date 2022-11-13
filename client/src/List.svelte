@@ -1,13 +1,13 @@
 <script>
 	import { onMount } from "svelte";
 	import Question from "./Question.svelte";
-	import { votedFor } from './store.js';
+	import { votedFor, localAdjustments } from './store.js';
 	import { flip } from 'svelte/animate';
 
 	export let event;
 
 	let interval;
-	async function loadEvents(e) {
+	async function loadQuestions(e) {
 		if (interval) {
 			clearTimeout(interval);
 		}
@@ -30,16 +30,15 @@
 		return await r.json();
 	}
 
-	let questions;
-	let problum;
 	// XXX: this ends up doing _two_ loads when the page initially opens
 	//      not sure why...
-	$: loadEvents(event).then((qs) => {
-		questions = qs;
+	let rawQuestions;
+	$: loadQuestions(event).then((qs) => {
+		rawQuestions = qs;
 		problum = null;
 	}).catch((r) => {
 		if (r.status === 404) {
-			questions = null;
+			rawQuestions = null;
 			problum = r;
 		} else {
 			// leave questions and just highlight (hopefully
@@ -47,13 +46,109 @@
 			problum = r;
 		}
 	});
+
+	// because of caching, we may receive a list of questions from the
+	// server that doesn't reflect changes we've made (voting, asking new
+	// questions, toggling hidden/answered). that's _very_ confusing.
+	// so, we keep track of every change we make and re-apply it onto what
+	// we get from the server until we observe the change in the server's
+	// response.
+	function adjustQuestions(rq, la, vf) {
+		if (rq === null || rq === undefined) {
+			return rq;
+		}
+		// deep-ish clone so we don't modify rawQuestions
+		let qs = rq.map((q) => Object.assign({}, q));
+
+		let removed = false;
+		let nowPresent = {};
+		for (const q of qs) {
+			for (const newQ of la.newQuestions) {
+				if (q.qid === newQ) {
+					console.debug("no longer need to add", newQ);
+					nowPresent[newQ] = true;
+				}
+			}
+		}
+		if (la.newQuestions.length > 0 || Object.keys(la.remap).length > 0) {
+			console.log("question list needs local adjustments");
+			let changed = Object.keys(nowPresent).length > 0;
+			la.newQuestions = la.newQuestions.filter((qid) => !(qid in nowPresent));
+			for (const newQ of la.newQuestions) {
+				console.info("add in", newQ);
+				qs.push({
+					"qid": newQ,
+					"hidden": false,
+					"answered": false,
+					"votes": 1,
+				});
+			}
+			for (let i = 0; i < qs.length; i++) {
+				let q = qs[i];
+				let qid = q.qid;
+				let adj = la.remap[qid];
+				if (!adj) {
+					continue;
+				}
+				console.debug("augment", qid);
+				if ("hidden" in adj) {
+					if (q.hidden === adj.hidden) {
+						console.debug("no longer need to adjust hidden");
+						delete la.remap[qid]["hidden"];
+						changed = true;
+					} else {
+						console.info("adjust hidden to", adj.hidden);
+						qs[i].hidden = adj.hidden;
+					}
+				}
+				if ("answered" in adj) {
+					if (q.answered === adj.answered) {
+						console.debug("no longer need to adjust answered");
+						delete la.remap[qid]["answered"];
+						changed = true;
+					} else {
+						console.info("adjust answered to", adj.answered);
+						qs[i].answered = adj.answered;
+					}
+				}
+				if ("voted_when" in adj) {
+					if (q.votes === adj.voted_when) {
+						console.info("adjust vote count from", q.votes);
+						// our vote likely isn't represented
+						if (vf[qid]) {
+							console.debug("adjust up");
+							qs[i].votes += 1;
+						} else {
+							console.debug("adjust down");
+							qs[i].votes -= 1;
+						}
+					} else {
+						console.debug("vote count has been updated from", adj.voted_when, "to", q.votes);
+						delete la.remap[qid]["voted_when"];
+						changed = true;
+					}
+				}
+				if (Object.keys(la.remap[qid]).length === 0) {
+					console.debug("no more adjustments");
+					delete la.remap[qid];
+					changed = true;
+				}
+			}
+			if (changed) {
+				console.log("local adjustments changed");
+				localAdjustments.set(la);
+			}
+		}
+		qs.sort((a, b) => { return b.votes - a.votes; });
+		return qs;
+	}
+
+
+	$: questions = adjustQuestions(rawQuestions, $localAdjustments, $votedFor);
+	let problum;
 	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden)
 	$: answered = (questions || []).filter((q) => q.answered && !q.hidden)
 	$: hidden = (questions || []).filter((q) => q.hidden)
-
-	const resort = () => {
-		questions = questions.sort((a, b) => { return b.votes - a.votes; });
-	}
 
 	async function ask() {
 		let q;
@@ -78,7 +173,10 @@
 			vf[json.id] = true;
 			return vf;
 		});
-		event = event;
+		localAdjustments.update(la => {
+			la.newQuestions.push(json.id);
+			return la;
+		});
 	}
 
 	let original_share_text = "Share event";
@@ -124,7 +222,7 @@
 	<div class="flex flex-col divide-y">
 	{#each unanswered as question (question.qid)}
 		<div animate:flip="{{duration: 500}}">
-		<Question {event} bind:question={question} {resort} />
+		<Question {event} bind:question={question} />
 		</div>
 	{/each}
 	</div>
@@ -134,7 +232,7 @@
 	<div class="flex flex-col divide-y">
 	{#each answered as question (question.qid)}
 		<div animate:flip="{{duration: 500}}">
-		<Question {event} bind:question={question} {resort} />
+		<Question {event} bind:question={question} />
 		</div>
 	{/each}
 	</div>
@@ -145,7 +243,7 @@
 	<div class="flex flex-col divide-y">
 	{#each hidden as question (question.qid)}
 		<div animate:flip="{{duration: 500}}">
-		<Question {event} bind:question={question} {resort} />
+		<Question {event} bind:question={question} />
 		</div>
 	{/each}
 	</div>

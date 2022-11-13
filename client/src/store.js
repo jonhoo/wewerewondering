@@ -10,6 +10,23 @@ votedFor.subscribe(value => {
     }
 });
 
+const storedLocalAdjustments = JSON.parse(localStorage.getItem("localAdjustments"));
+export const localAdjustments = writable(!storedLocalAdjustments ? {
+    "newQuestions": [
+	    // qid
+    ],
+    "remap": {
+	    // qid => { hidden: bool, answered: bool, voted_when: int }
+    }
+} : storedLocalAdjustments );
+localAdjustments.subscribe(value => {
+    if (value) {
+        localStorage.setItem("localAdjustments", JSON.stringify(value));
+    } else {
+        localStorage.removeItem("localAdjustments");
+    }
+});
+
 const storedQs = JSON.parse(localStorage.getItem("questions"));
 export const questionCache = writable(!storedQs ? {} : storedQs);
 questionCache.subscribe(value => {
@@ -145,5 +162,7 @@ window.addEventListener('storage', (e) => {
 		votedFor.set(JSON.parse(e.newValue));
 	} else if (e.key == "questions") {
 		questionCache.set(JSON.parse(e.newValue));
+	} else if (e.key == "localAdjustments") {
+		localAdjustments.set(JSON.parse(e.newValue));
 	}
 });

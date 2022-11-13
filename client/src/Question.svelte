@@ -1,10 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
-	import {votedFor, questionCache, questionData} from './store.js';
+	import {votedFor, questionCache, questionData, localAdjustments} from './store.js';
 
 	export let question;
 	export let event;
-	export let resort;
 
 	let now = new Date();
 	onMount(() => {
@@ -38,10 +37,16 @@
 			}
 			return vf;
 		});
-		question.votes = resp.votes;
-		question = question;
-
-		resort();
+		localAdjustments.update(la => {
+			let q = la.remap[question.qid] || {};
+			q["voted_when"] = question.votes;
+			la.remap[question.qid] = q;
+			return la;
+		});
+		// NOTE: we don't update the vote count here because it would
+		// mean we'd have an updated count for this question, but not
+		// for any others.
+		// question.votes = resp.votes;
 	}
 
 	async function toggle(what) {
@@ -49,8 +54,12 @@
 			"method": "POST",
 			"body": question[what] ? "off" : "on",
 		});
-		question[what] = !question[what];
-		question = question;
+		localAdjustments.update(la => {
+			let q = la.remap[question.qid] || {};
+			q[what] = !question[what];
+			la.remap[question.qid] = q;
+			return la;
+		});
 	}
 
 	async function answered() {
