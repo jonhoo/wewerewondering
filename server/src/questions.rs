@@ -40,7 +40,9 @@ impl Backend {
                         "questions",
                         KeysAndAttributes::builder()
                             .set_keys(Some(keys))
-                            .projection_expression("text,when")
+                            .projection_expression("id,#text,#when")
+                            .expression_attribute_names("#text", "text")
+                            .expression_attribute_names("#when", "when")
                             .build(),
                     )
                     .send()
@@ -82,6 +84,7 @@ impl Backend {
                                     questions
                                         .get(qid)?
                                         .iter()
+                                        .filter(|&(k, _)| matches!(*k, "id" | "text" | "when"))
                                         .map(|(k, v)| (k.to_string(), v.clone()))
                                         .collect(),
                                 )
@@ -153,5 +156,51 @@ pub(super) async fn questions(
             error!(?qids, error = %e, "dynamodb question request failed");
             Err(http::StatusCode::INTERNAL_SERVER_ERROR)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn inner(backend: Backend) {
+        let eid = Uuid::new_v4();
+        let secret = "cargo-test";
+        let _ = backend.new(&eid, secret).await.unwrap();
+        let qid1 = Uuid::new_v4();
+        let qid1_v = AttributeValue::S(qid1.to_string());
+        backend.ask(&eid, &qid1, "hello world").await.unwrap();
+        let qid2 = Uuid::new_v4();
+        let qid2_v = AttributeValue::S(qid2.to_string());
+        backend.ask(&eid, &qid2, "hello moon").await.unwrap();
+
+        let qids = backend
+            .questions(&[qid1.clone(), qid2.clone()])
+            .await
+            .unwrap();
+
+        let qids = qids.responses().unwrap();
+        let qids = &qids["questions"];
+        let q1 = qids.iter().find(|q| q["id"] == qid1_v).unwrap();
+        assert_eq!(q1["id"], AttributeValue::S(qid1.to_string()));
+        assert_eq!(q1["text"], AttributeValue::S("hello world".to_string()));
+        assert!(matches!(q1["when"], AttributeValue::N(_)));
+        let q2 = qids.iter().find(|q| q["id"] == qid2_v).unwrap();
+        assert_eq!(q2["id"], AttributeValue::S(qid2.to_string()));
+        assert_eq!(q2["text"], AttributeValue::S("hello moon".to_string()));
+        assert!(matches!(q2["when"], AttributeValue::N(_)));
+
+        backend.delete(&eid).await;
+    }
+
+    #[tokio::test]
+    async fn local() {
+        inner(Backend::local().await).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn dynamodb() {
+        inner(Backend::dynamo().await).await;
     }
 }
