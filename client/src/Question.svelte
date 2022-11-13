@@ -47,6 +47,7 @@
 	async function toggle(what) {
 		await fetch(`/api/event/${event.id}/questions/${event.secret}/${question.qid}/toggle/${what}`, {
 			"method": "POST",
+			"body": question[what] ? "off" : "on",
 		});
 		question[what] = !question[what];
 		question = question;
