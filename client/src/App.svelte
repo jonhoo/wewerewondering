@@ -82,7 +82,7 @@
 {/if}
 
 {#if event}
-	<main class="max-w-4xl mx-auto my-8 px-8">
+	<main class="max-w-4xl mx-auto my-4 px-4">
 		<List {event} />
 	</main>
 {:else}
