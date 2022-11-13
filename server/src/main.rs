@@ -15,6 +15,7 @@ use std::{
 use tower::Layer;
 use tower_http::{limit::RequestBodyLimitLayer, trace::TraceLayer};
 use tower_service::Service;
+use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
 
 #[allow(unused_imports)]
@@ -109,7 +110,9 @@ fn mint_service_error<E>(e: E) -> SdkError<E> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    tracing_subscriber::fmt().without_time().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .without_time(/* cloudwatch does that */).init();
 
     #[cfg(debug_assertions)]
     let backend = {
