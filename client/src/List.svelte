@@ -158,6 +158,8 @@
 		Could not establish connection to the server.
 	{:else if problum.status == 404}
 		Event not found.
+	{:else if problum.status == 401}
+		Permission denied.
 	{:else}
 		The server is having issues; got {problum.status} status code.
 	{/if}
