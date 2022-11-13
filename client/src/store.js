@@ -50,6 +50,7 @@ export async function questionData(qid, qs) {
 	let first = Object.keys(batch).length === 0;
 	batch[qid] = [promise, resolve_p, reject_p];
 
+	// TODO: max batch size for DynamoDB: 100 items
 	if (Object.keys(fetching).length > 0) {
 		if (first) {
 			// it's our job to do the next fetch
@@ -85,6 +86,7 @@ export async function questionData(qid, qs) {
 	qids.sort();
 	let arg = qids.join(",");
 	// and go!
+	// TODO: handle failure
 	let data = await fetch(`/api/questions/${arg}`);
 	let json = await data.json();
 	// store back to cache
@@ -96,6 +98,7 @@ export async function questionData(qid, qs) {
 	});
 	// resolve anyone who's waiting
 	for (const [qid, [_, resolve, reject]] of Object.entries(fetching)) {
+		// TODO: not guaranteed that dynamo gave us back all the keys we requested
 		resolve(json[qid]);
 	}
 	// and clear next batch to go
