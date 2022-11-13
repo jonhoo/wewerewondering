@@ -211,6 +211,11 @@
 	<div class="text-center">
 	{#if event.secret}
 		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-100 hover:border-red-400" on:click={share}>{share_text}</button>
+		<div class="text-slate-400 pt-4">
+			The URL in your address bar shares the host view.<br />
+			Use the button to get a shareable link to your clipboard.<br />
+			Questions disappear after 30 days.
+		</div>
 	{:else}
 		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-100 hover:border-red-400" on:click={ask}>Ask another question</button>
 	{/if}
