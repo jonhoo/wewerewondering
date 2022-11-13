@@ -6,9 +6,13 @@ use aws_sdk_dynamodb::{
 };
 use axum::{
     extract::{Extension, Path},
+    response::AppendHeaders,
     Json,
 };
-use http::StatusCode;
+use http::{
+    header::{self, HeaderName},
+    StatusCode,
+};
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -47,20 +51,33 @@ impl Backend {
 pub(super) async fn event(
     Path(eid): Path<Uuid>,
     Extension(dynamo): Extension<Backend>,
-) -> Result<Json<Value>, StatusCode> {
+) -> (
+    AppendHeaders<HeaderName, &'static str, 1>,
+    Result<Json<Value>, StatusCode>,
+) {
     match dynamo.event(&eid).await {
         Ok(v) => {
             if let Some(_) = v.item() {
-                // TODO: never-expire cache header
-                Ok(Json(serde_json::json!({})))
+                (
+                    AppendHeaders([(header::CACHE_CONTROL, "max-age=864001")]),
+                    Ok(Json(serde_json::json!({}))),
+                )
             } else {
                 warn!(%eid, "non-existing event");
-                return Err(http::StatusCode::NOT_FOUND);
+                return (
+                    // it's relatively unlikely that an event uuid that didn't exist will start
+                    // existing. but just in case, don't make it _too_ long.
+                    AppendHeaders([(header::CACHE_CONTROL, "max-age=3600")]),
+                    Err(http::StatusCode::NOT_FOUND),
+                );
             }
         }
         Err(e) => {
             error!(%eid, error = %e, "dynamodb event request failed");
-            Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+            (
+                AppendHeaders([(header::CACHE_CONTROL, "no-cache")]),
+                Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+            )
         }
     }
 }

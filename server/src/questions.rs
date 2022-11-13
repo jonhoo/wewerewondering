@@ -9,9 +9,13 @@ use aws_sdk_dynamodb::{
 };
 use axum::{
     extract::{Extension, Path},
+    response::AppendHeaders,
     Json,
 };
-use http::StatusCode;
+use http::{
+    header::{self, HeaderName},
+    StatusCode,
+};
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -100,61 +104,87 @@ impl Backend {
 pub(super) async fn questions(
     Path(qids): Path<String>,
     Extension(dynamo): Extension<Backend>,
-) -> Result<Json<Value>, StatusCode> {
+) -> (
+    AppendHeaders<HeaderName, &'static str, 1>,
+    Result<Json<Value>, StatusCode>,
+) {
     let qids: Vec<_> = match qids.split(',').map(Uuid::parse_str).collect() {
         Ok(v) => v,
         Err(e) => {
             warn!(%qids, error = %e, "got invalid uuid set");
-            return Err(http::StatusCode::BAD_REQUEST);
+            return (
+                // a bad request will never become good
+                AppendHeaders([(header::CACHE_CONTROL, "max-age=864001")]),
+                Err(http::StatusCode::BAD_REQUEST),
+            );
         }
     };
     match dynamo.questions(&qids).await {
         Ok(v) => {
             if v.responses().map_or(true, |r| r.is_empty()) {
                 warn!(?qids, "no valid qids");
-                return Err(http::StatusCode::NOT_FOUND);
+                return (
+                    // it should be unlikely that someone fetches a question that hasn't been asked
+                    // it's _possible_ that it happens and _then_ a question is assigned that uuid,
+                    // but it too seems rare.
+                    AppendHeaders([(header::CACHE_CONTROL, "max-age=600")]),
+                    Err(http::StatusCode::NOT_FOUND),
+                );
             }
             let r = v.responses().unwrap();
             let t = if let Some(t) = r.get("questions") {
                 t
             } else {
                 error!(?qids, ?v, "got non-empty non-questions response");
-                return Err(http::StatusCode::INTERNAL_SERVER_ERROR);
+                return (
+                    AppendHeaders([(header::CACHE_CONTROL, "no-cache")]),
+                    Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+                );
             };
 
-            // TODO: never-expire cache header
-            Ok(Json(
-                t.iter()
-                    .map(|q| {
-                        let qid = q
-                            .get("id")
-                            .and_then(|v| v.as_s().ok())
-                            .and_then(|v| Uuid::parse_str(v).ok());
-                        let text = q.get("text").and_then(|v| v.as_s().ok());
-                        let when = q
-                            .get("when")
-                            .and_then(|v| v.as_n().ok())
-                            .and_then(|v| v.parse::<usize>().ok());
-                        match (qid, text, when) {
-                            (Some(qid), Some(text), Some(when)) => Ok((
-                                qid.to_string(),
-                                serde_json::json!({
-                                    "text": text,
-                                    "when": when,
-                                }),
-                            )),
-                            _ => {
-                                error!(?qids, ?q, "bad data types for id/text/when");
-                                Err(StatusCode::INTERNAL_SERVER_ERROR)
-                            }
+            let r = t
+                .iter()
+                .map(|q| {
+                    let qid = q
+                        .get("id")
+                        .and_then(|v| v.as_s().ok())
+                        .and_then(|v| Uuid::parse_str(v).ok());
+                    let text = q.get("text").and_then(|v| v.as_s().ok());
+                    let when = q
+                        .get("when")
+                        .and_then(|v| v.as_n().ok())
+                        .and_then(|v| v.parse::<usize>().ok());
+                    match (qid, text, when) {
+                        (Some(qid), Some(text), Some(when)) => Ok((
+                            qid.to_string(),
+                            serde_json::json!({
+                                "text": text,
+                                "when": when,
+                            }),
+                        )),
+                        _ => {
+                            error!(?qids, ?q, "bad data types for id/text/when");
+                            Err(StatusCode::INTERNAL_SERVER_ERROR)
                         }
-                    })
-                    .collect::<Result<_, _>>()?,
-            ))
+                    }
+                })
+                .collect::<Result<_, _>>()
+                .map(Json);
+            if r.is_ok() {
+                (
+                    AppendHeaders([(header::CACHE_CONTROL, "max-age=864001")]),
+                    r,
+                )
+            } else {
+                (AppendHeaders([(header::CACHE_CONTROL, "no-cache")]), r)
+            }
         }
         Err(e) => {
             error!(?qids, error = %e, "dynamodb question request failed");
-            Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+            (
+                AppendHeaders([(header::CACHE_CONTROL, "no-cache")]),
+                Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+            )
         }
     }
 }

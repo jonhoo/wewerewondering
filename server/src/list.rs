@@ -6,9 +6,15 @@ use aws_sdk_dynamodb::{
     types::SdkError,
 };
 use aws_smithy_types::Error;
-use axum::extract::{Extension, Path};
 use axum::response::Json;
-use http::StatusCode;
+use axum::{
+    extract::{Extension, Path},
+    response::AppendHeaders,
+};
+use http::{
+    header::{self, HeaderName},
+    StatusCode,
+};
 use uuid::Uuid;
 
 #[allow(unused_imports)]
@@ -101,24 +107,39 @@ impl Backend {
 pub(super) async fn list(
     Path(eid): Path<Uuid>,
     Extension(dynamo): Extension<Backend>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> (
+    AppendHeaders<HeaderName, &'static str, 1>,
+    Result<Json<serde_json::Value>, StatusCode>,
+) {
     list_inner(Path((eid, None)), Extension(dynamo)).await
 }
 
 pub(super) async fn list_all(
     Path((eid, secret)): Path<(Uuid, String)>,
     Extension(dynamo): Extension<Backend>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> (
+    AppendHeaders<HeaderName, &'static str, 1>,
+    Result<Json<serde_json::Value>, StatusCode>,
+) {
     list_inner(Path((eid, Some(secret))), Extension(dynamo)).await
 }
 
 async fn list_inner(
     Path((eid, secret)): Path<(Uuid, Option<String>)>,
     Extension(dynamo): Extension<Backend>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> (
+    AppendHeaders<HeaderName, &'static str, 1>,
+    Result<Json<serde_json::Value>, StatusCode>,
+) {
     let has_secret = if let Some(secret) = secret {
         debug!("list questions with admin access");
-        super::check_secret(&dynamo, &eid, &secret).await?;
+        if let Err(e) = super::check_secret(&dynamo, &eid, &secret).await {
+            // a bad secret will not turn good
+            return (
+                AppendHeaders([(header::CACHE_CONTROL, "max-age=864001")]),
+                Err(e),
+            );
+        }
         true
     } else {
         trace!("list questions with guest access");
@@ -165,18 +186,35 @@ async fn list_inner(
                 })
                 .unwrap_or_default();
 
-            // TODO: cache header (no-cache w/ secret)
-            Ok(Json(serde_json::Value::from(questions)))
+            let max_age = if has_secret {
+                // hosts should be allowed to see more up-to-date views
+                "max-age=3"
+            } else {
+                // guests don't need super up-to-date, so cache for longer
+                "max-age=10"
+            };
+            (
+                AppendHeaders([(header::CACHE_CONTROL, max_age)]),
+                Ok(Json(serde_json::Value::from(questions))),
+            )
         }
         Err(e) => {
             if let SdkError::ServiceError { ref err, .. } = e {
                 if err.is_resource_not_found_exception() {
                     warn!(%eid, error = %e, "request for non-existing event");
-                    return Err(http::StatusCode::NOT_FOUND);
+                    return (
+                        // it's relatively unlikely that an event uuid that didn't exist will start
+                        // existing. but just in case, don't make it _too_ long.
+                        AppendHeaders([(header::CACHE_CONTROL, "max-age=3600")]),
+                        Err(http::StatusCode::NOT_FOUND),
+                    );
                 }
             }
             error!(%eid, error = %e, "dynamodb request for question list failed");
-            Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+            (
+                AppendHeaders([(header::CACHE_CONTROL, "no-cache")]),
+                Err(http::StatusCode::INTERNAL_SERVER_ERROR),
+            )
         }
     }
 }
