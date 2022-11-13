@@ -6,11 +6,16 @@ use axum::extract::{Extension, Path};
 use axum::response::Json;
 use http::StatusCode;
 use serde::Deserialize;
-use std::{collections::HashMap, time::SystemTime};
+use std::{
+    collections::HashMap,
+    time::{Duration, SystemTime},
+};
 use uuid::Uuid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
+
+const QUESTIONS_EXPIRE_AFTER_DAYS: u64 = 30;
 
 impl Backend {
     pub(super) async fn ask(
@@ -32,6 +37,17 @@ impl Backend {
                         .unwrap()
                         .as_secs()
                         .to_string(),
+                ),
+            ),
+            (
+                "expire",
+                AttributeValue::N(
+                    (SystemTime::now()
+                        + Duration::from_secs(QUESTIONS_EXPIRE_AFTER_DAYS * 24 * 60 * 60))
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    .to_string(),
                 ),
             ),
             ("hidden", AttributeValue::Bool(false)),

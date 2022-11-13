@@ -7,11 +7,13 @@ use axum::response::Json;
 use http::StatusCode;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
+
+const EVENTS_EXPIRE_AFTER_DAYS: u64 = 60;
 
 impl Backend {
     pub(super) async fn new(
@@ -34,6 +36,17 @@ impl Backend {
                                 .unwrap()
                                 .as_secs()
                                 .to_string(),
+                        ),
+                    )
+                    .item(
+                        "expire",
+                        AttributeValue::N(
+                            (SystemTime::now()
+                                + Duration::from_secs(EVENTS_EXPIRE_AFTER_DAYS * 24 * 60 * 60))
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs()
+                            .to_string(),
                         ),
                     )
                     .send()
