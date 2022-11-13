@@ -174,17 +174,17 @@ async fn main() -> Result<(), Error> {
     };
 
     let app = Router::new()
-        .route("/event", post(new::new))
-        .route("/event/:eid", post(ask::ask))
-        .route("/event/:eid", get(event::event))
-        .route("/event/:eid/questions", get(list::list))
-        .route("/event/:eid/questions/:secret", get(list::list_all))
+        .route("/api/event", post(new::new))
+        .route("/api/event/:eid", post(ask::ask))
+        .route("/api/event/:eid", get(event::event))
+        .route("/api/event/:eid/questions", get(list::list))
+        .route("/api/event/:eid/questions/:secret", get(list::list_all))
         .route(
-            "/event/:eid/questions/:secret/:qid/toggle/:property",
+            "/api/event/:eid/questions/:secret/:qid/toggle/:property",
             post(toggle::toggle),
         )
-        .route("/vote/:qid/:updown", post(vote::vote))
-        .route("/questions/:qids", get(questions::questions))
+        .route("/api/vote/:qid/:updown", post(vote::vote))
+        .route("/api/questions/:qids", get(questions::questions))
         .layer(Extension(backend))
         .layer(RequestBodyLimitLayer::new(1024));
 
