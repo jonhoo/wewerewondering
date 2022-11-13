@@ -13,7 +13,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tower::Layer;
-use tower_http::{compression::CompressionLayer, limit::RequestBodyLimitLayer};
+use tower_http::limit::RequestBodyLimitLayer;
 use tower_service::Service;
 use uuid::Uuid;
 
@@ -178,7 +178,6 @@ async fn main() -> Result<(), Error> {
         .route("/vote/:qid/:updown", post(vote::vote))
         .route("/questions/:qids", get(questions::questions))
         .layer(Extension(backend))
-        .layer(CompressionLayer::new().gzip(true).deflate(true))
         .layer(RequestBodyLimitLayer::new(512));
 
     if cfg!(debug_assertions) {
