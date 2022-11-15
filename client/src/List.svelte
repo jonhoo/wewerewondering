@@ -6,12 +6,54 @@
 
 	export let event;
 
+	let inactive_hits = 0;
+	function poll_time(e) {
+		if (document.hidden) {
+			// if the tab is hidden, no need to refresh so often
+			// if it's been hidden for a while, even less so
+			// we could stop refreshing altogether, and just
+			// refresh when we're visible again (i.e., on
+			// visibilitychange), but it's nice if things don't
+			// jump around too much when that happens.
+			inactive_hits += 1;
+			if (inactive_hits <= 10 /* times 30s */) {
+				// For the first 5 minutes, poll every 30s
+				return 30 * 1000;
+			} else if (inactive_hits <= 25 /* -10 times 60s */ ) {
+				// For the next 15 minutes, poll every 60s
+				return 60 * 1000;
+			} else {
+				// At this point, the user probably won't
+				// return to the tab for a while, so we can
+				// update _very_ rarely.
+				return 20 * 60 * 1000;
+			}
+		}
+
+		inactive_hits = 0;
+		if (e.secret) {
+			// hosts should get relatively frequent updates
+			return 3000;
+		} else {
+			// guests can wait
+			return 10000;
+		}
+	}
+
+	function visibilitychange() {
+		// immediately refresh when we become visible
+		if (!document.hidden) {
+			event = event;
+		}
+	}
+
 	let interval;
 	async function loadQuestions(e) {
 		if (interval) {
 			clearTimeout(interval);
 		}
-		let next = e.secret ? 3000 : 10000;
+		let next = poll_time(e);
+		console.info("refresh; next in", next, "ms");
 		// set early so we'll retry even if request fails
 		interval = setTimeout(() => {event = event;}, next);
 		let url = e.secret
@@ -215,6 +257,8 @@
 	}
 
 </script>
+
+<svelte:window on:visibilitychange={visibilitychange}/>
 
 {#if questions}
 	<div class="text-center">
