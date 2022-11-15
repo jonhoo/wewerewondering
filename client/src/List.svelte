@@ -20,6 +20,15 @@
 		let r = await fetch(url);
 		if (!r.ok) {
 			console.error(r);
+			if (r.status >= 400 && r.status < 500) {
+				// it's our fault. most likely, the event
+				// doesn't exist (or has since been deleted),
+				// but could also be that we have the wrong
+				// secret. regardless, no point in retrying.
+				if (interval) {
+					clearTimeout(interval);
+				}
+			}
 			throw r;
 		}
 		if (interval) {

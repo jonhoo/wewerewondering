@@ -25,14 +25,17 @@
 			if (new_event != event) {
 				let r = await fetch(`/api/event/${new_event.id}`).catch((e) => {
 					problum = e;
-					setTimeout(hashchange, 5000);
+					// server is down, retry slowly
+					setTimeout(popstate, 5000);
 					throw e;
 				});
 				if (!r.ok) {
-					if (r.status === 404) {
+					if (r.status >= 400 && r.status < 500) {
+						// our fault -- don't retry
 						event = null;
 					} else {
-						setTimeout(hashchange, 5000);
+						// server is sad, retry slowly
+						setTimeout(popstate, 5000);
 					}
 					problum = r;
 					return;
