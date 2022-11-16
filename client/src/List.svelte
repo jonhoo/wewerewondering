@@ -81,10 +81,8 @@
 		return await r.json();
 	}
 
-	// XXX: this ends up doing _two_ loads when the page initially opens
-	//      not sure why...
 	let rawQuestions;
-	$: loadQuestions(event).then((qs) => {
+	loadQuestions(event).then((qs) => {
 		rawQuestions = qs;
 		problum = null;
 	}).catch((r) => {
