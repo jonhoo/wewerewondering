@@ -56,17 +56,130 @@ though, verification went through just fine.
 
 The main entry point for the site is [AWS CloudFront]. I have a single
 "distribution", and the Route 53 A/AAAA entries are pointed at that one
-distribution's CloudFront domain name. The distribution also has wewerewondering.com configured as an
-[alternate domain name], and is configured to use the Certificate
-Manager domain from earlier and the most up-to-date TLS configuration.
-The distribution has "[standard logging]" (to S3) enabled for now.
+distribution's CloudFront domain name. The distribution also has
+wewerewondering.com configured as an [alternate domain name], and is
+configured to use the Certificate Manager domain from earlier and the
+most up-to-date TLS configuration. The distribution has "[standard
+logging]" (to S3) enabled for now, and has a "default root object" of
+`index.html` (more on that later).
 
 CloudFront ties "[behaviors]" to "[origins]". Behaviors are ~= routes
 and origins are ~= backends. There are two behaviors: the default route
 and the `/api` route. There are two origins: [S3] and [API Gateway].
-Three internet points if you can guess which behavior connects to which
-origin.
+You get three internet points if you can guess which behavior connects
+to which origin.
 
+_Static components_. The default route (behavior) is set up to send
+requests to the S3 origin, which in turn just points at an S3 bucket
+that holds the output of building the stuff in `client/`. The behavior
+redirects HTTP to HTTPS, only allows GET and HEAD requests, and uses the
+`CachingOptimized` caching policy which basically means it has a long
+default timeout (1 day) and compression enabled. In S3, I've
+specifically overridden the "metadata" for `index.html` to set
+cache-control to `max-age=300` since it gets updated in-place (the
+`assets/` files have hashes in their names and can be cached forever).
+In addition, it has the `SecurityHeaderPolicy` response header policy to
+set `X-Frame-Options` and friends.
+
+There's one non-obvious trick in use here to make the single-page app
+approach work with "pretty" URLs that don't involve `#`. Ultimately we
+want URLs that the single-page app handles to all be routed to
+`index.html` rather than try to request, say, `/event/foo` from S3.
+There are multiple ways to achieve this. The one I went with was to
+define a [CloudFront function] to rewrite request URLs that I then
+associate with the "Viewer request" hook. It looks like this:
+
+```javascript
+function handler(event) {
+    var req = event.request;
+    if (req.uri.startsWith('/event/')) {
+        req.uri = '/index.html';
+    }
+    return req;
+}
+```
+
+I did it this way rather than using a [custom error response] because
+that _also_ rewrites 404 errors from the API origin, which I don't want.
+Not to mention I wanted unhandled URLs to still give 404s. And I didn't
+want to use [S3 Static Web Hosting] (which allows you to set up
+[conditional redirects]) because then CloudFront can't access S3
+"natively" and will instead redirect to the bucket and require it to be
+publicly accessible.
+
+Another modification I made to the defaults was to slightly modify the
+S3 bucket policy compared to the one CloudFlare recommends in order to
+allow LIST requests so that you get 404s instead of 403s. The part of
+the policy I used was:
+
+```json
+"Action": [
+	"s3:GetObject",
+	"s3:ListBucket"
+],
+"Resource": [
+	"arn:aws:s3:::wewerewondering-static",
+	"arn:aws:s3:::wewerewondering-static/*"
+],
+```
+
+_The `/api` endpoints._ The behavior for the `/api` URLs is defined for
+the path `/api/*`, is configured to allow all HTTP methods but only
+HTTPS only, and also uses the `SecurityHeaderPolicy` response header
+policy. For caching, I created my own policy that is basically
+`CachingOptimized` but has a default TTL of 1s, because if I fail to set
+a cache header I'd rather things mostly keep working rather than
+everything looking like nothing updates.
+
+The origin for `/api` is a [custom origin] that holds the "Invoke URL"
+of the [API Gateway] API (and requires HTTPS). Which brings us to:
+
+**The API.**
+
+As previously mentioned, the API is a single [AWS Lambda] backed by the
+[Lambda Rust Runtime] (see `server/` for more details). But, it's hosted
+through AWS' [API Gateway] service, mostly because it gives me
+throttling, metrics, and logging out of the box. For more elaborate
+services I'm sure the multi-stage and authorization bits come in handy
+too, but I haven't made use of any of that. The site also uses the [HTTP
+API] configuration because it's a) cheaper, b) simpler to set up, and c)
+worked out of the box with the [Lambda Rust Runtime], which the [REST
+API] stuff didn't (for me at least). There are [other differences], but
+none that seemed compelling for this site's use-case.
+
+All of the routes supported by the API implementation (in `server/`) are
+registered in API Gateway and are all pointed at the same Lambda. This
+has the nice benefit that other routes won't even invoke the Lambda,
+which (I assume) is cheaper. I've set up the `$default` stage to have
+fairly conservative throttling (for now) just to avoid any surprise
+jumps in cost. It also has "Access logging" [set up][api-gw-log].
+
+One thing noting about using [API Gateway] with the [HTTP API] is that
+the automatic dashboard it adds to CloudWatch [doesn't work][cw-api-gw]
+because it expects the metrics from the [REST API], which are named
+differently from the ones [used by the HTTP API]. The (annoying) fix was
+to copy the automatic dashboard over into a new (custom) dashboard and
+edit the source for every widget to replace
+```
+"ApiName", "wewerewondering"
+```
+with
+```
+"ApiId", "<the ID of the API Gateway API>"
+```
+and replace the metric names by the [correct ones][used by the HTTP
+API].
+
+The Lambda itself is mostly just what `cargo lambda deploy` sets up,
+though I've specifically add `RUST_LOG` as an environment variable to
+get more verbose logs (for now). It's also set up to log to CloudWatch,
+which I think happened more or less automatically. Crucially though, the
+IAM role used to execute the Lambda is also granted read/write (but not
+delete/admin) access to the database. So, speaking of:
+
+**The database.**
+
+<!-- TODO: DynamoDB. -->
 
 [AWS Organization]: https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html
 [Hover]: https://www.hover.com/
@@ -82,8 +195,19 @@ origin.
 [origins]: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistS3AndCustomOrigins.html
 [S3]: https://aws.amazon.com/s3/
 [API Gateway]: https://aws.amazon.com/api-gateway/
-
-<!-- TODO: how the AWS parts are set up, especially DynamoDB. -->
+[CloudFront function]: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html?icmpid=docs_cf_help_panel
+[custom error response]: https://stackoverflow.com/questions/38475329/single-page-application-in-aws-cloudfront
+[S3 Static Web Hosting]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html
+[conditional redirects]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/how-to-page-redirect.html#advanced-conditional-redirects
+[custom origin]: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistS3AndCustomOrigins.html#concept_CustomOrigin
+[AWS Lambda]: https://aws.amazon.com/lambda/
+[Lambda Rust Runtime]: https://github.com/awslabs/aws-lambda-rust-runtime
+[HTTP API]: https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api.html
+[REST API]: https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-rest-api.html
+[other differences]: https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-vs-rest.html
+[cw-api-gw]: https://repost.aws/questions/QURsag9V3pQjio1m0ZWebjIQ/cannot-find-http-api-by-name-in-cloudwatch-metrics
+[used by the HTTP API]: https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-metrics.html
+[api-gw-log]: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-logging.html
 
 ---
 
