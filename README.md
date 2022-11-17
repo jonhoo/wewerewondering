@@ -175,7 +175,27 @@ though I've specifically add `RUST_LOG` as an environment variable to
 get more verbose logs (for now). It's also set up to log to CloudWatch,
 which I think happened more or less automatically. Crucially though, the
 IAM role used to execute the Lambda is also granted read/write (but not
-delete/admin) access to the database. So, speaking of:
+delete/admin) access to the database, like so:
+
+```json
+{
+    "Sid": "VisualEditor0",
+    "Effect": "Allow",
+    "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:PutItem",
+        "dynamodb:GetItem",
+        "dynamodb:Scan",
+        "dynamodb:Query",
+        "dynamodb:UpdateItem"
+    ],
+    "Resource": [
+        "arn:aws:dynamodb:*:<account id>:table/events",
+        "arn:aws:dynamodb:*:<account id>:table/questions",
+        "arn:aws:dynamodb:*:<account id>:table/questions/index/top"
+    ]
+}
+```
 
 **The database.**
 
