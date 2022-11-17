@@ -201,6 +201,28 @@ delete/admin) access to the database, like so:
 
 <!-- TODO: DynamoDB. -->
 
+---
+
+**Scaling further.**
+
+Currently, everything is in `us-east-1`. That's sad. CDN helps
+(potentially a lot), but mainly for guests, and not when voting. It's
+mostly because DynamoDB [global tables] do reconciliation-by-overwrite,
+which doesn't work very well for counters. Could make it store every
+vote separately and do a count, but that's sad. Alternatively, if we
+assume that most guests are near the host, we could:
+
+1. Make `events` a global table (but not `questions`).
+2. Have a separate `questions` in each region.
+3. Add a `region` column to `events` which is set to the region that
+   hosts the Lambda that serves the "create event" request.
+4. Update the server code to always access `questions` in the region of
+   the associated event.
+
+We'd probably need to tweak CloudFlare (and maybe Route 53?) a little
+bit to make it to do geo-aware routing, but I think that's a thing it
+supports.
+
 [AWS Organization]: https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html
 [Hover]: https://www.hover.com/
 [Route 53]: https://aws.amazon.com/route53/
