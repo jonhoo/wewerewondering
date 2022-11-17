@@ -1,0 +1,3 @@
+# No point crawling events since they are short-lived
+User-agent: *
+Disallow: /event/
