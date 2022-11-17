@@ -97,6 +97,6 @@
 	</main>
 {:else}
 	<div class="flex justify-center items-center h-screen">
-		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-500 hover:border-red-400" on:click={create}>Create new event</button>
+		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-500 hover:border-red-400" on:click={create}>Open new Q&mp;A session</button>
 	</div>
 {/if}
