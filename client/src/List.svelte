@@ -307,7 +307,7 @@
 	</section>
 	{#if answered.length > 0}
 	<section>
-	<h2 class="text-2xl text-center text-green-700 mt-8 mb-4">Answered</h2>
+	<h2 class="text-2xl text-center text-green-700 dark:text-lime-500 mt-8 mb-4">Answered</h2>
 	<div class="flex flex-col divide-y">
 	{#each answered as question (question.qid)}
 		<div animate:flip="{{duration: 500}}">
@@ -319,7 +319,7 @@
 	{/if}
 	{#if event.secret && hidden.length > 0}
 	<section>
-	<h2 class="text-2xl text-center text-slate-400 mt-8 mb-4">Hidden</h2>
+	<h2 class="text-2xl text-center text-slate-400 dark:text-slate-500 mt-8 mb-4">Hidden</h2>
 	<div class="flex flex-col divide-y">
 	{#each hidden as question (question.qid)}
 		<div animate:flip="{{duration: 500}}">

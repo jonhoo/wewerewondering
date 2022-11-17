@@ -71,13 +71,13 @@
 
 	function qclass(q) {
 		if (q.hidden && q.answered) {
-			return "p-4 bg-white text-lime-500";
+			return "p-4 bg-white dark:bg-slate-800 text-lime-500 dark:text-green-700";
 		} else if (q.hidden) {
-			return "p-4 bg-white text-slate-400";
+			return "p-4 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500";
 		} else if (q.answered) {
-			return "p-4 bg-white text-green-700";
+			return "p-4 bg-white dark:bg-slate-800 text-green-700 dark:text-lime-500";
 		} else {
-			return "p-4 bg-white";
+			return "p-4 bg-white dark:bg-slate-800 dark:text-slate-300";
 		}
 	}
 
@@ -106,7 +106,7 @@
 		{:else}
 		<button class="opacity-30 hover:opacity-100" title="Vote" on:click={vote}>△</button>
 		{/if}
-		<div class="font-bold text-black">{question.votes}</div>
+		<div class="font-bold text-black dark:text-slate-300">{question.votes}</div>
 	</div>
 	<div class="pr-4 flex-1">
 		{#await q}
