@@ -199,7 +199,40 @@ delete/admin) access to the database, like so:
 
 **The database.**
 
-<!-- TODO: DynamoDB. -->
+The site uses [DynamoDB] as its storage backend, because frankly, that's
+all it needs. And it's fairly fast and cheap if you can get away with
+its limited feature set. There are two tables, `events` and `questions`,
+both of which are set up to use [on-demand provisioning]. `events` just
+holds the UUID of an event, which is also the partition key (DynamoDB
+[doesn't have] auto-increment integer primary keys because they don't
+scale), the event's secret key, and its creation and [auto-deletion]
+timestamp. `questions` has:
+
+- the question UUID (as the partition key)
+- the event UUID
+- the question text
+- the question author (if given)
+- the number of votes
+- whether the question is answered
+- whether the question is hidden
+- creation and [auto-deletion] timestamps
+
+The UUIDs, the timestamps, and the question text + author never change
+This is why the API to look up event info and question texts/authors is
+separated from looking up vote counts -- the former can have much longer
+cache time.
+
+To allow querying questions for a given event and receive them in sorted
+order, `questions` also has a [global secondary index] called `top`
+whose partition key is the event UUID and sort key `votes`. That index
+also projects out the "answered" and "hidden" fields so that a single
+query to that index gives all the mutable state for an event's question
+list (and can thus be queried with a single DynamoDB call by the
+Lambda).
+
+**Metrics and Logging.**
+
+<!-- TODO: Athena in particular -->
 
 ---
 
@@ -250,6 +283,11 @@ supports.
 [cw-api-gw]: https://repost.aws/questions/QURsag9V3pQjio1m0ZWebjIQ/cannot-find-http-api-by-name-in-cloudwatch-metrics
 [used by the HTTP API]: https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-metrics.html
 [api-gw-log]: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-logging.html
+[DynamoDB]: https://aws.amazon.com/dynamodb/
+[on-demand provisioning]: https://aws.amazon.com/blogs/aws/amazon-dynamodb-on-demand-no-capacity-planning-and-pay-per-request-pricing/
+[auto-deletion]: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html
+[doesn't have]: https://aws.amazon.com/premiumsupport/knowledge-center/primary-key-dynamodb-table/
+[global secondary index]: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.html
 
 ---
 
