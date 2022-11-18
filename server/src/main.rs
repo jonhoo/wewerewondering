@@ -58,7 +58,7 @@ mod questions;
 mod toggle;
 mod vote;
 
-async fn check_secret(dynamo: &Backend, eid: &Uuid, secret: &str) -> Result<(), StatusCode> {
+async fn get_secret(dynamo: &Backend, eid: &Uuid) -> Result<String, StatusCode> {
     match dynamo {
         Backend::Dynamo(dynamo) => {
             match dynamo
@@ -70,15 +70,15 @@ async fn check_secret(dynamo: &Backend, eid: &Uuid, secret: &str) -> Result<(), 
                 .await
             {
                 Ok(v) => {
-                    if v.item()
+                    if let Some(s) = v
+                        .item()
                         .and_then(|e| e.get("secret"))
                         .and_then(|s| s.as_s().ok())
-                        .map_or(false, |s| s == secret)
                     {
-                        Ok(())
+                        Ok(s.clone())
                     } else {
-                        warn!(%eid, secret, "attempted to access event with incorrect secret");
-                        Err(StatusCode::UNAUTHORIZED)
+                        warn!(%eid, "attempted to access non-existing event");
+                        Err(StatusCode::NOT_FOUND)
                     }
                 }
                 Err(e) => {
@@ -90,12 +90,21 @@ async fn check_secret(dynamo: &Backend, eid: &Uuid, secret: &str) -> Result<(), 
         Backend::Local(local) => {
             let mut local = local.lock().unwrap();
             let Local { events, .. } = &mut *local;
-            if events[eid] == secret {
-                Ok(())
-            } else {
-                Err(StatusCode::UNAUTHORIZED)
+            match events.get(eid) {
+                Some(s) => Ok(s.clone()),
+                None => Err(StatusCode::NOT_FOUND),
             }
         }
+    }
+}
+
+async fn check_secret(dynamo: &Backend, eid: &Uuid, secret: &str) -> Result<(), StatusCode> {
+    let s = get_secret(dynamo, eid).await?;
+    if s == secret {
+        Ok(())
+    } else {
+        warn!(%eid, secret, "attempted to access event with incorrect secret");
+        Err(StatusCode::UNAUTHORIZED)
     }
 }
 

@@ -134,15 +134,25 @@ async fn list_inner(
     let has_secret = if let Some(secret) = secret {
         debug!("list questions with admin access");
         if let Err(e) = super::check_secret(&dynamo, &eid, &secret).await {
-            // a bad secret will not turn good
+            // a bad secret will not turn good and
+            // events are unlikely to re-appear with the same uuid
             return (
-                AppendHeaders([(header::CACHE_CONTROL, "max-age=864001")]),
+                AppendHeaders([(header::CACHE_CONTROL, "max-age=86400")]),
                 Err(e),
             );
         }
         true
     } else {
         trace!("list questions with guest access");
+        // ensure that the event exists:
+        // this is _just_ so give 404s for old events so clients stop polling
+        if let Err(e) = super::get_secret(&dynamo, &eid).await {
+            // events are unlikely to re-appear with the same uuid
+            return (
+                AppendHeaders([(header::CACHE_CONTROL, "max-age=86400")]),
+                Err(e),
+            );
+        }
         false
     };
 
@@ -271,7 +281,55 @@ mod tests {
                 .0,
         );
 
+        // lookup with wrong secret gives 401
+        assert_eq!(
+            super::list_all(
+                Path((eid.clone(), "wrong".to_string())),
+                Extension(backend.clone()),
+            )
+            .await
+            .1
+            .unwrap_err(),
+            StatusCode::UNAUTHORIZED
+        );
+
+        // lookup for non-existing event with secret gives 404
+        assert_eq!(
+            super::list_all(
+                Path((
+                    Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap(),
+                    secret.to_string()
+                )),
+                Extension(backend.clone()),
+            )
+            .await
+            .1
+            .unwrap_err(),
+            StatusCode::NOT_FOUND
+        );
+
         backend.delete(&eid).await;
+
+        // lookup for empty but existing event gives 200
+        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        super::list(Path(eid), Extension(backend.clone()))
+            .await
+            .1
+            .unwrap();
+        backend.delete(&eid).await;
+
+        // lookup for non-existing event without secret gives 404
+        assert_eq!(
+            super::list(
+                Path(Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()),
+                Extension(backend.clone()),
+            )
+            .await
+            .1
+            .unwrap_err(),
+            StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
