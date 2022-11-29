@@ -52,7 +52,7 @@ pub(super) async fn event(
     Path(eid): Path<Uuid>,
     Extension(dynamo): Extension<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<Value>, StatusCode>,
 ) {
     match dynamo.event(&eid).await {

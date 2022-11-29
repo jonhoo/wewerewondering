@@ -108,7 +108,7 @@ pub(super) async fn list(
     Path(eid): Path<Uuid>,
     Extension(dynamo): Extension<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<serde_json::Value>, StatusCode>,
 ) {
     list_inner(Path((eid, None)), Extension(dynamo)).await
@@ -118,7 +118,7 @@ pub(super) async fn list_all(
     Path((eid, secret)): Path<(Uuid, String)>,
     Extension(dynamo): Extension<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<serde_json::Value>, StatusCode>,
 ) {
     list_inner(Path((eid, Some(secret))), Extension(dynamo)).await
@@ -128,7 +128,7 @@ async fn list_inner(
     Path((eid, secret)): Path<(Uuid, Option<String>)>,
     Extension(dynamo): Extension<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<serde_json::Value>, StatusCode>,
 ) {
     let has_secret = if let Some(secret) = secret {
@@ -239,11 +239,11 @@ mod tests {
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
             Path(eid.clone()),
+            Extension(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
                 asker: None,
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();

@@ -8,7 +8,7 @@ aws-config = "0.51"
 aws-sdk-dynamodb = "0.21"
 aws-smithy-types = "0.51"
 aws-smithy-http = "0.51"
-axum = "0.5"
+axum = "0.6"
 http = "0.2"
 hyper = { version = "0.14", features = ["server", "http1", "http2"] }
 lambda_http = { version = "0.7", default-features = false, features = ["apigw_http"] }

@@ -69,8 +69,8 @@ impl Backend {
 
 pub(super) async fn toggle(
     Path((eid, secret, qid, property)): Path<(Uuid, String, Uuid, Property)>,
-    body: String,
     Extension(dynamo): Extension<Backend>,
+    body: String,
 ) -> Result<(), StatusCode> {
     super::check_secret(&dynamo, &eid, &secret).await?;
 
@@ -106,11 +106,11 @@ mod tests {
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
             Path(eid.clone()),
+            Extension(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
                 asker: None,
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();
@@ -146,8 +146,8 @@ mod tests {
                 qid_u.clone(),
                 Property::Hidden,
             )),
-            String::from("on"),
             Extension(backend.clone()),
+            String::from("on"),
         )
         .await
         .unwrap();
@@ -179,8 +179,8 @@ mod tests {
                 qid_u.clone(),
                 Property::Hidden,
             )),
-            String::from("off"),
             Extension(backend.clone()),
+            String::from("off"),
         )
         .await
         .unwrap();
@@ -192,8 +192,8 @@ mod tests {
                 qid_u.clone(),
                 Property::Answered,
             )),
-            String::from("on"),
             Extension(backend.clone()),
+            String::from("on"),
         )
         .await
         .unwrap();

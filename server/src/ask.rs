@@ -95,8 +95,8 @@ pub(super) struct Question {
 
 pub(super) async fn ask(
     Path(eid): Path<Uuid>,
-    q: Json<Question>,
     Extension(dynamo): Extension<Backend>,
+    q: Json<Question>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     if q.body.trim().is_empty() {
         warn!(%eid, "ignoring empty question");
@@ -131,11 +131,11 @@ mod tests {
         let _secret = e["secret"].as_str().unwrap();
         let q = super::ask(
             Path(eid.clone()),
+            Extension(backend.clone()),
             Json(Question {
                 body: "hello world".into(),
                 asker: Some("person".into()),
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();
