@@ -2,7 +2,7 @@ use super::{Backend, Local};
 use aws_sdk_dynamodb::{
     error::PutItemError, model::AttributeValue, output::PutItemOutput, types::SdkError,
 };
-use axum::extract::Extension;
+use axum::extract::State;
 use axum::response::Json;
 use http::StatusCode;
 use rand::distributions::Alphanumeric;
@@ -118,7 +118,7 @@ impl Backend {
 }
 
 pub(super) async fn new(
-    Extension(dynamo): Extension<Backend>,
+    State(dynamo): State<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // TODO: UUIDv7
     let eid = uuid::Uuid::new_v4();
@@ -146,7 +146,7 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let e = crate::new::new(State(backend.clone())).await.unwrap();
         let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         backend.delete(&eid).await;

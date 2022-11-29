@@ -2,7 +2,7 @@ use super::{Backend, Local};
 use aws_sdk_dynamodb::{
     error::UpdateItemError, model::AttributeValue, output::UpdateItemOutput, types::SdkError,
 };
-use axum::extract::{Extension, Path};
+use axum::extract::{Path, State};
 use http::StatusCode;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -69,7 +69,7 @@ impl Backend {
 
 pub(super) async fn toggle(
     Path((eid, secret, qid, property)): Path<(Uuid, String, Uuid, Property)>,
-    Extension(dynamo): Extension<Backend>,
+    State(dynamo): State<Backend>,
     body: String,
 ) -> Result<(), StatusCode> {
     super::check_secret(&dynamo, &eid, &secret).await?;
@@ -101,12 +101,12 @@ mod tests {
     use axum::Json;
 
     async fn inner(backend: Backend) {
-        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let e = crate::new::new(State(backend.clone())).await.unwrap();
         let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
             Path(eid.clone()),
-            Extension(backend.clone()),
+            State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
                 asker: None,
@@ -146,7 +146,7 @@ mod tests {
                 qid_u.clone(),
                 Property::Hidden,
             )),
-            Extension(backend.clone()),
+            State(backend.clone()),
             String::from("on"),
         )
         .await
@@ -154,7 +154,7 @@ mod tests {
         check(
             crate::list::list_all(
                 Path((eid.clone(), secret.to_string())),
-                Extension(backend.clone()),
+                State(backend.clone()),
             )
             .await
             .1
@@ -163,7 +163,7 @@ mod tests {
             Some((true, false, 1)),
         );
         check(
-            crate::list::list(Path(eid.clone()), Extension(backend.clone()))
+            crate::list::list(Path(eid.clone()), State(backend.clone()))
                 .await
                 .1
                 .unwrap()
@@ -179,7 +179,7 @@ mod tests {
                 qid_u.clone(),
                 Property::Hidden,
             )),
-            Extension(backend.clone()),
+            State(backend.clone()),
             String::from("off"),
         )
         .await
@@ -192,7 +192,7 @@ mod tests {
                 qid_u.clone(),
                 Property::Answered,
             )),
-            Extension(backend.clone()),
+            State(backend.clone()),
             String::from("on"),
         )
         .await
@@ -200,7 +200,7 @@ mod tests {
         check(
             crate::list::list_all(
                 Path((eid.clone(), secret.to_string())),
-                Extension(backend.clone()),
+                State(backend.clone()),
             )
             .await
             .1
@@ -209,7 +209,7 @@ mod tests {
             Some((false, true, 1)),
         );
         check(
-            crate::list::list(Path(eid.clone()), Extension(backend.clone()))
+            crate::list::list(Path(eid.clone()), State(backend.clone()))
                 .await
                 .1
                 .unwrap()

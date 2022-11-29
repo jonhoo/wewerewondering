@@ -1,6 +1,5 @@
 use aws_sdk_dynamodb::{model::AttributeValue, types::SdkError};
 use aws_smithy_http::body::SdkBody;
-use axum::extract::Extension;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
@@ -207,8 +206,8 @@ async fn main() -> Result<(), Error> {
         )
         .route("/api/vote/:qid/:updown", post(vote::vote))
         .route("/api/questions/:qids", get(questions::questions))
-        .layer(Extension(backend))
-        .layer(RequestBodyLimitLayer::new(1024));
+        .layer(RequestBodyLimitLayer::new(1024))
+        .with_state(backend);
 
     if cfg!(debug_assertions) {
         let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
