@@ -287,6 +287,7 @@
 	{/if}
 
 	<section class="pt-4">
+	<h2 class="mb-4 text-lg text-slate-400 text-right">({unanswered.length} / {answered.length + unanswered.length})</h2>
 	{#if unanswered.length > 0}
 		<div class="flex flex-col divide-y">
 		{#each unanswered as question (question.qid)}
@@ -307,7 +308,9 @@
 	</section>
 	{#if answered.length > 0}
 	<section>
-	<h2 class="text-2xl text-center text-green-700 dark:text-lime-500 mt-8 mb-4">Answered</h2>
+	<h2 class="text-2xl text-center text-green-700 dark:text-lime-500 mt-8 mb-4">Answered
+		<span class="text-lg float-right">({answered.length} / {answered.length + unanswered.length})</span>
+	</h2>
 	<div class="flex flex-col divide-y">
 	{#each answered as question (question.qid)}
 		<div animate:flip="{{duration: 500}}">
