@@ -287,7 +287,6 @@
 	{/if}
 
 	<section class="pt-4">
-	<h2 class="mb-4 text-lg text-slate-400 text-right">({unanswered.length} / {answered.length + unanswered.length})</h2>
 	{#if unanswered.length > 0}
 		<div class="flex flex-col divide-y">
 		{#each unanswered as question (question.qid)}
