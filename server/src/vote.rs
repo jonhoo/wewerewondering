@@ -5,7 +5,7 @@ use aws_sdk_dynamodb::{
     output::UpdateItemOutput,
     types::SdkError,
 };
-use axum::extract::{Extension, Path};
+use axum::extract::{Path, State};
 use axum::response::Json;
 use http::StatusCode;
 use serde::Deserialize;
@@ -71,7 +71,7 @@ impl Backend {
 
 pub(super) async fn vote(
     Path((qid, direction)): Path<(Uuid, UpDown)>,
-    Extension(dynamo): Extension<Backend>,
+    State(dynamo): State<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match dynamo.vote(&qid, direction).await {
         Ok(v) => {
@@ -95,27 +95,27 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let e = crate::new::new(State(backend.clone())).await.unwrap();
         let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         let q1 = crate::ask::ask(
             Path(eid.clone()),
+            State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
                 asker: None,
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();
         let qid1 = Uuid::parse_str(q1["id"].as_str().unwrap()).unwrap();
         let q2 = crate::ask::ask(
             Path(eid.clone()),
+            State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello moon".into(),
                 asker: Some("person".into()),
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();
@@ -129,11 +129,11 @@ mod tests {
             }
         };
 
-        super::vote(Path((qid2.clone(), UpDown::Up)), Extension(backend.clone()))
+        super::vote(Path((qid2.clone(), UpDown::Up)), State(backend.clone()))
             .await
             .unwrap();
         check(
-            crate::list::list(Path(eid.clone()), Extension(backend.clone()))
+            crate::list::list(Path(eid.clone()), State(backend.clone()))
                 .await
                 .1
                 .unwrap()
@@ -141,17 +141,14 @@ mod tests {
             &[(&qid2, 2), (&qid1, 1)],
         );
 
-        super::vote(Path((qid1.clone(), UpDown::Up)), Extension(backend.clone()))
+        super::vote(Path((qid1.clone(), UpDown::Up)), State(backend.clone()))
             .await
             .unwrap();
-        super::vote(
-            Path((qid2.clone(), UpDown::Down)),
-            Extension(backend.clone()),
-        )
-        .await
-        .unwrap();
+        super::vote(Path((qid2.clone(), UpDown::Down)), State(backend.clone()))
+            .await
+            .unwrap();
         check(
-            crate::list::list(Path(eid.clone()), Extension(backend.clone()))
+            crate::list::list(Path(eid.clone()), State(backend.clone()))
                 .await
                 .1
                 .unwrap()

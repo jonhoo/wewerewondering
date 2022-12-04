@@ -8,7 +8,7 @@ use aws_sdk_dynamodb::{
 use aws_smithy_types::Error;
 use axum::response::Json;
 use axum::{
-    extract::{Extension, Path},
+    extract::{Path, State},
     response::AppendHeaders,
 };
 use http::{
@@ -106,29 +106,29 @@ impl Backend {
 
 pub(super) async fn list(
     Path(eid): Path<Uuid>,
-    Extension(dynamo): Extension<Backend>,
+    State(dynamo): State<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<serde_json::Value>, StatusCode>,
 ) {
-    list_inner(Path((eid, None)), Extension(dynamo)).await
+    list_inner(Path((eid, None)), State(dynamo)).await
 }
 
 pub(super) async fn list_all(
     Path((eid, secret)): Path<(Uuid, String)>,
-    Extension(dynamo): Extension<Backend>,
+    State(dynamo): State<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<serde_json::Value>, StatusCode>,
 ) {
-    list_inner(Path((eid, Some(secret))), Extension(dynamo)).await
+    list_inner(Path((eid, Some(secret))), State(dynamo)).await
 }
 
 async fn list_inner(
     Path((eid, secret)): Path<(Uuid, Option<String>)>,
-    Extension(dynamo): Extension<Backend>,
+    State(dynamo): State<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<serde_json::Value>, StatusCode>,
 ) {
     let has_secret = if let Some(secret) = secret {
@@ -234,16 +234,16 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let e = crate::new::new(State(backend.clone())).await.unwrap();
         let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
             Path(eid.clone()),
+            State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
                 asker: None,
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();
@@ -266,7 +266,7 @@ mod tests {
         check(
             super::list_all(
                 Path((eid.clone(), secret.to_string())),
-                Extension(backend.clone()),
+                State(backend.clone()),
             )
             .await
             .1
@@ -274,7 +274,7 @@ mod tests {
             .0,
         );
         check(
-            super::list(Path(eid.clone()), Extension(backend.clone()))
+            super::list(Path(eid.clone()), State(backend.clone()))
                 .await
                 .1
                 .unwrap()
@@ -285,7 +285,7 @@ mod tests {
         assert_eq!(
             super::list_all(
                 Path((eid.clone(), "wrong".to_string())),
-                Extension(backend.clone()),
+                State(backend.clone()),
             )
             .await
             .1
@@ -300,7 +300,7 @@ mod tests {
                     Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap(),
                     secret.to_string()
                 )),
-                Extension(backend.clone()),
+                State(backend.clone()),
             )
             .await
             .1
@@ -311,9 +311,9 @@ mod tests {
         backend.delete(&eid).await;
 
         // lookup for empty but existing event gives 200
-        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let e = crate::new::new(State(backend.clone())).await.unwrap();
         let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
-        super::list(Path(eid), Extension(backend.clone()))
+        super::list(Path(eid), State(backend.clone()))
             .await
             .1
             .unwrap();
@@ -323,7 +323,7 @@ mod tests {
         assert_eq!(
             super::list(
                 Path(Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()),
-                Extension(backend.clone()),
+                State(backend.clone()),
             )
             .await
             .1

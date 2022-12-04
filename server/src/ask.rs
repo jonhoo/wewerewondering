@@ -2,7 +2,7 @@ use super::{Backend, Local};
 use aws_sdk_dynamodb::{
     error::PutItemError, model::AttributeValue, output::PutItemOutput, types::SdkError,
 };
-use axum::extract::{Extension, Path};
+use axum::extract::{Path, State};
 use axum::response::Json;
 use http::StatusCode;
 use serde::Deserialize;
@@ -95,8 +95,8 @@ pub(super) struct Question {
 
 pub(super) async fn ask(
     Path(eid): Path<Uuid>,
+    State(dynamo): State<Backend>,
     q: Json<Question>,
-    Extension(dynamo): Extension<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     if q.body.trim().is_empty() {
         warn!(%eid, "ignoring empty question");
@@ -126,16 +126,16 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let e = crate::new::new(State(backend.clone())).await.unwrap();
         let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         let q = super::ask(
             Path(eid.clone()),
+            State(backend.clone()),
             Json(Question {
                 body: "hello world".into(),
                 asker: Some("person".into()),
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();

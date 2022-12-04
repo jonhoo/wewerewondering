@@ -5,7 +5,7 @@ use aws_sdk_dynamodb::{
     error::GetItemError, model::AttributeValue, output::GetItemOutput, types::SdkError,
 };
 use axum::{
-    extract::{Extension, Path},
+    extract::{Path, State},
     response::AppendHeaders,
     Json,
 };
@@ -50,9 +50,9 @@ impl Backend {
 
 pub(super) async fn event(
     Path(eid): Path<Uuid>,
-    Extension(dynamo): Extension<Backend>,
+    State(dynamo): State<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<Value>, StatusCode>,
 ) {
     match dynamo.event(&eid).await {

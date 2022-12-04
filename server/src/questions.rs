@@ -8,7 +8,7 @@ use aws_sdk_dynamodb::{
     types::SdkError,
 };
 use axum::{
-    extract::{Extension, Path},
+    extract::{Path, State},
     response::AppendHeaders,
     Json,
 };
@@ -105,9 +105,9 @@ impl Backend {
 
 pub(super) async fn questions(
     Path(qids): Path<String>,
-    Extension(dynamo): Extension<Backend>,
+    State(dynamo): State<Backend>,
 ) -> (
-    AppendHeaders<HeaderName, &'static str, 1>,
+    AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<Value>, StatusCode>,
 ) {
     let qids: Vec<_> = match qids.split(',').map(Uuid::parse_str).collect() {
@@ -200,33 +200,33 @@ mod tests {
     use super::*;
 
     async fn inner(backend: Backend) {
-        let e = crate::new::new(Extension(backend.clone())).await.unwrap();
+        let e = crate::new::new(State(backend.clone())).await.unwrap();
         let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         let q1 = crate::ask::ask(
             Path(eid.clone()),
+            State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
                 asker: None,
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();
         let qid1 = q1["id"].as_str().unwrap();
         let q2 = crate::ask::ask(
             Path(eid.clone()),
+            State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello moon".into(),
                 asker: Some("person".into()),
             }),
-            Extension(backend.clone()),
         )
         .await
         .unwrap();
         let qid2 = q2["id"].as_str().unwrap();
 
-        let qids = super::questions(Path(format!("{qid1},{qid2}")), Extension(backend.clone()))
+        let qids = super::questions(Path(format!("{qid1},{qid2}")), State(backend.clone()))
             .await
             .1
             .unwrap();
