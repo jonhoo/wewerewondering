@@ -4,7 +4,6 @@
         "likes": 1,
         "text": "Jon is testing questions",
         "hidden": true,
-        "answered": false,
         "createTimeUnix": 1667437961
     },
     {
@@ -12,7 +11,7 @@
         "likes": 92,
         "text": "How do you manage your time for work, open source, personal projects, and life?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670131269,
         "createTimeUnix": 1667438682
     },
     {
@@ -20,7 +19,6 @@
         "likes": 18,
         "text": "When did you first start coding with rust? ",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667439163
     },
     {
@@ -28,7 +26,7 @@
         "likes": 60,
         "text": "What would it take to drop VIM and adopt another editor like Helix?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670131275,
         "createTimeUnix": 1667439330
     },
     {
@@ -36,7 +34,7 @@
         "likes": 66,
         "text": "How can you morally justify working for Amazon (esp. in light of Amazon's anti-unionisms)?\n",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130562,
         "createTimeUnix": 1667440275
     },
     {
@@ -44,7 +42,7 @@
         "likes": 34,
         "text": "After you finished your undegratuate degree why did you go for the academic path ? What is your thinking behind that ?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130824,
         "createTimeUnix": 1667440511
     },
     {
@@ -52,7 +50,7 @@
         "likes": 75,
         "text": "When picking third-party libs for your Rust projects, what design/architectural/technical attributes makes you use one lib over another. Any red flags you pay attention to?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130706,
         "createTimeUnix": 1667440611
     },
     {
@@ -60,7 +58,7 @@
         "likes": 39,
         "text": "Is Rust lang adoption pace slowing, staying the same, or accelerating in the enterprise currently? Do you foresee any changes in this pace given the current Rust lang roadmap?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130908,
         "createTimeUnix": 1667441235
     },
     {
@@ -68,7 +66,7 @@
         "likes": 67,
         "text": "Would you recommend any beginner friendly open source Rust projects? ",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130971,
         "createTimeUnix": 1667441955
     },
     {
@@ -76,7 +74,7 @@
         "likes": 64,
         "text": "What are your thoughts on WebAssembly? ",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130769,
         "createTimeUnix": 1667444557
     },
     {
@@ -84,7 +82,7 @@
         "likes": 26,
         "text": "What are the biggest challenges in DX and tooling in Rust at Amazon and in general? Or in software engineering in general?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670131073,
         "createTimeUnix": 1667450544
     },
     {
@@ -92,7 +90,7 @@
         "likes": 36,
         "text": "You mentioned you don't enjoy LA, and that you'd like to move in a couple of years. What stops you from moving now?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670131241,
         "createTimeUnix": 1667451858
     },
     {
@@ -100,7 +98,7 @@
         "likes": 41,
         "text": "How's piano going?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130426,
         "createTimeUnix": 1667452003
     },
     {
@@ -108,7 +106,7 @@
         "likes": 38,
         "text": "Would you rather fly in a plane, with a Rust software in it vs let's say Ada software?\n\nBonus: vs Lisp-like language (Clojure?) ",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130962,
         "createTimeUnix": 1667454185
     },
     {
@@ -116,7 +114,7 @@
         "likes": 46,
         "text": "Do you like Copilot?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130654,
         "createTimeUnix": 1667454225
     },
     {
@@ -124,7 +122,6 @@
         "likes": 4,
         "text": "If I have a blocking iterator that could halt the thread indefinitely with each next call, how would I wrap it in a Stream so that I can use it in a select with a tokio Cancellation token?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667454851
     },
     {
@@ -132,7 +129,7 @@
         "likes": 36,
         "text": "What do you think about ensemble/mob/pair programming vs. alone programming with code reviews?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670131042,
         "createTimeUnix": 1667455748
     },
     {
@@ -140,7 +137,7 @@
         "likes": 30,
         "text": "What concepts you suggest to learn/understand before someone should looking for a Rust job? E.g.for people coming from more high-level languages or even dynamic languages like Python or JS",
         "hidden": false,
-        "answered": true,
+        "answered": 1670131125,
         "createTimeUnix": 1667461124
     },
     {
@@ -148,7 +145,7 @@
         "likes": 46,
         "text": "Do you think Rust is on its way to become the next C++ due to the complexity of the language?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130428,
         "createTimeUnix": 1667462234
     },
     {
@@ -156,7 +153,7 @@
         "likes": 56,
         "text": "What features would you remove (or rework) from Rust?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130931,
         "createTimeUnix": 1667462402
     },
     {
@@ -164,7 +161,6 @@
         "likes": 16,
         "text": "Do you think the module system in Rust is unnecessarily complicated? Freely including arbitrary files and exposing with \"pub\" seems to work in many other languages. ",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667462666
     },
     {
@@ -172,7 +168,6 @@
         "likes": 23,
         "text": "Carbon can directly include C/C++ files, Zig/D can include C... Is that something Rust should do to improve its interoperability?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667463648
     },
     {
@@ -180,7 +175,7 @@
         "likes": 43,
         "text": "What do you think about Rust finding its way to the Linux kernel and the approach they have taken in doing so?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670131199,
         "createTimeUnix": 1667464141
     },
     {
@@ -188,7 +183,7 @@
         "likes": 36,
         "text": "Could you talk about different allocator options and choices in rust?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130559,
         "createTimeUnix": 1667479744
     },
     {
@@ -196,7 +191,7 @@
         "likes": 25,
         "text": "How to choose between shared memory and actor pattern for concurrency?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130831,
         "createTimeUnix": 1667482654
     },
     {
@@ -204,7 +199,6 @@
         "likes": 9,
         "text": "Any tricks/flags for tweaking opt-level between 0 and 1?\nUsing 1 game runs great, but it's hard to use debugger as stuff gets optimized away. \nUsing 0, performance drops at least 10-15 times.",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667486742
     },
     {
@@ -212,7 +206,7 @@
         "likes": 32,
         "text": "Which debugger do you use for Rust and does it have a working \"break on panic\" functionality?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130355,
         "createTimeUnix": 1667487029
     },
     {
@@ -220,7 +214,7 @@
         "likes": 40,
         "text": "Do you use any software (or plugins for nvim) for writing down notes?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130930,
         "createTimeUnix": 1667487771
     },
     {
@@ -228,7 +222,7 @@
         "likes": 30,
         "text": "What made you choose MIT?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130817,
         "createTimeUnix": 1667489646
     },
     {
@@ -236,7 +230,6 @@
         "likes": 13,
         "text": "How do you effective learn from a textbook (or videos/lectures)? I often find myself writing down too many notes which makes progress incredibly slow. How do you balance this? Or do you have any tips?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667496462
     },
     {
@@ -244,7 +237,6 @@
         "likes": 21,
         "text": "What are the best resources to start learning network programming ",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667502051
     },
     {
@@ -252,7 +244,6 @@
         "likes": 24,
         "text": "Do you plan make some more Rust algorithm streams?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667512439
     },
     {
@@ -260,7 +251,6 @@
         "likes": 10,
         "text": "Did you try Jetbrains Fleet ? If yes, do you see it as competitor to VS Code or more as a all-in-one IDE ?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667579304
     },
     {
@@ -268,7 +258,6 @@
         "likes": 10,
         "text": "How would you recommend getting into performance, in or out of Rust?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667582788
     },
     {
@@ -276,7 +265,6 @@
         "likes": 17,
         "text": "Would you recommend UCL? (between ETH Zurich, EPFL, ICL and others with similar ranking)",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667583396
     },
     {
@@ -284,7 +272,6 @@
         "likes": 16,
         "text": "How to choose a good topic for a Bachelors Thesis? ",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667584194
     },
     {
@@ -292,7 +279,6 @@
         "likes": 7,
         "text": "Can you do co streams with other rustaceans covering more topics like embedded, game engines and stuff that you might not be familiar with?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667669919
     },
     {
@@ -300,7 +286,6 @@
         "likes": 13,
         "text": "Thoughts on the current state of the tech economy?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667697649
     },
     {
@@ -308,7 +293,6 @@
         "likes": 11,
         "text": "What is the best way to organize a medium to large sized rust project?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667697978
     },
     {
@@ -316,7 +300,6 @@
         "likes": 16,
         "text": "What build systems have you used? What are your thoughts on Bazel?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667698860
     },
     {
@@ -324,7 +307,7 @@
         "likes": 39,
         "text": "What is your advice for an undergrad student of Computer Science (like working on resume and stuff) to get addmission from Institites like MIT? What do universities focus on application process?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130611,
         "createTimeUnix": 1667700960
     },
     {
@@ -332,7 +315,6 @@
         "likes": 16,
         "text": "Could you please do a dedicated stream showing us your current setup (hardware and software)",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667701824
     },
     {
@@ -340,7 +322,6 @@
         "likes": 3,
         "text": "What about doing a stream together with Tim Mcnamara?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667701911
     },
     {
@@ -348,7 +329,6 @@
         "likes": 10,
         "text": "Do you practice any sports?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667702096
     },
     {
@@ -356,7 +336,6 @@
         "likes": 8,
         "text": "How are the cats going?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667702117
     },
     {
@@ -364,7 +343,7 @@
         "likes": 27,
         "text": "What do you think about Elon Musk? Do you plan quitting Twitter?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130796,
         "createTimeUnix": 1667702158
     },
     {
@@ -372,7 +351,6 @@
         "likes": 7,
         "text": "Do you and your girlfriend plan to have children?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667702238
     },
     {
@@ -380,7 +358,6 @@
         "likes": 1,
         "text": "Do you celebrate halloween?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667702367
     },
     {
@@ -388,7 +365,6 @@
         "likes": 19,
         "text": "In which ways Go is better than Rust?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667702436
     },
     {
@@ -396,7 +372,7 @@
         "likes": 41,
         "text": "Have you tried NixOs?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130754,
         "createTimeUnix": 1667702504
     },
     {
@@ -404,7 +380,6 @@
         "likes": 2,
         "text": "I'm doing nonblocking io w/o async/await. Yes, it's simpler and a \"little\" bit verbose, while making things like drop task more explicit. Do you think there are some value in this way?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667703824
     },
     {
@@ -412,7 +387,7 @@
         "likes": 36,
         "text": "What would you want to be if you weren't a software engineer? ",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130474,
         "createTimeUnix": 1667704064
     },
     {
@@ -420,7 +395,7 @@
         "likes": 38,
         "text": "What are your favorite podcasts?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130398,
         "createTimeUnix": 1667719025
     },
     {
@@ -428,7 +403,6 @@
         "likes": 12,
         "text": "How much do you value open source contributions on large projects in job applications? Is it comparable to professional experience? ",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667722630
     },
     {
@@ -436,7 +410,6 @@
         "likes": 5,
         "text": "What are your thoughts on the stablization of generic associated types? Is it a step in the wrong direction by making the language too complex? ",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667723023
     },
     {
@@ -444,7 +417,6 @@
         "likes": 3,
         "text": "In terms of hardware, do you have any recommendations or experiences that would help regarding Rust development? RAM , cores vs clock speed ,etc.",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667723233
     },
     {
@@ -452,7 +424,6 @@
         "likes": 4,
         "text": "Are you strictly a Cat person, or did you you think about getting a Dog?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667727906
     },
     {
@@ -460,7 +431,6 @@
         "likes": 4,
         "text": "Do you think Rust can be a good fit for High Performance Computing/Scientific computing? Currently the default is C++ and there’s lots of legacy Fortran code. Can Rust makes its place in that field?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667732003
     },
     {
@@ -468,7 +438,6 @@
         "likes": 9,
         "text": "What are the rules for mutably borrowing 2 different disjoint fields of a struct instance? I feel that borrow checker sometimes lets me do this, but sometimes it doesn't.",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667733495
     },
     {
@@ -476,7 +445,6 @@
         "likes": 1,
         "text": "Latest good movie/tv show you watched?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667744251
     },
     {
@@ -484,7 +452,6 @@
         "likes": 9,
         "text": "Plans for 2023? (please do not stop streaming)",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667744346
     },
     {
@@ -492,7 +459,6 @@
         "likes": 3,
         "text": "Do you play video games?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667744586
     },
     {
@@ -500,7 +466,6 @@
         "likes": 2,
         "text": "Do you have any sisters or brothers?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667744687
     },
     {
@@ -508,7 +473,6 @@
         "likes": 11,
         "text": "Do you have any opinions on monorepos? For or against?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667751282
     },
     {
@@ -516,7 +480,6 @@
         "likes": 4,
         "text": "What about doing a stream explaining how a crate (e.g, serde) works under the hood?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667755975
     },
     {
@@ -524,7 +487,6 @@
         "likes": 8,
         "text": "Any advice on how to dive deeper into database internals?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667757398
     },
     {
@@ -532,7 +494,6 @@
         "likes": 12,
         "text": "What is the most norwegian thing you do regularly?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667757438
     },
     {
@@ -540,7 +501,6 @@
         "likes": 2,
         "text": "Suggestions on how to improve at systems programming (especially if Rust was your first systems language)?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667757497
     },
     {
@@ -548,7 +508,6 @@
         "likes": 2,
         "text": "Have you ever done any compression in Rust (or other languages)? Any chance you might do a video on it in the future?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667757544
     },
     {
@@ -556,7 +515,6 @@
         "likes": 3,
         "text": "Should everyone contribute to open source?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667758221
     },
     {
@@ -564,7 +522,6 @@
         "likes": 8,
         "text": "Top book recommendations?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667758338
     },
     {
@@ -572,7 +529,6 @@
         "likes": 28,
         "text": "I want to introduce Rust into my company. How do I rewrite some Python projects into Rust step by step? Is generating *.so files from Rust with cpython crate and importing them into Python a good way?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667758348
     },
     {
@@ -580,7 +536,6 @@
         "likes": 1,
         "text": "I am planning to do cli project for graph data \nthrough rust, any resource suggestion?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667758398
     },
     {
@@ -588,7 +543,6 @@
         "likes": 3,
         "text": "How does a self taught with no school education learn Operating systems, distibuted systems and a language in depth? Do you have any resources or ideas or how to go about it?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667758637
     },
     {
@@ -596,7 +550,6 @@
         "likes": 2,
         "text": "Would you recommend getting a masters degree in computer science. Or is a bachelors degree good enough for a programmer career?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667758673
     },
     {
@@ -604,7 +557,6 @@
         "likes": 1,
         "text": "Do you think Rust can have a relevant place in the AI / ML / DL space? From core libraries that interact to GPU (maybe rivaling C++) to automation.",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667759179
     },
     {
@@ -612,7 +564,6 @@
         "likes": 2,
         "text": "What's your most often used/most loved libraries? Any libraries that you'd like to promote?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667759608
     },
     {
@@ -620,7 +571,7 @@
         "likes": 35,
         "text": "Do you read none tech related books? Any recommendation?  ",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130718,
         "createTimeUnix": 1667759675
     },
     {
@@ -628,7 +579,6 @@
         "likes": 2,
         "text": "I have a hard time understanding rust errors. Any tips?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667759996
     },
     {
@@ -636,7 +586,6 @@
         "likes": 3,
         "text": "What is your opinion on Bevy?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760013
     },
     {
@@ -644,7 +593,6 @@
         "likes": 3,
         "text": "What are your thoughts on Rust in university CS curriculums?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760018
     },
     {
@@ -652,7 +600,7 @@
         "likes": 41,
         "text": "What are your opinions on management consulting?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130506,
         "createTimeUnix": 1667760024
     },
     {
@@ -660,7 +608,6 @@
         "likes": 3,
         "text": "What's your favourite Linux distro?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760041
     },
     {
@@ -668,7 +615,6 @@
         "likes": 3,
         "text": "do you advise getting a master's degree and beyond for someone who has a job in the software industry?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760059
     },
     {
@@ -676,7 +622,6 @@
         "likes": 2,
         "text": "Did phillips Operman stop vloging on his educational OS development ?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760059
     },
     {
@@ -684,7 +629,6 @@
         "likes": 2,
         "text": "Do you think tech world is messed with forcing being inclusive and nice to everybody. Do you think incompetence spreading because it is easy to jump in tech world. ",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760087
     },
     {
@@ -692,7 +636,6 @@
         "likes": 2,
         "text": "Are you still looking forward to go back to Europe?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760100
     },
     {
@@ -700,7 +643,6 @@
         "likes": 3,
         "text": "Could you talk about Rust 1.65 new features ?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760170
     },
     {
@@ -708,7 +650,6 @@
         "likes": 4,
         "text": "What's your keyboard layout story? When did you change to ANSI? Did you learn VIM on Nordic keyboards first?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760259
     },
     {
@@ -716,7 +657,6 @@
         "likes": 2,
         "text": "Did you try any alternative to tmux? What do you think about zellij?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760428
     },
     {
@@ -724,7 +664,6 @@
         "likes": 1,
         "text": "New let-else?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760451
     },
     {
@@ -732,7 +671,7 @@
         "likes": 35,
         "text": "Soon starting with my first software engineering job and feeling kind of anxious / nervous about it, any tips for the first few weeks / months?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130578,
         "createTimeUnix": 1667760457
     },
     {
@@ -740,7 +679,6 @@
         "likes": 2,
         "text": "What the best approach to answer a PR to be a good feedback? ",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760505
     },
     {
@@ -748,7 +686,6 @@
         "likes": 4,
         "text": "What do you think about Zig?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760561
     },
     {
@@ -756,7 +693,6 @@
         "likes": 2,
         "text": "​hey Jon thank you so much for your streams they're amazing! My question is do you think someday rust will have a way to take input from stdin that is as flexible and user friendly as c++?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667760675
     },
     {
@@ -764,7 +700,6 @@
         "likes": 2,
         "text": "Do you know of any theoretical problem that might be worth solving? \nOther than for example concurrent datastructures.",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667762371
     },
     {
@@ -772,7 +707,6 @@
         "likes": 1,
         "text": "How is working with timClicks - Rust in Action book’s author ?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667762831
     },
     {
@@ -780,7 +714,6 @@
         "likes": 6,
         "text": "Advice for someone moving abroad for \"longish\" time",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667763761
     },
     {
@@ -788,7 +721,6 @@
         "likes": 1,
         "text": "Suggest some books for Rust lang",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667764686
     },
     {
@@ -796,7 +728,6 @@
         "likes": 2,
         "text": "Hi!! I wanted to know how are you able to do long deep work so effortlessly ??",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667764689
     },
     {
@@ -804,7 +735,7 @@
         "likes": 25,
         "text": "Do you think there's value in doing a PhD for 6+ years if your goal is to join industry? I see a lot of PhD students dropout with an MS after spending 3+ years hence I was curious to know",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130575,
         "createTimeUnix": 1667764700
     },
     {
@@ -812,7 +743,6 @@
         "likes": 2,
         "text": "Have you tried Helix? What are your thoughts on it if you have.",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667764704
     },
     {
@@ -820,7 +750,7 @@
         "likes": 26,
         "text": "What are some problems you find interesting in the database community?",
         "hidden": false,
-        "answered": true,
+        "answered": 1670130729,
         "createTimeUnix": 1667764705
     },
     {
@@ -828,7 +758,6 @@
         "likes": 3,
         "text": "genuinely: how do you reconcile working for Amazon with all the bad stuff they do?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667764727
     },
     {
@@ -836,7 +765,6 @@
         "likes": 2,
         "text": "My Rust code is always ugly! I always end up with deeply-nested structures, feel like I have to clone() too often, and never have _quite_ the correct type where I need it. Am I missing some trick?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667764740
     },
     {
@@ -844,7 +772,6 @@
         "likes": 1,
         "text": "What car do you drive (if any)? Are you a car guy or is it something that you dont pay much attention to?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667764805
     },
     {
@@ -852,7 +779,6 @@
         "likes": 2,
         "text": "Have you ever looked into GUI programming in Rust?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667764823
     },
     {
@@ -860,7 +786,6 @@
         "likes": 6,
         "text": "Who are some researchers you admire?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667764918
     },
     {
@@ -868,7 +793,6 @@
         "likes": 1,
         "text": "What are some good books you have read recently?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667765242
     },
     {
@@ -876,7 +800,6 @@
         "likes": 2,
         "text": "How do you view the tradeoffs of being on a staff team vs a line team at Amazon?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667765779
     },
     {
@@ -884,7 +807,6 @@
         "likes": 2,
         "text": "Do you fill tech world is flooded with incompetent people because high demand and it easy to jump in.",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667766250
     },
     {
@@ -892,7 +814,6 @@
         "likes": 4,
         "text": "What did you hate the most about academia?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667766462
     },
     {
@@ -900,7 +821,7 @@
         "likes": 32,
         "text": "what are your thoughts on parasocial relationships? like if I met you somewhere, I would feel like I knew you, while you would have NO idea who I was",
         "hidden": false,
-        "answered": true,
+        "answered": 1670131054,
         "createTimeUnix": 1667766751
     },
     {
@@ -908,7 +829,6 @@
         "likes": 100,
         "text": "Great idea with voting for questions as opposed to just taking them from the chat. Seems to be quite easy to vote multiple times tho:))",
         "hidden": true,
-        "answered": false,
         "createTimeUnix": 1667767830
     },
     {
@@ -916,7 +836,7 @@
         "likes": 1,
         "text": "What are your thoughts on GhostCell? Would you do a Crust of Rust stream about it?",
         "hidden": false,
-        "answered": false,
         "createTimeUnix": 1667777703
     }
 ]
+

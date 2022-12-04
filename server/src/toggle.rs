@@ -1,3 +1,5 @@
+use crate::get_dynamo_timestamp;
+
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
     error::UpdateItemError, model::AttributeValue, output::UpdateItemOutput, types::SdkError,
@@ -5,7 +7,7 @@ use aws_sdk_dynamodb::{
 use axum::extract::{Path, State};
 use http::StatusCode;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, time::SystemTime};
 use uuid::Uuid;
 
 #[allow(unused_imports)]
@@ -32,13 +34,25 @@ impl Backend {
                     .table_name("questions")
                     .key("id", AttributeValue::S(qid.to_string()));
 
-                let q = q.update_expression("SET #field = :set");
                 let q = match property {
-                    Property::Hidden => q.expression_attribute_names("#field", "hidden"),
-                    Property::Answered => q.expression_attribute_names("#field", "answered"),
+                    Property::Hidden => q
+                        .update_expression("SET #field = :set")
+                        .expression_attribute_names("#field", "hidden")
+                        .expression_attribute_values(":set", AttributeValue::Bool(set)),
+                    Property::Answered => {
+                        if set {
+                            q.update_expression("SET #field = :set")
+                                .expression_attribute_names("#field", "answered")
+                                .expression_attribute_values(
+                                    ":set",
+                                    get_dynamo_timestamp(SystemTime::now()),
+                                )
+                        } else {
+                            q.update_expression("REMOVE #field")
+                                .expression_attribute_names("#field", "answered")
+                        }
+                    }
                 };
-                let q = q.expression_attribute_values(":set", AttributeValue::Bool(set));
-
                 q.send().await
             }
             Self::Local(local) => {
@@ -58,7 +72,13 @@ impl Backend {
                     .expect("toggle property on unknown question ");
                 match property {
                     Property::Hidden => invert(q, "hidden"),
-                    Property::Answered => invert(q, "answered"),
+                    Property::Answered => {
+                        if q.contains_key("answered") {
+                            q.remove("answered");
+                        } else {
+                            q.insert("answered", get_dynamo_timestamp(SystemTime::now()));
+                        }
+                    }
                 }
 
                 Ok(UpdateItemOutput::builder().build())

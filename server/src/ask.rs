@@ -1,3 +1,5 @@
+use crate::get_dynamo_timestamp;
+
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
     error::PutItemError, model::AttributeValue, output::PutItemOutput, types::SdkError,
@@ -29,30 +31,17 @@ impl Backend {
             ("eid", AttributeValue::S(eid.to_string())),
             ("votes", AttributeValue::N(1.to_string())),
             ("text", AttributeValue::S(q.body.into())),
-            (
-                "when",
-                AttributeValue::N(
-                    SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs()
-                        .to_string(),
-                ),
-            ),
+            ("when", get_dynamo_timestamp(SystemTime::now())),
             (
                 "expire",
-                AttributeValue::N(
-                    (SystemTime::now()
-                        + Duration::from_secs(QUESTIONS_EXPIRE_AFTER_DAYS * 24 * 60 * 60))
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-                    .to_string(),
+                get_dynamo_timestamp(
+                    SystemTime::now()
+                        + Duration::from_secs(QUESTIONS_EXPIRE_AFTER_DAYS * 24 * 60 * 60),
                 ),
             ),
             ("hidden", AttributeValue::Bool(false)),
-            ("answered", AttributeValue::Bool(false)),
         ];
+
         match self {
             Self::Dynamo(dynamo) => {
                 let mut r = dynamo.put_item().table_name("questions");

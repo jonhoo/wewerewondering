@@ -172,11 +172,12 @@ async fn list_inner(
                             let hidden = doc["hidden"]
                                 .as_bool()
                                 .ok();
-                            let answered = doc["answered"]
-                                .as_bool()
-                                .ok();
+                            let answered = doc.get("answered")
+                                .and_then(|v| v.as_n().ok())
+                                .and_then(|v| v.parse::<usize>().ok());
+
                             match (qid, votes, hidden, answered) {
-                                (Some(qid), Some(votes), Some(hidden), Some(answered)) => Some(serde_json::json!({
+                                (Some(qid), Some(votes), Some(hidden), answered) => Some(serde_json::json!({
                                     "qid": qid,
                                     "votes": votes,
                                     "hidden": hidden,
