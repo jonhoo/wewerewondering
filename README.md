@@ -125,7 +125,7 @@ the policy I used was:
 
 _The `/api` endpoints._ The behavior for the `/api` URLs is defined for
 the path `/api/*`, is configured to allow all HTTP methods but only
-HTTPS only, and also uses the `SecurityHeaderPolicy` response header
+HTTPS, and also uses the `SecurityHeaderPolicy` response header
 policy. For caching, I created my own policy that is basically
 `CachingOptimized` but has a default TTL of 1s, because if I fail to set
 a cache header I'd rather things mostly keep working rather than
