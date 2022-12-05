@@ -43,7 +43,7 @@ impl Backend {
     }
 }
 
-pub(crate) fn get_dynamo_timestamp(time: SystemTime) -> AttributeValue {
+fn get_dynamo_timestamp(time: SystemTime) -> AttributeValue {
     AttributeValue::N(
         time.duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()

@@ -137,26 +137,28 @@ mod tests {
         let qid = q["id"].as_str().unwrap();
         let qid_u = Uuid::parse_str(qid).unwrap();
 
-        let check = |qids: serde_json::Value, expect: Option<(bool, bool, u64)>| {
-            let qids = qids.as_array().unwrap();
-            let q = qids.iter().find(|q| dbg!(&q["qid"]) == dbg!(qid));
-            if let Some((hidden, answered, votes)) = expect {
-                assert_ne!(
-                    q, None,
-                    "newly created question {qid} was not listed in {qids:?}"
-                );
-                let q = q.unwrap();
-                assert_eq!(q["votes"].as_u64().unwrap(), votes);
-                assert_eq!(q["answered"].as_bool().unwrap(), answered);
-                assert_eq!(q["hidden"].as_bool().unwrap(), hidden);
-                assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
-            } else {
-                assert_eq!(
-                    q, None,
-                    "newly created question {qid} was not listed in {qids:?}"
-                );
-            }
-        };
+        let check =
+            |qids: serde_json::Value,
+             expect: Option<(bool, Box<dyn Fn(&serde_json::Value) -> bool>, u64)>| {
+                let qids = qids.as_array().unwrap();
+                let q = qids.iter().find(|q| dbg!(&q["qid"]) == dbg!(qid));
+                if let Some((hidden, check_answered, votes)) = expect {
+                    assert_ne!(
+                        q, None,
+                        "newly created question {qid} was not listed in {qids:?}"
+                    );
+                    let q = q.unwrap();
+                    assert_eq!(q["votes"].as_u64().unwrap(), votes);
+                    assert!(check_answered(&q["answered"]));
+                    assert_eq!(q["hidden"].as_bool().unwrap(), hidden);
+                    assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
+                } else {
+                    assert_eq!(
+                        q, None,
+                        "newly created question {qid} was not listed in {qids:?}"
+                    );
+                }
+            };
 
         // only admin should see hidden
         super::toggle(
@@ -180,7 +182,7 @@ mod tests {
             .1
             .unwrap()
             .0,
-            Some((true, false, 1)),
+            Some((true, Box::new(|v| v.is_null()), 1)),
         );
         check(
             crate::list::list(Path(eid.clone()), State(backend.clone()))
@@ -226,7 +228,7 @@ mod tests {
             .1
             .unwrap()
             .0,
-            Some((false, true, 1)),
+            Some((false, Box::new(|v| v.is_u64()), 1)),
         );
         check(
             crate::list::list(Path(eid.clone()), State(backend.clone()))
@@ -234,7 +236,7 @@ mod tests {
                 .1
                 .unwrap()
                 .0,
-            Some((false, true, 1)),
+            Some((false, Box::new(|v| v.is_u64()), 1)),
         );
 
         backend.delete(&eid).await;
