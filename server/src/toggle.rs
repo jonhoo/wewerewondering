@@ -4,7 +4,10 @@ use super::{Backend, Local};
 use aws_sdk_dynamodb::{
     error::UpdateItemError, model::AttributeValue, output::UpdateItemOutput, types::SdkError,
 };
-use axum::extract::{Path, State};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use http::StatusCode;
 use serde::Deserialize;
 use std::{collections::HashMap, time::SystemTime};
@@ -20,12 +23,17 @@ pub(super) enum Property {
     Answered,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub(super) enum ToggleRequest {
+    Hidden(bool),
+    Answered(Option<SystemTime>),
+}
+
 impl Backend {
     pub(super) async fn toggle(
         &self,
         qid: &Uuid,
-        property: Property,
-        set: bool,
+        req: ToggleRequest,
     ) -> Result<UpdateItemOutput, SdkError<UpdateItemError>> {
         match self {
             Self::Dynamo(dynamo) => {
@@ -34,19 +42,16 @@ impl Backend {
                     .table_name("questions")
                     .key("id", AttributeValue::S(qid.to_string()));
 
-                let q = match property {
-                    Property::Hidden => q
+                let q = match req {
+                    ToggleRequest::Hidden(set) => q
                         .update_expression("SET #field = :set")
                         .expression_attribute_names("#field", "hidden")
                         .expression_attribute_values(":set", AttributeValue::Bool(set)),
-                    Property::Answered => {
-                        if set {
+                    ToggleRequest::Answered(time) => {
+                        if let Some(time) = time {
                             q.update_expression("SET #field = :set")
                                 .expression_attribute_names("#field", "answered")
-                                .expression_attribute_values(
-                                    ":set",
-                                    get_dynamo_timestamp(SystemTime::now()),
-                                )
+                                .expression_attribute_values(":set", get_dynamo_timestamp(time))
                         } else {
                             q.update_expression("REMOVE #field")
                                 .expression_attribute_names("#field", "answered")
@@ -70,16 +75,16 @@ impl Backend {
                 let q = questions
                     .get_mut(qid)
                     .expect("toggle property on unknown question ");
-                match property {
-                    Property::Hidden => invert(q, "hidden"),
-                    Property::Answered => {
-                        if q.contains_key("answered") {
-                            q.remove("answered");
+                match req {
+                    ToggleRequest::Hidden(set) => q.insert("hidden", AttributeValue::Bool(set)),
+                    ToggleRequest::Answered(time) => {
+                        if let Some(time) = time {
+                            q.insert("answered", get_dynamo_timestamp(time))
                         } else {
-                            q.insert("answered", get_dynamo_timestamp(SystemTime::now()));
+                            q.remove("answered")
                         }
                     }
-                }
+                };
 
                 Ok(UpdateItemOutput::builder().build())
             }
@@ -91,25 +96,40 @@ pub(super) async fn toggle(
     Path((eid, secret, qid, property)): Path<(Uuid, String, Uuid, Property)>,
     State(dynamo): State<Backend>,
     body: String,
-) -> Result<(), StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     super::check_secret(&dynamo, &eid, &secret).await?;
 
-    let set = match &*body {
-        "on" => true,
-        "off" => false,
+    let req = match (&*body, property) {
+        ("on", Property::Hidden) => ToggleRequest::Hidden(true),
+        ("off", Property::Hidden) => ToggleRequest::Hidden(false),
+        ("on", Property::Answered) => ToggleRequest::Answered(Some(SystemTime::now())),
+        ("off", Property::Answered) => ToggleRequest::Answered(None),
         _ => {
             error!(%qid, body, "invalid toggle value");
             return Err(http::StatusCode::BAD_REQUEST);
         }
     };
 
-    match dynamo.toggle(&qid, property, set).await {
+    match dynamo.toggle(&qid, req).await {
         Ok(_) => {
             debug!(%eid, %qid, p = ?property, "toggled question property");
-            Ok(())
+            match req {
+                ToggleRequest::Hidden(set) => Ok(Json(serde_json::json!({ "hidden": set }))),
+                ToggleRequest::Answered(time) => {
+                    if let Some(time) = time {
+                        Ok(Json(serde_json::json!({
+                            "answered": get_dynamo_timestamp(time)
+                                .as_n().ok()
+                                .and_then(|v| v.parse::<usize>().ok())
+                        })))
+                    } else {
+                        Ok(Json(serde_json::json!({})))
+                    }
+                }
+            }
         }
         Err(e) => {
-            error!(%qid, error = %e, "dynamodb request to vote for question failed");
+            error!(%qid, error = %e, "dynamodb request to toggle question property failed");
             Err(http::StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
