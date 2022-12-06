@@ -139,6 +139,7 @@ pub(super) async fn toggle(
 mod tests {
     use super::*;
     use axum::Json;
+    use serde_json::Value;
 
     async fn inner(backend: Backend) {
         let e = crate::new::new(State(backend.clone())).await.unwrap();
@@ -157,28 +158,26 @@ mod tests {
         let qid = q["id"].as_str().unwrap();
         let qid_u = Uuid::parse_str(qid).unwrap();
 
-        let check =
-            |qids: serde_json::Value,
-             expect: Option<(bool, Box<dyn Fn(&serde_json::Value) -> bool>, u64)>| {
-                let qids = qids.as_array().unwrap();
-                let q = qids.iter().find(|q| dbg!(&q["qid"]) == dbg!(qid));
-                if let Some((hidden, check_answered, votes)) = expect {
-                    assert_ne!(
-                        q, None,
-                        "newly created question {qid} was not listed in {qids:?}"
-                    );
-                    let q = q.unwrap();
-                    assert_eq!(q["votes"].as_u64().unwrap(), votes);
-                    assert!(check_answered(&q["answered"]));
-                    assert_eq!(q["hidden"].as_bool().unwrap(), hidden);
-                    assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
-                } else {
-                    assert_eq!(
-                        q, None,
-                        "newly created question {qid} was not listed in {qids:?}"
-                    );
-                }
-            };
+        let check = |qids: Value, expect: Option<(bool, Box<dyn Fn(&Value) -> bool>, u64)>| {
+            let qids = qids.as_array().unwrap();
+            let q = qids.iter().find(|q| dbg!(&q["qid"]) == dbg!(qid));
+            if let Some((hidden, check_answered, votes)) = expect {
+                assert_ne!(
+                    q, None,
+                    "newly created question {qid} was not listed in {qids:?}"
+                );
+                let q = q.unwrap();
+                assert_eq!(q["votes"].as_u64().unwrap(), votes);
+                assert!(check_answered(&q["answered"]));
+                assert_eq!(q["hidden"].as_bool().unwrap(), hidden);
+                assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
+            } else {
+                assert_eq!(
+                    q, None,
+                    "newly created question {qid} was not listed in {qids:?}"
+                );
+            }
+        };
 
         // only admin should see hidden
         super::toggle(
