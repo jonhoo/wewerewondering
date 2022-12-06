@@ -130,7 +130,6 @@
 				qs.push({
 					"qid": newQ,
 					"hidden": false,
-					"answered": false,
 					"votes": 1,
 				});
 			}
@@ -198,7 +197,7 @@
 	$: questions = adjustQuestions(rawQuestions, $localAdjustments, $votedFor);
 	let problum;
 	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden)
-	$: answered = (questions || []).filter((q) => q.answered && !q.hidden)
+	$: answered = (questions || []).filter((q) => q.answered && !q.hidden).sort((a, b) => a.answered - b.answered)
 	$: hidden = (questions || []).filter((q) => q.hidden)
 
 	async function ask() {

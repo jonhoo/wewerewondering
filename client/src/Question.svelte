@@ -50,13 +50,13 @@
 	}
 
 	async function toggle(what) {
-		await fetch(`/api/event/${event.id}/questions/${event.secret}/${question.qid}/toggle/${what}`, {
+		const res = await fetch(`/api/event/${event.id}/questions/${event.secret}/${question.qid}/toggle/${what}`, {
 			"method": "POST",
 			"body": question[what] ? "off" : "on",
-		});
+		}).then(r => r.json());
 		localAdjustments.update(la => {
 			let q = la.remap[question.qid] || {};
-			q[what] = !question[what];
+                        q[what] = res[what];
 			la.remap[question.qid] = q;
 			return la;
 		});
