@@ -307,7 +307,9 @@
 	</section>
 	{#if answered.length > 0}
 	<section>
-	<h2 class="text-2xl text-center text-green-700 dark:text-lime-500 mt-8 mb-4">Answered</h2>
+	<h2 class="text-2xl text-center text-green-700 dark:text-lime-500 mt-8 mb-4">Answered
+		<span class="text-lg float-right">({answered.length} / {answered.length + unanswered.length})</span>
+	</h2>
 	<div class="flex flex-col divide-y">
 	{#each answered as question (question.qid)}
 		<div animate:flip="{{duration: 500}}">
