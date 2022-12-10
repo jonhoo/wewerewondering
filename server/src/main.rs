@@ -43,7 +43,7 @@ impl Backend {
     }
 }
 
-fn get_dynamo_timestamp(time: SystemTime) -> AttributeValue {
+fn to_dynamo_timestamp(time: SystemTime) -> AttributeValue {
     AttributeValue::N(
         time.duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
@@ -144,7 +144,7 @@ async fn main() -> Result<(), Error> {
             likes: usize,
             text: String,
             hidden: bool,
-            answered: Option<usize>,
+            answered: bool,
             #[serde(rename = "createTimeUnix")]
             created: usize,
         }
@@ -182,8 +182,8 @@ async fn main() -> Result<(), Error> {
             for (qid, created, votes, hidden, answered) in qs {
                 let q = state.questions.get_mut(&qid).unwrap();
                 q.insert("votes", AttributeValue::N(votes.to_string()));
-                if let Some(answered) = answered {
-                    q.insert("answered", AttributeValue::N(answered.to_string()));
+                if answered {
+                    q.insert("answered", to_dynamo_timestamp(SystemTime::now()));
                 }
                 q.insert("hidden", AttributeValue::Bool(hidden));
                 q.insert("when", AttributeValue::N(created.to_string()));

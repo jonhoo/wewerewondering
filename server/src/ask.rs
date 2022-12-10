@@ -1,4 +1,4 @@
-use crate::get_dynamo_timestamp;
+use crate::to_dynamo_timestamp;
 
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
@@ -31,10 +31,10 @@ impl Backend {
             ("eid", AttributeValue::S(eid.to_string())),
             ("votes", AttributeValue::N(1.to_string())),
             ("text", AttributeValue::S(q.body.into())),
-            ("when", get_dynamo_timestamp(SystemTime::now())),
+            ("when", to_dynamo_timestamp(SystemTime::now())),
             (
                 "expire",
-                get_dynamo_timestamp(
+                to_dynamo_timestamp(
                     SystemTime::now()
                         + Duration::from_secs(QUESTIONS_EXPIRE_AFTER_DAYS * 24 * 60 * 60),
                 ),

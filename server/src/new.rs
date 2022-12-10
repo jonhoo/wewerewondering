@@ -1,4 +1,4 @@
-use crate::get_dynamo_timestamp;
+use crate::to_dynamo_timestamp;
 
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
@@ -30,10 +30,10 @@ impl Backend {
                     .table_name("events")
                     .item("id", AttributeValue::S(eid.to_string()))
                     .item("secret", AttributeValue::S(secret.into()))
-                    .item("when", get_dynamo_timestamp(SystemTime::now()))
+                    .item("when", to_dynamo_timestamp(SystemTime::now()))
                     .item(
                         "expire",
-                        get_dynamo_timestamp(
+                        to_dynamo_timestamp(
                             SystemTime::now()
                                 + Duration::from_secs(EVENTS_EXPIRE_AFTER_DAYS * 24 * 60 * 60),
                         ),

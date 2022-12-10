@@ -1,4 +1,4 @@
-use crate::get_dynamo_timestamp;
+use crate::to_dynamo_timestamp;
 
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
@@ -51,7 +51,7 @@ impl Backend {
                         if let Some(time) = time {
                             q.update_expression("SET #field = :set")
                                 .expression_attribute_names("#field", "answered")
-                                .expression_attribute_values(":set", get_dynamo_timestamp(time))
+                                .expression_attribute_values(":set", to_dynamo_timestamp(time))
                         } else {
                             q.update_expression("REMOVE #field")
                                 .expression_attribute_names("#field", "answered")
@@ -79,7 +79,7 @@ impl Backend {
                     ToggleRequest::Hidden(set) => q.insert("hidden", AttributeValue::Bool(set)),
                     ToggleRequest::Answered(time) => {
                         if let Some(time) = time {
-                            q.insert("answered", get_dynamo_timestamp(time))
+                            q.insert("answered", to_dynamo_timestamp(time))
                         } else {
                             q.remove("answered")
                         }
@@ -117,11 +117,11 @@ pub(super) async fn toggle(
                 ToggleRequest::Hidden(set) => Ok(Json(serde_json::json!({ "hidden": set }))),
                 ToggleRequest::Answered(time) => {
                     if let Some(time) = time {
-                        Ok(Json(serde_json::json!({
-                            "answered": get_dynamo_timestamp(time)
-                                .as_n().ok()
-                                .and_then(|v| v.parse::<usize>().ok())
-                        })))
+                        let time = time
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs();
+                        Ok(Json(serde_json::json!({ "answered": time })))
                     } else {
                         Ok(Json(serde_json::json!({})))
                     }
