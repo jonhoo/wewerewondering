@@ -56,7 +56,11 @@
 		}).then(r => r.json());
 		localAdjustments.update(la => {
 			let q = la.remap[question.qid] || {};
-                        q[what] = res[what];
+	    		if (what === "answered") {
+	    		    q[what] = what in res ? { action: "set", value: res[what] } : { action: "unset" };
+	    		} else {
+	    		    q[what] = res[what];
+	    		}
 			la.remap[question.qid] = q;
 			return la;
 		});

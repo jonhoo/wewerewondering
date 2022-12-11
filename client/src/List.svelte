@@ -1,5 +1,4 @@
 <script>
-	import { onMount } from "svelte";
 	import Question from "./Question.svelte";
 	import { votedFor, localAdjustments } from './store.js';
 	import { flip } from 'svelte/animate';
@@ -152,15 +151,23 @@
 					}
 				}
 				if ("answered" in adj) {
-					if (q.answered === adj.answered) {
-						console.debug("no longer need to adjust answered");
-						delete la.remap[qid]["answered"];
-						changed = true;
-					} else {
-						console.info("adjust answered to", adj.answered);
-						qs[i].answered = adj.answered;
-					}
-				}
+		    			const patch = adj.answered;
+					// Ohhh, how I wish Javascript had a match statement like rust
+		    			switch (true) {
+		    			    case patch.action === "unset" && "answered" in q:
+		    				console.info("remove answered property");
+		    				delete qs[i].answered;
+		    				break;
+		    			    case patch.action === "set" && !("answered" in q):
+		    				console.info(`adjust answered to ${patch.value}`);
+		    				qs[i].answered = patch.value;
+		    				break;
+		    			    default:
+		    				console.debug("no longer need to adjust answered");
+		    				delete la.remap[qid]["answered"];
+		    				changed = true;
+		    			}
+			    	}
 				if ("voted_when" in adj) {
 					if (q.votes === adj.voted_when) {
 						console.info("adjust vote count from", q.votes);

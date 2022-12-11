@@ -4,9 +4,9 @@ const storedVotedFor = JSON.parse(localStorage.getItem("votedFor"));
 export const votedFor = writable(!storedVotedFor ? {} : storedVotedFor);
 votedFor.subscribe(value => {
     if (value) {
-        localStorage.setItem("votedFor", JSON.stringify(value));
+	localStorage.setItem("votedFor", JSON.stringify(value));
     } else {
-        localStorage.removeItem("votedFor");
+	localStorage.removeItem("votedFor");
     }
 });
 
@@ -16,14 +16,20 @@ export const localAdjustments = writable(!storedLocalAdjustments ? {
 	    // qid
     ],
     "remap": {
-	    // qid => { hidden: bool, answered: bool, voted_when: int }
+	/*
+	 qid => { 
+	    hidden: bool,
+	    answered: {action: "unset"} | {action: "set", value: number}, 
+	    voted_when: int 
+	}
+	*/
     }
 } : storedLocalAdjustments );
 localAdjustments.subscribe(value => {
     if (value) {
-        localStorage.setItem("localAdjustments", JSON.stringify(value));
+	localStorage.setItem("localAdjustments", JSON.stringify(value));
     } else {
-        localStorage.removeItem("localAdjustments");
+	localStorage.removeItem("localAdjustments");
     }
 });
 
@@ -31,9 +37,9 @@ const storedQs = JSON.parse(localStorage.getItem("questions"));
 export const questionCache = writable(!storedQs ? {} : storedQs);
 questionCache.subscribe(value => {
     if (value) {
-        localStorage.setItem("questions", JSON.stringify(value));
+	localStorage.setItem("questions", JSON.stringify(value));
     } else {
-        localStorage.removeItem("questions");
+	localStorage.removeItem("questions");
     }
 });
 
