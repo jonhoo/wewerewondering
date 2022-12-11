@@ -151,23 +151,20 @@
 					}
 				}
 				if ("answered" in adj) {
-		    			const patch = adj.answered;
 					// Ohhh, how I wish Javascript had a match statement like rust
-		    			switch (true) {
-		    			    case patch.action === "unset" && "answered" in q:
-		    				console.info("remove answered property");
-		    				delete qs[i].answered;
-		    				break;
-		    			    case patch.action === "set" && !("answered" in q):
-		    				console.info(`adjust answered to ${patch.value}`);
-		    				qs[i].answered = patch.value;
-		    				break;
-		    			    default:
-		    				console.debug("no longer need to adjust answered");
-		    				delete la.remap[qid]["answered"];
-		    				changed = true;
-		    			}
-			    	}
+					const patch = adj.answered;
+					if (patch.action === "unset" && "answered" in q) {
+						console.info("remove answered property");
+						delete qs[i].answered;
+					} else if (patch.action === "set" && !("answered" in q)) {
+						console.info("adjust answered to", patch.value);
+						qs[i].answered = patch.value;
+					}else {
+						console.debug("no longer need to adjust answered");
+						delete la.remap[qid]["answered"];
+						changed = true;
+					}
+				}
 				if ("voted_when" in adj) {
 					if (q.votes === adj.voted_when) {
 						console.info("adjust vote count from", q.votes);
