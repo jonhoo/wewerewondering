@@ -159,7 +159,7 @@
 					} else if (patch.action === "set" && !("answered" in q)) {
 						console.info("adjust answered to", patch.value);
 						qs[i].answered = patch.value;
-					}else {
+					} else {
 						console.debug("no longer need to adjust answered");
 						delete la.remap[qid]["answered"];
 						changed = true;
