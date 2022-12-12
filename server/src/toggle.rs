@@ -170,7 +170,7 @@ mod tests {
                 );
                 let q = q.unwrap();
                 assert_eq!(q["votes"].as_u64().unwrap(), votes);
-                check_answered(&q["answered"]);
+                check_answered(&q);
                 assert_eq!(q["hidden"].as_bool().unwrap(), hidden);
                 assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
             } else {
@@ -181,7 +181,8 @@ mod tests {
             }
         };
 
-        let check_answered_set = |answered: &serde_json::Value| {
+        let check_answered_set = |json: &Value| {
+            let answered = &json["answered"];
             assert!(answered.is_u64(), "answered is not a u64: {answered}");
             let answered = answered.as_u64().unwrap();
             let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
@@ -189,7 +190,8 @@ mod tests {
             assert!(now - answered <= 30, "answered not within the last 30 sec: [now: {now} | answered: {answered}]")
         };
 
-        let check_answered_unset = |answered: &serde_json::Value| {
+        let check_answered_unset = |json: &Value| {
+            let answered = &json["answered"];
             assert!(answered.is_null(), "answered should be null: {answered}");
         };
 
@@ -257,7 +259,7 @@ mod tests {
         )
         .await
         .unwrap();
-        check_answered_set(&toggle_res["answered"]);
+        check_answered_set(&toggle_res);
 
         check(
             crate::list::list_all(
@@ -292,7 +294,7 @@ mod tests {
         )
         .await
         .unwrap();
-        check_answered_unset(&toggle_res["answered"]);
+        check_answered_unset(&toggle_res);
 
         check(
             crate::list::list_all(
