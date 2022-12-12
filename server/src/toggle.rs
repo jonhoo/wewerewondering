@@ -137,6 +137,8 @@ pub(super) async fn toggle(
 
 #[cfg(test)]
 mod tests {
+    use std::time::UNIX_EPOCH;
+
     use super::*;
     use axum::Json;
     use serde_json::Value;
@@ -158,7 +160,7 @@ mod tests {
         let qid = q["id"].as_str().unwrap();
         let qid_u = Uuid::parse_str(qid).unwrap();
 
-        let check = |qids: Value, expect: Option<(bool, Box<dyn Fn(&Value) -> bool>, u64)>| {
+        let check = |qids: Value, expect: Option<(bool, Box<dyn Fn(&Value) -> ()>, u64)>| {
             let qids = qids.as_array().unwrap();
             let q = qids.iter().find(|q| dbg!(&q["qid"]) == dbg!(qid));
             if let Some((hidden, check_answered, votes)) = expect {
@@ -168,7 +170,7 @@ mod tests {
                 );
                 let q = q.unwrap();
                 assert_eq!(q["votes"].as_u64().unwrap(), votes);
-                assert!(check_answered(&q["answered"]));
+                check_answered(&q["answered"]);
                 assert_eq!(q["hidden"].as_bool().unwrap(), hidden);
                 assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
             } else {
@@ -179,8 +181,21 @@ mod tests {
             }
         };
 
+        let check_answered_set = |answered: &serde_json::Value| {
+            assert!(answered.is_u64(), "answered is not a u64: {answered}");
+            let answered = answered.as_u64().unwrap();
+            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+            assert!(now >= answered, "answered is time travelling: [now: {now} | answered: {answered}]");
+            assert!(now - answered <= 30, "answered not within the last 30 sec: [now: {now} | answered: {answered}]")
+        };
+
+        let check_answered_unset = |answered: &serde_json::Value| {
+            assert!(answered.is_null(), "answered should be null: {answered}");
+        };
+
+
         // only admin should see hidden
-        super::toggle(
+        let toggle_res = super::toggle(
             Path((
                 eid.clone(),
                 secret.to_string(),
@@ -192,6 +207,8 @@ mod tests {
         )
         .await
         .unwrap();
+        assert_eq!(toggle_res["hidden"].as_bool().expect("hidden should be a bool"), true);
+
         check(
             crate::list::list_all(
                 Path((eid.clone(), secret.to_string())),
@@ -201,7 +218,7 @@ mod tests {
             .1
             .unwrap()
             .0,
-            Some((true, Box::new(|v| v.is_null()), 1)),
+            Some((true, Box::new(check_answered_unset), 1)),
         );
         check(
             crate::list::list(Path(eid.clone()), State(backend.clone()))
@@ -213,7 +230,7 @@ mod tests {
         );
 
         // should toggle back
-        super::toggle(
+        let toggle_res = super::toggle(
             Path((
                 eid.clone(),
                 secret.to_string(),
@@ -225,8 +242,10 @@ mod tests {
         )
         .await
         .unwrap();
+        assert_eq!(toggle_res["hidden"].as_bool().expect("hidden should be a bool"), false);
+
         // and should now show up as answered
-        super::toggle(
+        let toggle_res = super::toggle(
             Path((
                 eid.clone(),
                 secret.to_string(),
@@ -238,6 +257,8 @@ mod tests {
         )
         .await
         .unwrap();
+        check_answered_set(&toggle_res["answered"]);
+
         check(
             crate::list::list_all(
                 Path((eid.clone(), secret.to_string())),
@@ -247,7 +268,7 @@ mod tests {
             .1
             .unwrap()
             .0,
-            Some((false, Box::new(|v| v.is_u64()), 1)),
+            Some((false, Box::new(check_answered_set), 1)),
         );
         check(
             crate::list::list(Path(eid.clone()), State(backend.clone()))
@@ -255,8 +276,44 @@ mod tests {
                 .1
                 .unwrap()
                 .0,
-            Some((false, Box::new(|v| v.is_u64()), 1)),
+            Some((false, Box::new(check_answered_set), 1)),
         );
+
+        // answered should toggle back
+        let toggle_res = super::toggle(
+            Path((
+                eid.clone(),
+                secret.to_string(),
+                qid_u.clone(),
+                Property::Answered,
+            )),
+            State(backend.clone()),
+            String::from("off"),
+        )
+        .await
+        .unwrap();
+        check_answered_unset(&toggle_res["answered"]);
+
+        check(
+            crate::list::list_all(
+                Path((eid.clone(), secret.to_string())),
+                State(backend.clone()),
+            )
+            .await
+            .1
+            .unwrap()
+            .0,
+            Some((false, Box::new(check_answered_unset), 1)),
+        );
+        check(
+            crate::list::list(Path(eid.clone()), State(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
+            Some((false, Box::new(check_answered_unset), 1)),
+        );
+
 
         backend.delete(&eid).await;
     }
