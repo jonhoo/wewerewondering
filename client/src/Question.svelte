@@ -1,11 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
-	import {votedFor, questionCache, questionData, localAdjustments} from './store.js';
+	import {votedFor, questionCache, questionData, localAdjustments, event} from './store.js';
 
 	export let question;
-	export let event;
 
 	let now = new Date();
+    // QUESTION: Instead of registering this for each questions, it might be less
+    // resource intensive to have a single `readable` timer store that questions 
+    // could subscribe to. Thoughts?
 	onMount(() => {
 		const interval = setInterval(() => {
 			now = new Date();
@@ -50,7 +52,7 @@
 	}
 
 	async function toggle(what) {
-		await fetch(`/api/event/${event.id}/questions/${event.secret}/${question.qid}/toggle/${what}`, {
+		await fetch(`/api/event/${$event.id}/questions/${$event.secret}/${question.qid}/toggle/${what}`, {
 			"method": "POST",
 			"body": question[what] ? "off" : "on",
 		});
@@ -118,7 +120,7 @@
 		{#if q.who}
 		<span>by {q.who}</span>
 		{/if}
-		{#if event.secret}
+		{#if $event.secret}
 			—
 			{#if question.answered}
 				<button on:click={answered}>Mark as not answered</button>
