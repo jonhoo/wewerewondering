@@ -3,7 +3,7 @@
 	import { rawQuestions, localAdjustments, votedFor,  questions, event } from './store.js';
     import { poll_time, animationTime } from "./helpers";
 	import { flip } from 'svelte/animate';
-	import { scale } from 'svelte/transition';
+	import { scale, slide } from 'svelte/transition';
 
 
 	function visibilitychange() {
@@ -161,12 +161,19 @@
 	<section class="pt-4">
 	{#if unanswered.length > 0}
 		<div class="flex flex-col divide-y">
-		{#each unanswered as question (question.qid)}
-		    <div animate:flip={{duration: animationTime}} {...disableLastOut ? {} : {"out:scale":{ duration: animationTime }}}>
-			<Question bind:question={question} />
-			</div>
-		{/each}
-		</div>
+             {#if disableLastOut}
+                 <Question bind:question={unanswered[0]} />
+             {:else}
+                 {#each unanswered as question (question.qid)}
+                     <div
+                         out:slide={{ duration: animationTime }}
+                         animate:flip={{ duration: animationTime }}
+                     >
+                         <Question bind:question />
+                     </div>
+                 {/each}
+             {/if}
+	    </div>
 	{:else}
 		<h2 class="text-center text-slate-500 text-2xl my-12" in:scale={{ duration: animationTime }}>
 			{#if answered.length > 0}
@@ -184,7 +191,7 @@
 	</h2>
 	<div class="flex flex-col divide-y">
 	{#each answered as question (question.qid)}
-		<div animate:flip={{duration: animationTime}} out:scale={{ duration: animationTime }}>
+		<div animate:flip={{duration: animationTime}} out:slide={{ duration: animationTime }}>
 		<Question bind:question={question} />
 		</div>
 	{/each}
@@ -196,7 +203,7 @@
 	<h2 class="text-2xl text-center text-slate-400 dark:text-slate-500 mt-8 mb-4">Hidden</h2>
 	<div class="flex flex-col divide-y">
 	{#each hidden as question (question.qid)}
-		<div animate:flip={{duration: animationTime}} out:scale={{ duration: animationTime }}>
+		<div animate:flip={{duration: animationTime}} out:slide={{ duration: animationTime }}>
 		<Question bind:question={question} />
 		</div>
 	{/each}
