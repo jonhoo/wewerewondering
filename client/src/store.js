@@ -1,4 +1,5 @@
-import { writable } from "svelte/store";
+import { writable, derived } from "svelte/store";
+import { adjustQuestions, animationTime, debounce, deepEqual } from "./helpers";
 
 const storedVotedFor = JSON.parse(localStorage.getItem("votedFor"));
 export const votedFor = writable(!storedVotedFor ? {} : storedVotedFor);
@@ -13,12 +14,12 @@ votedFor.subscribe(value => {
 const storedLocalAdjustments = JSON.parse(localStorage.getItem("localAdjustments"));
 export const localAdjustments = writable(!storedLocalAdjustments ? {
     "newQuestions": [
-	    // qid
+        // qid
     ],
     "remap": {
-	    // qid => { hidden: bool, answered: bool, voted_when: int }
+        // qid => { hidden: bool, answered: bool, voted_when: int }
     }
-} : storedLocalAdjustments );
+} : storedLocalAdjustments);
 localAdjustments.subscribe(value => {
     if (value) {
         localStorage.setItem("localAdjustments", JSON.stringify(value));
@@ -26,6 +27,26 @@ localAdjustments.subscribe(value => {
         localStorage.removeItem("localAdjustments");
     }
 });
+
+export const event = writable(null);
+export const rawQuestions = writable(null);
+
+
+let prevQuestions = null;
+const debouncedQuestions = debounce(([$rq, $la, $vf], set) => {
+    const updated = adjustQuestions($rq, $la, $vf);
+    if (!deepEqual(updated, prevQuestions)) {
+        console.info("questions have been updated, triggering rerender");
+        set(updated);
+    }
+    prevQuestions = updated;
+}, animationTime + 100); // Give ourselves a little buffer since the animation won't start right away 
+
+// Svelte is doing some weird things here! This only works if the stores are passed like ([$rq, $la, $vf], set)
+// but stops working if we try to pass debouncedQuestions directly
+export const questions = derived([rawQuestions, localAdjustments, votedFor], ([$rq, $la, $vf], set) => {
+    debouncedQuestions([$rq, $la, $vf], set);
+}, "noop");
 
 const storedQs = JSON.parse(localStorage.getItem("questions"));
 export const questionCache = writable(!storedQs ? {} : storedQs);

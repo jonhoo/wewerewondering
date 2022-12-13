@@ -1,53 +1,20 @@
 <script>
-	import { onMount } from "svelte";
 	import Question from "./Question.svelte";
-	import { votedFor, localAdjustments } from './store.js';
+	import { rawQuestions, localAdjustments, votedFor,  questions, event } from './store.js';
+    import { poll_time, animationTime } from "./helpers";
 	import { flip } from 'svelte/animate';
+	import { scale } from 'svelte/transition';
 
-	export let event;
-
-	let inactive_hits = 0;
-	function poll_time(e) {
-		if (document.hidden) {
-			// if the tab is hidden, no need to refresh so often
-			// if it's been hidden for a while, even less so
-			// we could stop refreshing altogether, and just
-			// refresh when we're visible again (i.e., on
-			// visibilitychange), but it's nice if things don't
-			// jump around too much when that happens.
-			inactive_hits += 1;
-			if (inactive_hits <= 10 /* times 30s */) {
-				// For the first 5 minutes, poll every 30s
-				return 30 * 1000;
-			} else if (inactive_hits <= 25 /* -10 times 60s */ ) {
-				// For the next 15 minutes, poll every 60s
-				return 60 * 1000;
-			} else {
-				// At this point, the user probably won't
-				// return to the tab for a while, so we can
-				// update _very_ rarely.
-				return 20 * 60 * 1000;
-			}
-		}
-
-		inactive_hits = 0;
-		if (e.secret) {
-			// hosts should get relatively frequent updates
-			return 3000;
-		} else {
-			// guests can wait
-			return 10000;
-		}
-	}
 
 	function visibilitychange() {
 		// immediately refresh when we become visible
 		if (!document.hidden) {
-			event = event;
+			event.set($event);
 		}
 	}
 
 	let interval;
+	let problum;
 	async function loadQuestions(e) {
 		if (interval) {
 			clearTimeout(interval);
@@ -55,13 +22,17 @@
 		let next = poll_time(e);
 		console.info("refresh; next in", next, "ms");
 		// set early so we'll retry even if request fails
-		interval = setTimeout(() => {event = event;}, next);
+		interval = setTimeout(() => {event.set(e)}, next);
 		let url = e.secret
 			? `/api/event/${e.id}/questions/${e.secret}`
 			: `/api/event/${e.id}/questions`;
 		let r = await fetch(url);
 		if (!r.ok) {
 			console.error(r);
+            problum = r;
+            if (r.status === 404) {
+                rawQuestions.set(null);
+            }
 			if (r.status >= 400 && r.status < 500) {
 				// it's our fault. most likely, the event
 				// doesn't exist (or has since been deleted),
@@ -73,134 +44,35 @@
 			}
 			throw r;
 		}
+        problum = null;
 		if (interval) {
 			clearTimeout(interval);
 		}
 		// re-set timeout so we count from when the reload actually happened
-		interval = setTimeout(() => {event = event;}, next);
-		return await r.json();
+		interval = setTimeout(() => {event.set(e)}, next);
+		rawQuestions.set(await r.json());
 	}
+    event.subscribe(loadQuestions);
 
-	// XXX: this ends up doing _two_ loads when the page initially opens
-	//      not sure why...
-	let rawQuestions;
-	$: loadQuestions(event).then((qs) => {
-		rawQuestions = qs;
-		problum = null;
-	}).catch((r) => {
-		if (r.status === 404) {
-			rawQuestions = null;
-			problum = r;
-		} else {
-			// leave questions and just highlight (hopefully
-			// temporary) error.
-			problum = r;
-		}
-	});
+    // Not sure how the $: syntax works with stores, so to be on the safe side
+    // i'm doing an explicit subscribe
+    let unanswered = [];
+	let answered = []; 
+	let hidden = [];
+    let last = new Date();
+    questions.subscribe((qs) => {
+        // Noop means no there are no new updates
+        if (qs === "noop") return;
+        let now = new Date();
+        console.log(`Redraw request after: ${now.getTime() - last.getTime()}ms`);
+        last = now;
+        unanswered = qs.filter((q) => !q.answered && !q.hidden)
+	    answered = qs.filter((q) => q.answered && !q.hidden)
+	    hidden = qs.filter((q) => q.hidden)
+    })
+    $: disableLastOut = unanswered.length === 1
 
-	// because of caching, we may receive a list of questions from the
-	// server that doesn't reflect changes we've made (voting, asking new
-	// questions, toggling hidden/answered). that's _very_ confusing.
-	// so, we keep track of every change we make and re-apply it onto what
-	// we get from the server until we observe the change in the server's
-	// response.
-	function adjustQuestions(rq, la, vf) {
-		if (rq === null || rq === undefined) {
-			return rq;
-		}
-		// deep-ish clone so we don't modify rawQuestions
-		let qs = rq.map((q) => Object.assign({}, q));
-
-		let removed = false;
-		let nowPresent = {};
-		for (const q of qs) {
-			for (const newQ of la.newQuestions) {
-				if (q.qid === newQ) {
-					console.debug("no longer need to add", newQ);
-					nowPresent[newQ] = true;
-				}
-			}
-		}
-		if (la.newQuestions.length > 0 || Object.keys(la.remap).length > 0) {
-			console.log("question list needs local adjustments");
-			let changed = Object.keys(nowPresent).length > 0;
-			la.newQuestions = la.newQuestions.filter((qid) => !(qid in nowPresent));
-			for (const newQ of la.newQuestions) {
-				console.info("add in", newQ);
-				qs.push({
-					"qid": newQ,
-					"hidden": false,
-					"answered": false,
-					"votes": 1,
-				});
-			}
-			for (let i = 0; i < qs.length; i++) {
-				let q = qs[i];
-				let qid = q.qid;
-				let adj = la.remap[qid];
-				if (!adj) {
-					continue;
-				}
-				console.debug("augment", qid);
-				if ("hidden" in adj) {
-					if (q.hidden === adj.hidden) {
-						console.debug("no longer need to adjust hidden");
-						delete la.remap[qid]["hidden"];
-						changed = true;
-					} else {
-						console.info("adjust hidden to", adj.hidden);
-						qs[i].hidden = adj.hidden;
-					}
-				}
-				if ("answered" in adj) {
-					if (q.answered === adj.answered) {
-						console.debug("no longer need to adjust answered");
-						delete la.remap[qid]["answered"];
-						changed = true;
-					} else {
-						console.info("adjust answered to", adj.answered);
-						qs[i].answered = adj.answered;
-					}
-				}
-				if ("voted_when" in adj) {
-					if (q.votes === adj.voted_when) {
-						console.info("adjust vote count from", q.votes);
-						// our vote likely isn't represented
-						if (vf[qid]) {
-							console.debug("adjust up");
-							qs[i].votes += 1;
-						} else {
-							console.debug("adjust down");
-							qs[i].votes -= 1;
-						}
-					} else {
-						console.debug("vote count has been updated from", adj.voted_when, "to", q.votes);
-						delete la.remap[qid]["voted_when"];
-						changed = true;
-					}
-				}
-				if (Object.keys(la.remap[qid]).length === 0) {
-					console.debug("no more adjustments");
-					delete la.remap[qid];
-					changed = true;
-				}
-			}
-			if (changed) {
-				console.log("local adjustments changed");
-				localAdjustments.set(la);
-			}
-		}
-		qs.sort((a, b) => { return b.votes - a.votes; });
-		return qs;
-	}
-
-
-	$: questions = adjustQuestions(rawQuestions, $localAdjustments, $votedFor);
-	let problum;
-	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden)
-	$: answered = (questions || []).filter((q) => q.answered && !q.hidden)
-	$: hidden = (questions || []).filter((q) => q.hidden)
-
+	
 	async function ask() {
 		let q;
 		while (true) {
@@ -219,7 +91,7 @@
 		    who = null;
 		}
 		// TODO: handle error
-		let resp = await fetch(`/api/event/${event.id}`, {
+		let resp = await fetch(`/api/event/${$event.id}`, {
 			"method": "POST",
 			"headers": {
 				'Content-Type': 'application/json',
@@ -245,7 +117,7 @@
 	let reset;
 	async function share(e) {
 		let url = window.location + "";
-		url = url.substring(0, url.length - event.secret.length - 1);
+		url = url.substring(0, url.length - $event.secret.length - 1);
 		await navigator.clipboard.writeText(url);
 		e.target.textContent = "📋 Link copied!";
 		if (reset) {
@@ -262,7 +134,7 @@
 
 {#if questions}
 	<div class="text-center">
-	{#if event.secret}
+	{#if $event.secret}
 		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-100 hover:border-red-400" on:click={share}>{share_text}</button>
 		<div class="text-slate-400 pt-4">
 			The URL in your address bar shares the host view.<br />
@@ -290,13 +162,13 @@
 	{#if unanswered.length > 0}
 		<div class="flex flex-col divide-y">
 		{#each unanswered as question (question.qid)}
-			<div animate:flip="{{duration: 500}}">
-			<Question {event} bind:question={question} />
+		    <div animate:flip={{duration: animationTime}} {...disableLastOut ? {} : {"out:scale":{ duration: animationTime }}}>
+			<Question bind:question={question} />
 			</div>
 		{/each}
 		</div>
 	{:else}
-		<h2 class="text-center text-slate-500 text-2xl my-8">
+		<h2 class="text-center text-slate-500 text-2xl my-12" in:scale={{ duration: animationTime }}>
 			{#if answered.length > 0}
 			No unanswered questions.
 			{:else}
@@ -312,20 +184,20 @@
 	</h2>
 	<div class="flex flex-col divide-y">
 	{#each answered as question (question.qid)}
-		<div animate:flip="{{duration: 500}}">
-		<Question {event} bind:question={question} />
+		<div animate:flip={{duration: animationTime}} out:scale={{ duration: animationTime }}>
+		<Question bind:question={question} />
 		</div>
 	{/each}
 	</div>
 	</section>
 	{/if}
-	{#if event.secret && hidden.length > 0}
+	{#if $event.secret && hidden.length > 0}
 	<section>
 	<h2 class="text-2xl text-center text-slate-400 dark:text-slate-500 mt-8 mb-4">Hidden</h2>
 	<div class="flex flex-col divide-y">
 	{#each hidden as question (question.qid)}
-		<div animate:flip="{{duration: 500}}">
-		<Question {event} bind:question={question} />
+		<div animate:flip={{duration: animationTime}} out:scale={{ duration: animationTime }}>
+		<Question bind:question={question} />
 		</div>
 	{/each}
 	</div>
