@@ -1,3 +1,5 @@
+use crate::to_dynamo_timestamp;
+
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
     error::PutItemError, model::AttributeValue, output::PutItemOutput, types::SdkError,
@@ -28,25 +30,12 @@ impl Backend {
                     .table_name("events")
                     .item("id", AttributeValue::S(eid.to_string()))
                     .item("secret", AttributeValue::S(secret.into()))
-                    .item(
-                        "when",
-                        AttributeValue::N(
-                            SystemTime::now()
-                                .duration_since(SystemTime::UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs()
-                                .to_string(),
-                        ),
-                    )
+                    .item("when", to_dynamo_timestamp(SystemTime::now()))
                     .item(
                         "expire",
-                        AttributeValue::N(
-                            (SystemTime::now()
-                                + Duration::from_secs(EVENTS_EXPIRE_AFTER_DAYS * 24 * 60 * 60))
-                            .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs()
-                            .to_string(),
+                        to_dynamo_timestamp(
+                            SystemTime::now()
+                                + Duration::from_secs(EVENTS_EXPIRE_AFTER_DAYS * 24 * 60 * 60),
                         ),
                     )
                     .send()

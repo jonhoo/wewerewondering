@@ -16,7 +16,13 @@ export const localAdjustments = writable(!storedLocalAdjustments ? {
 	    // qid
     ],
     "remap": {
-	    // qid => { hidden: bool, answered: bool, voted_when: int }
+	/*
+	 qid => { 
+	    hidden: bool,
+	    answered: {action: "unset"} | {action: "set", value: number}, 
+	    voted_when: int 
+	}
+	*/
     }
 } : storedLocalAdjustments );
 localAdjustments.subscribe(value => {

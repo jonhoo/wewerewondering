@@ -5,6 +5,7 @@ use axum::routing::{get, post};
 use axum::Router;
 use http::StatusCode;
 use lambda_http::Error;
+use std::time::SystemTime;
 use std::{
     collections::HashMap,
     future::Future,
@@ -40,6 +41,15 @@ impl Backend {
         let config = aws_config::load_from_env().await;
         Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
     }
+}
+
+fn to_dynamo_timestamp(time: SystemTime) -> AttributeValue {
+    AttributeValue::N(
+        time.duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .to_string(),
+    )
 }
 
 #[derive(Clone, Debug, Default)]
@@ -172,7 +182,9 @@ async fn main() -> Result<(), Error> {
             for (qid, created, votes, hidden, answered) in qs {
                 let q = state.questions.get_mut(&qid).unwrap();
                 q.insert("votes", AttributeValue::N(votes.to_string()));
-                q.insert("answered", AttributeValue::Bool(answered));
+                if answered {
+                    q.insert("answered", to_dynamo_timestamp(SystemTime::now()));
+                }
                 q.insert("hidden", AttributeValue::Bool(hidden));
                 q.insert("when", AttributeValue::N(created.to_string()));
                 qids.push(qid);

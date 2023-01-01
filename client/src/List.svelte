@@ -1,5 +1,4 @@
 <script>
-	import { onMount } from "svelte";
 	import Question from "./Question.svelte";
 	import { votedFor, localAdjustments } from './store.js';
 	import { flip } from 'svelte/animate';
@@ -130,7 +129,6 @@
 				qs.push({
 					"qid": newQ,
 					"hidden": false,
-					"answered": false,
 					"votes": 1,
 				});
 			}
@@ -153,13 +151,18 @@
 					}
 				}
 				if ("answered" in adj) {
-					if (q.answered === adj.answered) {
+					// Ohhh, how I wish Javascript had a match statement like rust
+					const patch = adj.answered;
+					if (patch.action === "unset" && "answered" in q) {
+						console.info("remove answered property");
+						delete qs[i].answered;
+					} else if (patch.action === "set" && !("answered" in q)) {
+						console.info("adjust answered to", patch.value);
+						qs[i].answered = patch.value;
+					} else {
 						console.debug("no longer need to adjust answered");
 						delete la.remap[qid]["answered"];
 						changed = true;
-					} else {
-						console.info("adjust answered to", adj.answered);
-						qs[i].answered = adj.answered;
 					}
 				}
 				if ("voted_when" in adj) {
@@ -198,7 +201,7 @@
 	$: questions = adjustQuestions(rawQuestions, $localAdjustments, $votedFor);
 	let problum;
 	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden)
-	$: answered = (questions || []).filter((q) => q.answered && !q.hidden)
+	$: answered = (questions || []).filter((q) => q.answered && !q.hidden).sort((a, b) => a.answered - b.answered)
 	$: hidden = (questions || []).filter((q) => q.hidden)
 
 	async function ask() {

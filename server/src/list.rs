@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
     error::{QueryError, QueryErrorKind, ResourceNotFoundException},
@@ -156,44 +158,48 @@ async fn list_inner(
         false
     };
 
+    // Closure moved out of the filter_map due to rustfmt failing to format the
+    // code properly.
+    let serialize_question = |doc: &HashMap<String, AttributeValue>| {
+        let qid = doc["id"].as_s().ok();
+        let votes = doc["votes"]
+            .as_n()
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok());
+        let hidden = doc["hidden"].as_bool().ok();
+        let answered = doc
+            .get("answered")
+            .and_then(|v| v.as_n().ok())
+            .and_then(|v| v.parse::<usize>().ok());
+        match (qid, votes, hidden, answered) {
+            (Some(qid), Some(votes), Some(hidden), answered) => {
+                let mut v = serde_json::json!({
+                    "qid": qid,
+                    "votes": votes,
+                    "hidden": hidden,
+                });
+                if let Some(answered) = answered {
+                    v["answered"] = answered.into();
+                }
+                Some(v)
+            }
+            (Some(qid), _, _, _) => {
+                error!(%eid, %qid, votes = ?doc.get("votes"), "found non-numeric vote count");
+                None
+            }
+            _ => {
+                error!(%eid, ?doc, "found non-string question id");
+                None
+            }
+        }
+    };
+
     match dynamo.list(&eid, has_secret).await {
         Ok(qs) => {
             trace!(%eid, n = %qs.count(), "listed questions");
             let questions: Vec<_> = qs
                 .items()
-                .map(|qs| {
-                    qs.iter()
-                        .filter_map(|doc| {
-                            let qid = doc["id"].as_s().ok();
-                            let votes = doc["votes"]
-                                .as_n()
-                                .ok()
-                                .and_then(|v| v.parse::<usize>().ok());
-                            let hidden = doc["hidden"]
-                                .as_bool()
-                                .ok();
-                            let answered = doc["answered"]
-                                .as_bool()
-                                .ok();
-                            match (qid, votes, hidden, answered) {
-                                (Some(qid), Some(votes), Some(hidden), Some(answered)) => Some(serde_json::json!({
-                                    "qid": qid,
-                                    "votes": votes,
-                                    "hidden": hidden,
-                                    "answered": answered
-                                })),
-                                (Some(qid), _, _, _) => {
-                                    error!(%eid, %qid, votes = ?doc.get("votes"), "found non-numeric vote count");
-                                    None
-                                },
-                                _ => {
-                                    error!(%eid, ?doc, "found non-string question id");
-                                    None
-                                }
-                            }
-                        })
-                        .collect()
-                })
+                .map(|qs| qs.iter().filter_map(serialize_question).collect())
                 .unwrap_or_default();
 
             let max_age = if has_secret {
@@ -258,7 +264,7 @@ mod tests {
             );
             let q = q.unwrap();
             assert_eq!(q["votes"], 1);
-            assert_eq!(q["answered"], false);
+            assert_eq!(q.get("answered"), None);
             assert_eq!(q["hidden"], false);
             assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
         };
