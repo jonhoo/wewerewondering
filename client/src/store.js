@@ -1,46 +1,48 @@
-import { writable } from "svelte/store";
+import { writable } from 'svelte/store';
 
-const storedVotedFor = JSON.parse(localStorage.getItem("votedFor"));
+const storedVotedFor = JSON.parse(localStorage.getItem('votedFor'));
 export const votedFor = writable(!storedVotedFor ? {} : storedVotedFor);
-votedFor.subscribe(value => {
-    if (value) {
-        localStorage.setItem("votedFor", JSON.stringify(value));
-    } else {
-        localStorage.removeItem("votedFor");
-    }
-});
-
-const storedLocalAdjustments = JSON.parse(localStorage.getItem("localAdjustments"));
-export const localAdjustments = writable(!storedLocalAdjustments ? {
-    "newQuestions": [
-	    // qid
-    ],
-    "remap": {
-	/*
-	 qid => { 
-	    hidden: bool,
-	    answered: {action: "unset"} | {action: "set", value: number}, 
-	    voted_when: int 
+votedFor.subscribe((value) => {
+	if (value) {
+		localStorage.setItem('votedFor', JSON.stringify(value));
+	} else {
+		localStorage.removeItem('votedFor');
 	}
-	*/
-    }
-} : storedLocalAdjustments );
-localAdjustments.subscribe(value => {
-    if (value) {
-        localStorage.setItem("localAdjustments", JSON.stringify(value));
-    } else {
-        localStorage.removeItem("localAdjustments");
-    }
 });
 
-const storedQs = JSON.parse(localStorage.getItem("questions"));
+const storedLocalAdjustments = JSON.parse(localStorage.getItem('localAdjustments'));
+export const localAdjustments = writable(
+	!storedLocalAdjustments
+		? {
+				newQuestions: [
+					// qid
+				],
+				remap: {
+					// qid => {
+					//   hidden: bool,
+					//   answered: {action: "unset"} | {action: "set", value: number},
+					//   voted_when: int
+					// }
+				}
+		  }
+		: storedLocalAdjustments
+);
+localAdjustments.subscribe((value) => {
+	if (value) {
+		localStorage.setItem('localAdjustments', JSON.stringify(value));
+	} else {
+		localStorage.removeItem('localAdjustments');
+	}
+});
+
+const storedQs = JSON.parse(localStorage.getItem('questions'));
 export const questionCache = writable(!storedQs ? {} : storedQs);
-questionCache.subscribe(value => {
-    if (value) {
-        localStorage.setItem("questions", JSON.stringify(value));
-    } else {
-        localStorage.removeItem("questions");
-    }
+questionCache.subscribe((value) => {
+	if (value) {
+		localStorage.setItem('questions', JSON.stringify(value));
+	} else {
+		localStorage.removeItem('questions');
+	}
 });
 
 let batch = {};
@@ -48,21 +50,21 @@ let fetching = {};
 let fetch_done;
 export async function questionData(qid, qs) {
 	if (qs[qid]) {
-		console.debug("already in cache", qid);
+		console.debug('already in cache', qid);
 		return qs[qid];
 	}
 
 	if (fetching[qid]) {
-		console.debug("already fetching", qid);
+		console.debug('already fetching', qid);
 		return await fetching[qid][0];
 	}
 
 	if (batch[qid]) {
-		console.debug("already batched", qid);
+		console.debug('already batched', qid);
 		return await batch[qid][0];
 	}
 
-	console.debug("adding to batch", qid);
+	console.debug('adding to batch', qid);
 
 	let resolve_p;
 	let reject_p;
@@ -76,36 +78,35 @@ export async function questionData(qid, qs) {
 	if (Object.keys(fetching).length > 0) {
 		if (first) {
 			// it's our job to do the next fetch
-			console.debug("fetch already ongoing, need to wait then fetch");
+			console.debug('fetch already ongoing, need to wait then fetch');
 			await fetch_done;
 		} else {
-			console.debug("fetch already ongoing, just need to wait");
+			console.debug('fetch already ongoing, just need to wait');
 			return await promise;
 		}
 	} else if (first) {
-		console.info("single-question batch; waiting 50ms");
-		fetching = {"non": "empty", "overridden": "below"};
-		await new Promise(resolve => {
+		console.info('single-question batch; waiting 50ms');
+		fetching = { non: 'empty', overridden: 'below' };
+		await new Promise((resolve) => {
 			setTimeout(resolve, 50);
 		});
 	}
 
-	console.info("fetching batch", qid, Object.keys(batch).length);
+	console.info('fetching batch', qid, Object.keys(batch).length);
 
 	// give the next batch a way to wait for us to complete
 	let resolve;
-	let reject;
-	fetch_done = new Promise((resolve1, reject1) => {
+	fetch_done = new Promise((resolve1) => {
 		resolve = resolve1;
-		reject = reject1;
 	});
 
+	/* eslint-disable no-constant-condition */
 	while (true) {
 		// make the current batch of qids (and their promises).
 		fetching = batch;
 		batch = {};
 		// sort to improve cache hit rate
-		let qids = Object.entries(fetching).map(([qid, resolve, reject]) => qid);
+		let qids = Object.entries(fetching).map(([qid]) => qid);
 		// dynamodb can fetch at most 100 keys, and at most 16MB,
 		// whichever is smaller. for 16MB to be smaller, entries would
 		// need to be >160k. we project id, text, who, and when. text
@@ -125,13 +126,13 @@ export async function questionData(qid, qs) {
 			qids = qids.slice(0, 25);
 		}
 		qids.sort();
-		let arg = qids.join(",");
+		let arg = qids.join(',');
 		// and go!
 		// TODO: handle failure
 		let data = await fetch(`/api/questions/${arg}`);
 		let json = await data.json();
 		// store back to cache
-		questionCache.update(qs => {
+		questionCache.update((qs) => {
 			for (const [qid, q] of Object.entries(json)) {
 				qs[qid] = q;
 			}
@@ -157,7 +158,7 @@ export async function questionData(qid, qs) {
 			continue;
 		}
 		// clear next batch to go
-		resolve(true);
+		resolve && resolve(true);
 		break;
 	}
 
@@ -165,11 +166,11 @@ export async function questionData(qid, qs) {
 }
 
 window.addEventListener('storage', (e) => {
-	if (e.key == "votedFor") {
+	if (e.key == 'votedFor') {
 		votedFor.set(JSON.parse(e.newValue));
-	} else if (e.key == "questions") {
+	} else if (e.key == 'questions') {
 		questionCache.set(JSON.parse(e.newValue));
-	} else if (e.key == "localAdjustments") {
+	} else if (e.key == 'localAdjustments') {
 		localAdjustments.set(JSON.parse(e.newValue));
 	}
 });

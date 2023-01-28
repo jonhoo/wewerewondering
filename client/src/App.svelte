@@ -10,16 +10,16 @@
 
 		if (path.startsWith('/event')) {
 			const id = path.slice(7);
-			let i = id.indexOf("/");
+			let i = id.indexOf('/');
 			let new_event;
 			if (i !== -1) {
 				new_event = {
-					"id": id.substring(0, i),
-					"secret": id.substring(i + 1)
+					id: id.substring(0, i),
+					secret: id.substring(i + 1)
 				};
 			} else {
 				new_event = {
-					"id": id
+					id: id
 				};
 			}
 			if (new_event != event) {
@@ -50,8 +50,8 @@
 
 	async function create() {
 		let resp = await fetch(`/api/event`, {
-			"method": "POST",
-		}).then(r => r.json());
+			method: 'POST'
+		}).then((r) => r.json());
 		// TODO: on failure
 		history.pushState(resp, `Q&A ${resp.id} (host view)`, `/event/${resp.id}/${resp.secret}`);
 		await popstate();
@@ -60,27 +60,21 @@
 	onMount(popstate);
 </script>
 
-<style global lang="postcss">
-@tailwind utilities;
-@tailwind components;
-@tailwind base;
-</style>
-
-<svelte:window on:popstate={popstate}/>
+<svelte:window on:popstate={popstate} />
 
 {#if problum}
 	<div class="fixed bottom-4 left-0 right-0">
-	<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
-	{#if problum.status}
-		{#if problum.status === 404}
-		Event not found.
-		{:else}
-		The server is having issues; got {problum.status} {problum.statusText}.
-		{/if}
-	{:else}
-		Lost connection to the server&hellip; retrying.
-	{/if}
-	</p>
+		<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
+			{#if problum.status}
+				{#if problum.status === 404}
+					Event not found.
+				{:else}
+					The server is having issues; got {problum.status} {problum.statusText}.
+				{/if}
+			{:else}
+				Lost connection to the server&hellip; retrying.
+			{/if}
+		</p>
 	</div>
 {/if}
 
@@ -88,15 +82,24 @@
 	<main class="max-w-4xl mx-auto my-4 px-4">
 		<List {event} />
 		<div class="text-center text-slate-400 mt-4">
-			(
-			made
-			on <a class="hover:text-black" href="https://github.com/jonhoo/wewerewondering">github</a>
+			( made on <a class="hover:text-black" href="https://github.com/jonhoo/wewerewondering"
+				>github</a
+			>
 			by <a class="hover:text-black" href="https://thesquareplanet.com/">jonhoo</a>
 			)
 		</div>
 	</main>
 {:else}
 	<div class="flex justify-center items-center h-screen">
-		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-500 hover:border-red-400" on:click={create}>Open new Q&amp;A session</button>
+		<button
+			class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-500 hover:border-red-400"
+			on:click={create}>Open new Q&amp;A session</button
+		>
 	</div>
 {/if}
+
+<style global lang="postcss">
+	@tailwind utilities;
+	@tailwind components;
+	@tailwind base;
+</style>
