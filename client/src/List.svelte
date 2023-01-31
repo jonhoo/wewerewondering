@@ -275,17 +275,17 @@
 	<div class="text-center">
 		{#if event.secret}
 			<button
-				class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-100 hover:border-red-400"
+				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
 				on:click={share}>{share_text}</button
 			>
-			<div class="text-slate-400 pt-4">
+			<div class="pt-4 text-slate-400">
 				The URL in your address bar shares the host view.<br />
 				Use the button to get a shareable link to your clipboard.<br />
 				Questions disappear after 30 days.
 			</div>
 		{:else}
 			<button
-				class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-100 hover:border-red-400"
+				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
 				on:click={ask}>Ask another question</button
 			>
 		{/if}
@@ -293,7 +293,7 @@
 
 	{#if problum}
 		<div class="fixed bottom-4 left-0 right-0">
-			<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
+			<p class="mx-auto max-w-4xl bg-red-500 py-2 px-4 font-bold text-white">
 				{#if problum.status}
 					Connection problems: {problum.status}
 				{:else}
@@ -313,7 +313,7 @@
 				{/each}
 			</div>
 		{:else}
-			<h2 class="text-center text-slate-500 text-2xl my-8">
+			<h2 class="my-8 text-center text-2xl text-slate-500">
 				{#if answered.length > 0}
 					No unanswered questions.
 				{:else}
@@ -324,9 +324,9 @@
 	</section>
 	{#if answered.length > 0}
 		<section>
-			<h2 class="text-2xl text-center text-green-700 dark:text-lime-500 mt-8 mb-4">
+			<h2 class="mt-8 mb-4 text-center text-2xl text-green-700 dark:text-lime-500">
 				Answered
-				<span class="text-lg float-right"
+				<span class="float-right text-lg"
 					>({answered.length} / {answered.length + unanswered.length})</span
 				>
 			</h2>
@@ -341,7 +341,7 @@
 	{/if}
 	{#if event.secret && hidden.length > 0}
 		<section>
-			<h2 class="text-2xl text-center text-slate-400 dark:text-slate-500 mt-8 mb-4">Hidden</h2>
+			<h2 class="mt-8 mb-4 text-center text-2xl text-slate-400 dark:text-slate-500">Hidden</h2>
 			<div class="flex flex-col divide-y">
 				{#each hidden as question (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
@@ -353,7 +353,7 @@
 	{/if}
 {:else if problum}
 	<div class="fixed bottom-4 left-0 right-0">
-		<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
+		<p class="mx-auto max-w-4xl bg-red-500 py-2 px-4 font-bold text-white">
 			{#if !problum.status}
 				Lost connection to the server&hellip; retrying.
 			{:else if problum.status == 404}

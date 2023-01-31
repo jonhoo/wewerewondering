@@ -107,7 +107,7 @@
 
 <article class={qclass(question)}>
 	<div class="flex items-center">
-		<div class="mr-4 w-8 grow-0 shrink-0 text-center">
+		<div class="mr-4 w-8 shrink-0 grow-0 text-center">
 			{#if liked}
 				<button class="hover:opacity-50" title="Retract vote" on:click={vote}>▲</button>
 			{:else}
@@ -115,12 +115,12 @@
 			{/if}
 			<div class="font-bold text-black dark:text-slate-300">{question.votes}</div>
 		</div>
-		<div class="pr-4 flex-1">
+		<div class="flex-1 pr-4">
 			{#await q}
 				<p class="text-xl">loading...</p>
 			{:then q}
 				<p class="text-xl">{q.text}</p>
-				<div class="text-slate-400 pt-1 text-right">
+				<div class="pt-1 text-right text-slate-400">
 					<span>{since(q, now)}</span>
 					{#if q.who}
 						<span>by {q.who}</span>

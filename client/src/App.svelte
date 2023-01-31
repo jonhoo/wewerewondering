@@ -64,7 +64,7 @@
 
 {#if problum}
 	<div class="fixed bottom-4 left-0 right-0">
-		<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
+		<p class="mx-auto max-w-4xl bg-red-500 py-2 px-4 font-bold text-white">
 			{#if problum.status}
 				{#if problum.status === 404}
 					Event not found.
@@ -79,9 +79,9 @@
 {/if}
 
 {#if event}
-	<main class="max-w-4xl mx-auto my-4 px-4">
+	<main class="mx-auto my-4 max-w-4xl px-4">
 		<List {event} />
-		<div class="text-center text-slate-400 mt-4">
+		<div class="mt-4 text-center text-slate-400">
 			( made on <a class="hover:text-black" href="https://github.com/jonhoo/wewerewondering"
 				>github</a
 			>
@@ -90,9 +90,9 @@
 		</div>
 	</main>
 {:else}
-	<div class="flex justify-center items-center h-screen">
+	<div class="flex h-screen items-center justify-center">
 		<button
-			class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-500 hover:border-red-400"
+			class="border-2 border-red-500 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
 			on:click={create}>Open new Q&amp;A session</button
 		>
 	</div>
