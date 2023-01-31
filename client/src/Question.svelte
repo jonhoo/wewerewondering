@@ -1,6 +1,6 @@
 <script>
-	import { onMount } from 'svelte';
-	import { votedFor, questionCache, questionData, localAdjustments } from './store.js';
+	import { onMount } from "svelte";
+	import { votedFor, questionCache, questionData, localAdjustments } from "./store.js";
 
 	export let question;
 	export let event;
@@ -22,12 +22,12 @@
 	async function vote() {
 		let dir;
 		if (liked) {
-			dir = 'down';
+			dir = "down";
 		} else {
-			dir = 'up';
+			dir = "up";
 		}
 		await fetch(`/api/vote/${question.qid}/${dir}`, {
-			method: 'POST'
+			method: "POST"
 		}).then((r) => r.json());
 		votedFor.update((vf) => {
 			if (liked) {
@@ -39,7 +39,7 @@
 		});
 		localAdjustments.update((la) => {
 			let q = la.remap[question.qid] || {};
-			q['voted_when'] = question.votes;
+			q["voted_when"] = question.votes;
 			la.remap[question.qid] = q;
 			return la;
 		});
@@ -53,14 +53,14 @@
 		const res = await fetch(
 			`/api/event/${event.id}/questions/${event.secret}/${question.qid}/toggle/${what}`,
 			{
-				method: 'POST',
-				body: question[what] ? 'off' : 'on'
+				method: "POST",
+				body: question[what] ? "off" : "on"
 			}
 		).then((r) => r.json());
 		localAdjustments.update((la) => {
 			let q = la.remap[question.qid] || {};
-			if (what === 'answered') {
-				q[what] = what in res ? { action: 'set', value: res[what] } : { action: 'unset' };
+			if (what === "answered") {
+				q[what] = what in res ? { action: "set", value: res[what] } : { action: "unset" };
 			} else {
 				q[what] = res[what];
 			}
@@ -70,21 +70,21 @@
 	}
 
 	async function answered() {
-		toggle('answered');
+		toggle("answered");
 	}
 	async function hidden() {
-		toggle('hidden');
+		toggle("hidden");
 	}
 
 	function qclass(q) {
 		if (q.hidden && q.answered) {
-			return 'p-4 bg-white dark:bg-slate-800 text-lime-500 dark:text-green-700';
+			return "p-4 bg-white dark:bg-slate-800 text-lime-500 dark:text-green-700";
 		} else if (q.hidden) {
-			return 'p-4 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500';
+			return "p-4 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500";
 		} else if (q.answered) {
-			return 'p-4 bg-white dark:bg-slate-800 text-green-700 dark:text-lime-500';
+			return "p-4 bg-white dark:bg-slate-800 text-green-700 dark:text-lime-500";
 		} else {
-			return 'p-4 bg-white dark:bg-slate-800 dark:text-slate-300';
+			return "p-4 bg-white dark:bg-slate-800 dark:text-slate-300";
 		}
 	}
 
@@ -92,15 +92,15 @@
 		let when = new Date(q.when * 1000);
 		let dur = (now - when) / 1000;
 		if (dur > 24 * 60 * 60) {
-			return parseInt(dur / (24 * 60 * 60)) + 'd ago';
+			return parseInt(dur / (24 * 60 * 60)) + "d ago";
 		} else if (dur > 60 * 60) {
-			return parseInt(dur / (60 * 60)) + 'h ago';
+			return parseInt(dur / (60 * 60)) + "h ago";
 		} else if (dur > 60) {
-			return parseInt(dur / 60) + 'm ago';
+			return parseInt(dur / 60) + "m ago";
 		} else if (dur < 10) {
-			return 'just now';
+			return "just now";
 		} else {
-			return parseInt(dur) + 's ago';
+			return parseInt(dur) + "s ago";
 		}
 	}
 </script>

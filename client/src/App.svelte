@@ -1,6 +1,6 @@
 <script>
-	import { onMount } from 'svelte';
-	import List from './List.svelte';
+	import { onMount } from "svelte";
+	import List from "./List.svelte";
 
 	let event;
 	let problum;
@@ -8,9 +8,9 @@
 	async function popstate() {
 		const path = window.location.pathname;
 
-		if (path.startsWith('/event')) {
+		if (path.startsWith("/event")) {
 			const id = path.slice(7);
-			let i = id.indexOf('/');
+			let i = id.indexOf("/");
 			let new_event;
 			if (i !== -1) {
 				new_event = {
@@ -50,7 +50,7 @@
 
 	async function create() {
 		let resp = await fetch(`/api/event`, {
-			method: 'POST'
+			method: "POST"
 		}).then((r) => r.json());
 		// TODO: on failure
 		history.pushState(resp, `Q&A ${resp.id} (host view)`, `/event/${resp.id}/${resp.secret}`);

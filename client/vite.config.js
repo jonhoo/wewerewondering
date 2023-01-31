@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
-import postcss from './postcss.config.cjs';
+import { defineConfig } from "vite";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import postcss from "./postcss.config.cjs";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -8,8 +8,8 @@ export default defineConfig({
 	server: {
 		https: false,
 		proxy: {
-			'/api': {
-				target: 'http://127.0.0.1:3000',
+			"/api": {
+				target: "http://127.0.0.1:3000",
 				// target: 'https://wewerewondering.com',
 				changeOrigin: true,
 				secure: false

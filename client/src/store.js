@@ -1,16 +1,16 @@
-import { writable } from 'svelte/store';
+import { writable } from "svelte/store";
 
-const storedVotedFor = JSON.parse(localStorage.getItem('votedFor'));
+const storedVotedFor = JSON.parse(localStorage.getItem("votedFor"));
 export const votedFor = writable(!storedVotedFor ? {} : storedVotedFor);
 votedFor.subscribe((value) => {
 	if (value) {
-		localStorage.setItem('votedFor', JSON.stringify(value));
+		localStorage.setItem("votedFor", JSON.stringify(value));
 	} else {
-		localStorage.removeItem('votedFor');
+		localStorage.removeItem("votedFor");
 	}
 });
 
-const storedLocalAdjustments = JSON.parse(localStorage.getItem('localAdjustments'));
+const storedLocalAdjustments = JSON.parse(localStorage.getItem("localAdjustments"));
 export const localAdjustments = writable(
 	!storedLocalAdjustments
 		? {
@@ -29,19 +29,19 @@ export const localAdjustments = writable(
 );
 localAdjustments.subscribe((value) => {
 	if (value) {
-		localStorage.setItem('localAdjustments', JSON.stringify(value));
+		localStorage.setItem("localAdjustments", JSON.stringify(value));
 	} else {
-		localStorage.removeItem('localAdjustments');
+		localStorage.removeItem("localAdjustments");
 	}
 });
 
-const storedQs = JSON.parse(localStorage.getItem('questions'));
+const storedQs = JSON.parse(localStorage.getItem("questions"));
 export const questionCache = writable(!storedQs ? {} : storedQs);
 questionCache.subscribe((value) => {
 	if (value) {
-		localStorage.setItem('questions', JSON.stringify(value));
+		localStorage.setItem("questions", JSON.stringify(value));
 	} else {
-		localStorage.removeItem('questions');
+		localStorage.removeItem("questions");
 	}
 });
 
@@ -50,21 +50,21 @@ let fetching = {};
 let fetch_done;
 export async function questionData(qid, qs) {
 	if (qs[qid]) {
-		console.debug('already in cache', qid);
+		console.debug("already in cache", qid);
 		return qs[qid];
 	}
 
 	if (fetching[qid]) {
-		console.debug('already fetching', qid);
+		console.debug("already fetching", qid);
 		return await fetching[qid][0];
 	}
 
 	if (batch[qid]) {
-		console.debug('already batched', qid);
+		console.debug("already batched", qid);
 		return await batch[qid][0];
 	}
 
-	console.debug('adding to batch', qid);
+	console.debug("adding to batch", qid);
 
 	let resolve_p;
 	let reject_p;
@@ -78,21 +78,21 @@ export async function questionData(qid, qs) {
 	if (Object.keys(fetching).length > 0) {
 		if (first) {
 			// it's our job to do the next fetch
-			console.debug('fetch already ongoing, need to wait then fetch');
+			console.debug("fetch already ongoing, need to wait then fetch");
 			await fetch_done;
 		} else {
-			console.debug('fetch already ongoing, just need to wait');
+			console.debug("fetch already ongoing, just need to wait");
 			return await promise;
 		}
 	} else if (first) {
-		console.info('single-question batch; waiting 50ms');
-		fetching = { non: 'empty', overridden: 'below' };
+		console.info("single-question batch; waiting 50ms");
+		fetching = { non: "empty", overridden: "below" };
 		await new Promise((resolve) => {
 			setTimeout(resolve, 50);
 		});
 	}
 
-	console.info('fetching batch', qid, Object.keys(batch).length);
+	console.info("fetching batch", qid, Object.keys(batch).length);
 
 	// give the next batch a way to wait for us to complete
 	let resolve;
@@ -126,7 +126,7 @@ export async function questionData(qid, qs) {
 			qids = qids.slice(0, 25);
 		}
 		qids.sort();
-		let arg = qids.join(',');
+		let arg = qids.join(",");
 		// and go!
 		// TODO: handle failure
 		let data = await fetch(`/api/questions/${arg}`);
@@ -165,12 +165,12 @@ export async function questionData(qid, qs) {
 	return await promise;
 }
 
-window.addEventListener('storage', (e) => {
-	if (e.key == 'votedFor') {
+window.addEventListener("storage", (e) => {
+	if (e.key == "votedFor") {
 		votedFor.set(JSON.parse(e.newValue));
-	} else if (e.key == 'questions') {
+	} else if (e.key == "questions") {
 		questionCache.set(JSON.parse(e.newValue));
-	} else if (e.key == 'localAdjustments') {
+	} else if (e.key == "localAdjustments") {
 		localAdjustments.set(JSON.parse(e.newValue));
 	}
 });

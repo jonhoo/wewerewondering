@@ -1,7 +1,7 @@
 <script>
-	import Question from './Question.svelte';
-	import { votedFor, localAdjustments } from './store.js';
-	import { flip } from 'svelte/animate';
+	import Question from "./Question.svelte";
+	import { votedFor, localAdjustments } from "./store.js";
+	import { flip } from "svelte/animate";
 
 	export let event;
 
@@ -52,7 +52,7 @@
 			clearTimeout(interval);
 		}
 		let next = poll_time(e);
-		console.info('refresh; next in', next, 'ms');
+		console.info("refresh; next in", next, "ms");
 		// set early so we'll retry even if request fails
 		interval = setTimeout(() => {
 			event = event;
@@ -120,17 +120,17 @@
 		for (const q of qs) {
 			for (const newQ of la.newQuestions) {
 				if (q.qid === newQ) {
-					console.debug('no longer need to add', newQ);
+					console.debug("no longer need to add", newQ);
 					nowPresent[newQ] = true;
 				}
 			}
 		}
 		if (la.newQuestions.length > 0 || Object.keys(la.remap).length > 0) {
-			console.log('question list needs local adjustments');
+			console.log("question list needs local adjustments");
 			let changed = Object.keys(nowPresent).length > 0;
 			la.newQuestions = la.newQuestions.filter((qid) => !(qid in nowPresent));
 			for (const newQ of la.newQuestions) {
-				console.info('add in', newQ);
+				console.info("add in", newQ);
 				qs.push({
 					qid: newQ,
 					hidden: false,
@@ -144,57 +144,57 @@
 				if (!adj) {
 					continue;
 				}
-				console.debug('augment', qid);
-				if ('hidden' in adj) {
+				console.debug("augment", qid);
+				if ("hidden" in adj) {
 					if (q.hidden === adj.hidden) {
-						console.debug('no longer need to adjust hidden');
-						delete la.remap[qid]['hidden'];
+						console.debug("no longer need to adjust hidden");
+						delete la.remap[qid]["hidden"];
 						changed = true;
 					} else {
-						console.info('adjust hidden to', adj.hidden);
+						console.info("adjust hidden to", adj.hidden);
 						qs[i].hidden = adj.hidden;
 					}
 				}
-				if ('answered' in adj) {
+				if ("answered" in adj) {
 					// Ohhh, how I wish Javascript had a match statement like rust
 					const patch = adj.answered;
-					if (patch.action === 'unset' && 'answered' in q) {
-						console.info('remove answered property');
+					if (patch.action === "unset" && "answered" in q) {
+						console.info("remove answered property");
 						delete qs[i].answered;
-					} else if (patch.action === 'set' && !('answered' in q)) {
-						console.info('adjust answered to', patch.value);
+					} else if (patch.action === "set" && !("answered" in q)) {
+						console.info("adjust answered to", patch.value);
 						qs[i].answered = patch.value;
 					} else {
-						console.debug('no longer need to adjust answered');
-						delete la.remap[qid]['answered'];
+						console.debug("no longer need to adjust answered");
+						delete la.remap[qid]["answered"];
 						changed = true;
 					}
 				}
-				if ('voted_when' in adj) {
+				if ("voted_when" in adj) {
 					if (q.votes === adj.voted_when) {
-						console.info('adjust vote count from', q.votes);
+						console.info("adjust vote count from", q.votes);
 						// our vote likely isn't represented
 						if (vf[qid]) {
-							console.debug('adjust up');
+							console.debug("adjust up");
 							qs[i].votes += 1;
 						} else {
-							console.debug('adjust down');
+							console.debug("adjust down");
 							qs[i].votes -= 1;
 						}
 					} else {
-						console.debug('vote count has been updated from', adj.voted_when, 'to', q.votes);
-						delete la.remap[qid]['voted_when'];
+						console.debug("vote count has been updated from", adj.voted_when, "to", q.votes);
+						delete la.remap[qid]["voted_when"];
 						changed = true;
 					}
 				}
 				if (Object.keys(la.remap[qid]).length === 0) {
-					console.debug('no more adjustments');
+					console.debug("no more adjustments");
 					delete la.remap[qid];
 					changed = true;
 				}
 			}
 			if (changed) {
-				console.log('local adjustments changed');
+				console.log("local adjustments changed");
 				localAdjustments.set(la);
 			}
 		}
@@ -216,25 +216,25 @@
 		let q;
 		/* eslint-disable no-constant-condition */
 		while (true) {
-			q = prompt('Question:', q || '');
+			q = prompt("Question:", q || "");
 			if (q === null) {
 				return;
 			}
 			if (q.match(/^\s*\S*\s*$/)) {
-				alert('Use at least two words in your question.');
+				alert("Use at least two words in your question.");
 				continue;
 			}
 			break;
 		}
-		let who = prompt('Want to leave a signature? (optional)');
+		let who = prompt("Want to leave a signature? (optional)");
 		if (!who || who.match(/^\s*$/)) {
 			who = null;
 		}
 		// TODO: handle error
 		let resp = await fetch(`/api/event/${event.id}`, {
-			method: 'POST',
+			method: "POST",
 			headers: {
-				'Content-Type': 'application/json'
+				"Content-Type": "application/json"
 			},
 			body: JSON.stringify({
 				body: q,
@@ -252,14 +252,14 @@
 		});
 	}
 
-	let original_share_text = 'Share event';
+	let original_share_text = "Share event";
 	let share_text = original_share_text;
 	let reset;
 	async function share(e) {
-		let url = window.location + '';
+		let url = window.location + "";
 		url = url.substring(0, url.length - event.secret.length - 1);
 		await navigator.clipboard.writeText(url);
-		e.target.textContent = '📋 Link copied!';
+		e.target.textContent = "📋 Link copied!";
 		if (reset) {
 			clearTimeout(reset);
 		}

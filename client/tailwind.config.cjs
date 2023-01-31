@@ -3,7 +3,7 @@ module.exports = {
 	theme: {
 		extend: {}
 	},
-	content: ['./index.html', './src/**/*.{svelte,js,ts}'], // for unused CSS
+	content: ["./index.html", "./src/**/*.{svelte,js,ts}"], // for unused CSS
 	variants: {
 		extend: {}
 	}
