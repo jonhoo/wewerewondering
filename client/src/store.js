@@ -96,8 +96,10 @@ export async function questionData(qid, qs) {
 
 	// give the next batch a way to wait for us to complete
 	let resolve;
-	fetch_done = new Promise((resolve1) => {
+	let _reject;
+	fetch_done = new Promise((resolve1, reject1) => {
 		resolve = resolve1;
+		_reject = reject1;
 	});
 
 	/* eslint-disable no-constant-condition */

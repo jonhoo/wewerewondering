@@ -26,6 +26,8 @@
 		} else {
 			dir = "up";
 		}
+		// TODO: Handle API response in case of concurrent operations resulting
+		// in vote direction opposite of client expectation
 		await fetch(`/api/vote/${question.qid}/${dir}`, {
 			method: "POST"
 		}).then((r) => r.json());
