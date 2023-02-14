@@ -160,9 +160,7 @@ export async function questionData(qid, qs) {
 			continue;
 		}
 		// clear next batch to go
-		if (resolve !== undefined) {
-			resolve(true);
-		}
+		resolve(true);
 		break;
 	}
 
