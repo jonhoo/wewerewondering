@@ -16,7 +16,7 @@ use tower::Layer;
 use tower_http::{limit::RequestBodyLimitLayer, trace::TraceLayer};
 use tower_service::Service;
 use tracing_subscriber::EnvFilter;
-use uuid::Uuid;
+use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
@@ -54,9 +54,9 @@ fn to_dynamo_timestamp(time: SystemTime) -> AttributeValue {
 
 #[derive(Clone, Debug, Default)]
 struct Local {
-    events: HashMap<Uuid, String>,
-    questions: HashMap<Uuid, HashMap<&'static str, AttributeValue>>,
-    questions_by_eid: HashMap<Uuid, Vec<Uuid>>,
+    events: HashMap<Ulid, String>,
+    questions: HashMap<Ulid, HashMap<&'static str, AttributeValue>>,
+    questions_by_eid: HashMap<Ulid, Vec<Ulid>>,
 }
 
 mod ask;
@@ -67,7 +67,7 @@ mod questions;
 mod toggle;
 mod vote;
 
-async fn get_secret(dynamo: &Backend, eid: &Uuid) -> Result<String, StatusCode> {
+async fn get_secret(dynamo: &Backend, eid: &Ulid) -> Result<String, StatusCode> {
     match dynamo {
         Backend::Dynamo(dynamo) => {
             match dynamo
@@ -107,7 +107,7 @@ async fn get_secret(dynamo: &Backend, eid: &Uuid) -> Result<String, StatusCode> 
     }
 }
 
-async fn check_secret(dynamo: &Backend, eid: &Uuid, secret: &str) -> Result<(), StatusCode> {
+async fn check_secret(dynamo: &Backend, eid: &Ulid, secret: &str) -> Result<(), StatusCode> {
     let s = get_secret(dynamo, eid).await?;
     if s == secret {
         Ok(())
@@ -151,14 +151,14 @@ async fn main() -> Result<(), Error> {
 
         let mut state = Local::default();
         let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
-        let seed_e = "00000000-0000-0000-0000-000000000000";
-        let seed_e = Uuid::parse_str(seed_e).unwrap();
+        let seed_e ="00000000000000000000000000";
+        let seed_e = Ulid::from_string(seed_e).unwrap();
         state.events.insert(seed_e.clone(), String::from("secret"));
         state.questions_by_eid.insert(seed_e.clone(), Vec::new());
         let mut state = Backend::Local(Arc::new(Mutex::new(state)));
         let mut qs = Vec::new();
         for q in seed {
-            let qid = uuid::Uuid::new_v4();
+            let qid = ulid::Ulid::new();
             state
                 .ask(
                     &seed_e,

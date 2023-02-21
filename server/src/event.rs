@@ -14,13 +14,13 @@ use http::{
     StatusCode,
 };
 use serde_json::Value;
-use uuid::Uuid;
+use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
 
 impl Backend {
-    pub(super) async fn event(&self, eid: &Uuid) -> Result<GetItemOutput, SdkError<GetItemError>> {
+    pub(super) async fn event(&self, eid: &Ulid) -> Result<GetItemOutput, SdkError<GetItemError>> {
         match self {
             Self::Dynamo(dynamo) => {
                 dynamo
@@ -49,7 +49,7 @@ impl Backend {
 }
 
 pub(super) async fn event(
-    Path(eid): Path<Uuid>,
+    Path(eid): Path<Ulid>,
     State(dynamo): State<Backend>,
 ) -> (
     AppendHeaders<[(HeaderName, &'static str); 1]>,
@@ -65,7 +65,7 @@ pub(super) async fn event(
             } else {
                 warn!(%eid, "non-existing event");
                 return (
-                    // it's relatively unlikely that an event uuid that didn't exist will start
+                    // it's relatively unlikely that an event Ulid that didn't exist will start
                     // existing. but just in case, don't make it _too_ long.
                     AppendHeaders([(header::CACHE_CONTROL, "max-age=3600")]),
                     Err(http::StatusCode::NOT_FOUND),

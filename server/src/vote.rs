@@ -9,7 +9,7 @@ use axum::extract::{Path, State};
 use axum::response::Json;
 use http::StatusCode;
 use serde::Deserialize;
-use uuid::Uuid;
+use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
@@ -24,7 +24,7 @@ pub(super) enum UpDown {
 impl Backend {
     pub(super) async fn vote(
         &self,
-        qid: &Uuid,
+        qid: &Ulid,
         direction: UpDown,
     ) -> Result<UpdateItemOutput, SdkError<UpdateItemError>> {
         match self {
@@ -70,7 +70,7 @@ impl Backend {
 }
 
 pub(super) async fn vote(
-    Path((qid, direction)): Path<(Uuid, UpDown)>,
+    Path((qid, direction)): Path<(Ulid, UpDown)>,
     State(dynamo): State<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match dynamo.vote(&qid, direction).await {
@@ -96,7 +96,7 @@ mod tests {
 
     async fn inner(backend: Backend) {
         let e = crate::new::new(State(backend.clone())).await.unwrap();
-        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         let q1 = crate::ask::ask(
             Path(eid.clone()),
@@ -108,7 +108,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let qid1 = Uuid::parse_str(q1["id"].as_str().unwrap()).unwrap();
+        let qid1 = Ulid::from_string(q1["id"].as_str().unwrap()).unwrap();
         let q2 = crate::ask::ask(
             Path(eid.clone()),
             State(backend.clone()),
@@ -119,9 +119,9 @@ mod tests {
         )
         .await
         .unwrap();
-        let qid2 = Uuid::parse_str(q2["id"].as_str().unwrap()).unwrap();
+        let qid2 = Ulid::from_string(q2["id"].as_str().unwrap()).unwrap();
 
-        let check = |qs: serde_json::Value, expect: &[(&Uuid, u64)]| {
+        let check = |qs: serde_json::Value, expect: &[(&Ulid, u64)]| {
             let qs = qs.as_array().unwrap();
             for (was, should_be) in qs.iter().zip(expect) {
                 assert_eq!(was["qid"].as_str().unwrap(), should_be.0.to_string());
