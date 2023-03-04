@@ -4,8 +4,12 @@ updates:
     directory: /
     schedule:
       interval: daily
+  - package-ecosystem: npm
+    directory: /client
+    schedule:
+      interval: monthly
   - package-ecosystem: cargo
-    directory: /
+    directory: /server
     schedule:
       interval: daily
     ignore:
