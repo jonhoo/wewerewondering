@@ -6,11 +6,11 @@ on:
   pull_request:
     paths:
       - 'server/**'
-name: test
+name: server / test
 jobs:
   required:
     runs-on: ubuntu-latest
-    name: ubuntu / ${{ matrix.toolchain }}
+    name: ${{ matrix.toolchain }}
     defaults:
       run:
         working-directory: ./server

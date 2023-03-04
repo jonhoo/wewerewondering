@@ -1,5 +1,3 @@
-name: Lint Client 
-
 on:
   push:
     branches: [main]
@@ -8,13 +6,11 @@ on:
   pull_request:
     paths:
       - 'client/**'
-
+name: client
 env:
   NODE_VERSION: 18
-
 jobs: 
   lint:
-    name: Lint
     runs-on: ubuntu-latest
     defaults: 
       run:

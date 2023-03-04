@@ -8,12 +8,12 @@ on:
       - 'server/**'
   schedule:
     - cron:  '7 7 * * *'
-name: rolling
+name: server / rolling
 jobs:
   # https://twitter.com/alcuadrado/status/1571291687837732873
   update:
     runs-on: ubuntu-latest
-    name: ubuntu / beta / updated
+    name: beta / updated
     defaults:
       run:
         working-directory: ./server

@@ -6,7 +6,7 @@ on:
   pull_request:
     paths:
       - 'server/**'
-name: check
+name: server / check
 jobs:
   fmt:
     runs-on: ubuntu-latest
