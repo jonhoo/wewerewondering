@@ -4,6 +4,8 @@ on:
     paths:
       - 'server/**'
   pull_request:
+    paths:
+      - 'server/**'
   schedule:
     - cron:  '7 7 * * *'
 name: rolling

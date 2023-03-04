@@ -4,6 +4,8 @@ on:
     paths:
       - 'server/**'
   pull_request:
+    paths:
+      - 'server/**'
 name: check
 jobs:
   fmt:
