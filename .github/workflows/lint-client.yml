@@ -3,6 +3,8 @@ name: Lint Client
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'client/**'
 
 env:
   NODE_VERSION: 18
