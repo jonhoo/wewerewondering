@@ -1,7 +1,7 @@
 <script>
 	import Question from "./Question.svelte";
-	import { votedFor, localAdjustments } from './store.js';
-	import { flip } from 'svelte/animate';
+	import { votedFor, localAdjustments } from "./store.js";
+	import { flip } from "svelte/animate";
 
 	export let event;
 
@@ -18,7 +18,7 @@
 			if (inactive_hits <= 10 /* times 30s */) {
 				// For the first 5 minutes, poll every 30s
 				return 30 * 1000;
-			} else if (inactive_hits <= 25 /* -10 times 60s */ ) {
+			} else if (inactive_hits <= 25 /* -10 times 60s */) {
 				// For the next 15 minutes, poll every 60s
 				return 60 * 1000;
 			} else {
@@ -54,7 +54,9 @@
 		let next = poll_time(e);
 		console.info("refresh; next in", next, "ms");
 		// set early so we'll retry even if request fails
-		interval = setTimeout(() => {event = event;}, next);
+		interval = setTimeout(() => {
+			event = event;
+		}, next);
 		let url = e.secret
 			? `/api/event/${e.id}/questions/${e.secret}`
 			: `/api/event/${e.id}/questions`;
@@ -76,26 +78,30 @@
 			clearTimeout(interval);
 		}
 		// re-set timeout so we count from when the reload actually happened
-		interval = setTimeout(() => {event = event;}, next);
+		interval = setTimeout(() => {
+			event = event;
+		}, next);
 		return await r.json();
 	}
 
 	// XXX: this ends up doing _two_ loads when the page initially opens
 	//      not sure why...
 	let rawQuestions;
-	$: loadQuestions(event).then((qs) => {
-		rawQuestions = qs;
-		problum = null;
-	}).catch((r) => {
-		if (r.status === 404) {
-			rawQuestions = null;
-			problum = r;
-		} else {
-			// leave questions and just highlight (hopefully
-			// temporary) error.
-			problum = r;
-		}
-	});
+	$: loadQuestions(event)
+		.then((qs) => {
+			rawQuestions = qs;
+			problum = null;
+		})
+		.catch((r) => {
+			if (r.status === 404) {
+				rawQuestions = null;
+				problum = r;
+			} else {
+				// leave questions and just highlight (hopefully
+				// temporary) error.
+				problum = r;
+			}
+		});
 
 	// because of caching, we may receive a list of questions from the
 	// server that doesn't reflect changes we've made (voting, asking new
@@ -110,7 +116,6 @@
 		// deep-ish clone so we don't modify rawQuestions
 		let qs = rq.map((q) => Object.assign({}, q));
 
-		let removed = false;
 		let nowPresent = {};
 		for (const q of qs) {
 			for (const newQ of la.newQuestions) {
@@ -127,9 +132,9 @@
 			for (const newQ of la.newQuestions) {
 				console.info("add in", newQ);
 				qs.push({
-					"qid": newQ,
-					"hidden": false,
-					"votes": 1,
+					qid: newQ,
+					hidden: false,
+					votes: 1
 				});
 			}
 			for (let i = 0; i < qs.length; i++) {
@@ -193,19 +198,23 @@
 				localAdjustments.set(la);
 			}
 		}
-		qs.sort((a, b) => { return b.votes - a.votes; });
+		qs.sort((a, b) => {
+			return b.votes - a.votes;
+		});
 		return qs;
 	}
 
-
 	$: questions = adjustQuestions(rawQuestions, $localAdjustments, $votedFor);
 	let problum;
-	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden)
-	$: answered = (questions || []).filter((q) => q.answered && !q.hidden).sort((a, b) => a.answered - b.answered)
-	$: hidden = (questions || []).filter((q) => q.hidden)
+	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden);
+	$: answered = (questions || [])
+		.filter((q) => q.answered && !q.hidden)
+		.sort((a, b) => a.answered - b.answered);
+	$: hidden = (questions || []).filter((q) => q.hidden);
 
 	async function ask() {
 		let q;
+		/* eslint-disable no-constant-condition */
 		while (true) {
 			q = prompt("Question:", q || "");
 			if (q === null) {
@@ -219,25 +228,25 @@
 		}
 		let who = prompt("Want to leave a signature? (optional)");
 		if (!who || who.match(/^\s*$/)) {
-		    who = null;
+			who = null;
 		}
 		// TODO: handle error
 		let resp = await fetch(`/api/event/${event.id}`, {
-			"method": "POST",
-			"headers": {
-				'Content-Type': 'application/json',
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json"
 			},
-			"body": JSON.stringify({
-				"body": q,
-				"asker": who,
-			}),
+			body: JSON.stringify({
+				body: q,
+				asker: who
+			})
 		});
 		let json = await resp.json();
-		votedFor.update(vf => {
+		votedFor.update((vf) => {
 			vf[json.id] = true;
 			return vf;
 		});
-		localAdjustments.update(la => {
+		localAdjustments.update((la) => {
 			la.newQuestions.push(json.id);
 			return la;
 		});
@@ -258,95 +267,103 @@
 			e.target.textContent = original_share_text;
 		}, 1500);
 	}
-
 </script>
 
-<svelte:window on:visibilitychange={visibilitychange}/>
+<svelte:window on:visibilitychange={visibilitychange} />
 
 {#if questions}
 	<div class="text-center">
-	{#if event.secret}
-		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-100 hover:border-red-400" on:click={share}>{share_text}</button>
-		<div class="text-slate-400 pt-4">
-			The URL in your address bar shares the host view.<br />
-			Use the button to get a shareable link to your clipboard.<br />
-			Questions disappear after 30 days.
-		</div>
-	{:else}
-		<button class="border p-4 px-8 bg-orange-700 text-white font-bold border-2 border-red-100 hover:border-red-400" on:click={ask}>Ask another question</button>
-	{/if}
+		{#if event.secret}
+			<button
+				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
+				on:click={share}>{share_text}</button
+			>
+			<div class="pt-4 text-slate-400">
+				The URL in your address bar shares the host view.<br />
+				Use the button to get a shareable link to your clipboard.<br />
+				Questions disappear after 30 days.
+			</div>
+		{:else}
+			<button
+				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
+				on:click={ask}>Ask another question</button
+			>
+		{/if}
 	</div>
 
 	{#if problum}
-	<div class="fixed bottom-4 left-0 right-0">
-	<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
-	{#if problum.status}
-		Connection problems: {problum.status}
-	{:else}
-		Lost connection to the server&hellip; retrying.
-	{/if}
-	</p>
-	</div>
+		<div class="fixed bottom-4 left-0 right-0">
+			<p class="mx-auto max-w-4xl bg-red-500 py-2 px-4 font-bold text-white">
+				{#if problum.status}
+					Connection problems: {problum.status}
+				{:else}
+					Lost connection to the server&hellip; retrying.
+				{/if}
+			</p>
+		</div>
 	{/if}
 
 	<section class="pt-4">
-	{#if unanswered.length > 0}
-		<div class="flex flex-col divide-y">
-		{#each unanswered as question (question.qid)}
-			<div animate:flip="{{duration: 500}}">
-			<Question {event} bind:question={question} />
+		{#if unanswered.length > 0}
+			<div class="flex flex-col divide-y">
+				{#each unanswered as question (question.qid)}
+					<div animate:flip={{ duration: 500 }}>
+						<Question {event} bind:question />
+					</div>
+				{/each}
 			</div>
-		{/each}
-		</div>
-	{:else}
-		<h2 class="text-center text-slate-500 text-2xl my-8">
-			{#if answered.length > 0}
-			No unanswered questions.
-			{:else}
-			No unanswered questions (yet).
-			{/if}
-		</h2>
-	{/if}
+		{:else}
+			<h2 class="my-8 text-center text-2xl text-slate-500">
+				{#if answered.length > 0}
+					No unanswered questions.
+				{:else}
+					No unanswered questions (yet).
+				{/if}
+			</h2>
+		{/if}
 	</section>
 	{#if answered.length > 0}
-	<section>
-	<h2 class="text-2xl text-center text-green-700 dark:text-lime-500 mt-8 mb-4">Answered
-		<span class="text-lg float-right">({answered.length} / {answered.length + unanswered.length})</span>
-	</h2>
-	<div class="flex flex-col divide-y">
-	{#each answered as question (question.qid)}
-		<div animate:flip="{{duration: 500}}">
-		<Question {event} bind:question={question} />
-		</div>
-	{/each}
-	</div>
-	</section>
+		<section>
+			<h2 class="mt-8 mb-4 text-center text-2xl text-green-700 dark:text-lime-500">
+				Answered
+				<span class="float-right text-lg"
+					>({answered.length} / {answered.length + unanswered.length})</span
+				>
+			</h2>
+			<div class="flex flex-col divide-y">
+				{#each answered as question (question.qid)}
+					<div animate:flip={{ duration: 500 }}>
+						<Question {event} bind:question />
+					</div>
+				{/each}
+			</div>
+		</section>
 	{/if}
 	{#if event.secret && hidden.length > 0}
-	<section>
-	<h2 class="text-2xl text-center text-slate-400 dark:text-slate-500 mt-8 mb-4">Hidden</h2>
-	<div class="flex flex-col divide-y">
-	{#each hidden as question (question.qid)}
-		<div animate:flip="{{duration: 500}}">
-		<Question {event} bind:question={question} />
-		</div>
-	{/each}
-	</div>
-	</section>
+		<section>
+			<h2 class="mt-8 mb-4 text-center text-2xl text-slate-400 dark:text-slate-500">Hidden</h2>
+			<div class="flex flex-col divide-y">
+				{#each hidden as question (question.qid)}
+					<div animate:flip={{ duration: 500 }}>
+						<Question {event} bind:question />
+					</div>
+				{/each}
+			</div>
+		</section>
 	{/if}
 {:else if problum}
 	<div class="fixed bottom-4 left-0 right-0">
-	<p class="max-w-4xl mx-auto bg-red-500 py-2 px-4 font-bold text-white">
-	{#if !problum.status}
-		Lost connection to the server&hellip; retrying.
-	{:else if problum.status == 404}
-		Event not found.
-	{:else if problum.status == 401}
-		Permission denied.
-	{:else}
-		The server is having issues; got {problum.status} {problum.statusText}.
-	{/if}
-	</p>
+		<p class="mx-auto max-w-4xl bg-red-500 py-2 px-4 font-bold text-white">
+			{#if !problum.status}
+				Lost connection to the server&hellip; retrying.
+			{:else if problum.status == 404}
+				Event not found.
+			{:else if problum.status == 401}
+				Permission denied.
+			{:else}
+				The server is having issues; got {problum.status} {problum.statusText}.
+			{/if}
+		</p>
 	</div>
 {:else}
 	<p>Loading questions...</p>

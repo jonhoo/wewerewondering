@@ -2,45 +2,47 @@ import { writable } from "svelte/store";
 
 const storedVotedFor = JSON.parse(localStorage.getItem("votedFor"));
 export const votedFor = writable(!storedVotedFor ? {} : storedVotedFor);
-votedFor.subscribe(value => {
-    if (value) {
-        localStorage.setItem("votedFor", JSON.stringify(value));
-    } else {
-        localStorage.removeItem("votedFor");
-    }
+votedFor.subscribe((value) => {
+	if (value) {
+		localStorage.setItem("votedFor", JSON.stringify(value));
+	} else {
+		localStorage.removeItem("votedFor");
+	}
 });
 
 const storedLocalAdjustments = JSON.parse(localStorage.getItem("localAdjustments"));
-export const localAdjustments = writable(!storedLocalAdjustments ? {
-    "newQuestions": [
-	    // qid
-    ],
-    "remap": {
-	/*
-	 qid => { 
-	    hidden: bool,
-	    answered: {action: "unset"} | {action: "set", value: number}, 
-	    voted_when: int 
+export const localAdjustments = writable(
+	!storedLocalAdjustments
+		? {
+				newQuestions: [
+					// qid
+				],
+				remap: {
+					// qid => {
+					//   hidden: bool,
+					//   answered: {action: "unset"} | {action: "set", value: number},
+					//   voted_when: int
+					// }
+				}
+		  }
+		: storedLocalAdjustments
+);
+localAdjustments.subscribe((value) => {
+	if (value) {
+		localStorage.setItem("localAdjustments", JSON.stringify(value));
+	} else {
+		localStorage.removeItem("localAdjustments");
 	}
-	*/
-    }
-} : storedLocalAdjustments );
-localAdjustments.subscribe(value => {
-    if (value) {
-        localStorage.setItem("localAdjustments", JSON.stringify(value));
-    } else {
-        localStorage.removeItem("localAdjustments");
-    }
 });
 
 const storedQs = JSON.parse(localStorage.getItem("questions"));
 export const questionCache = writable(!storedQs ? {} : storedQs);
-questionCache.subscribe(value => {
-    if (value) {
-        localStorage.setItem("questions", JSON.stringify(value));
-    } else {
-        localStorage.removeItem("questions");
-    }
+questionCache.subscribe((value) => {
+	if (value) {
+		localStorage.setItem("questions", JSON.stringify(value));
+	} else {
+		localStorage.removeItem("questions");
+	}
 });
 
 let batch = {};
@@ -84,8 +86,8 @@ export async function questionData(qid, qs) {
 		}
 	} else if (first) {
 		console.info("single-question batch; waiting 50ms");
-		fetching = {"non": "empty", "overridden": "below"};
-		await new Promise(resolve => {
+		fetching = { non: "empty", overridden: "below" };
+		await new Promise((resolve) => {
 			setTimeout(resolve, 50);
 		});
 	}
@@ -94,18 +96,19 @@ export async function questionData(qid, qs) {
 
 	// give the next batch a way to wait for us to complete
 	let resolve;
-	let reject;
+	let _reject;
 	fetch_done = new Promise((resolve1, reject1) => {
 		resolve = resolve1;
-		reject = reject1;
+		_reject = reject1;
 	});
 
+	/* eslint-disable no-constant-condition */
 	while (true) {
 		// make the current batch of qids (and their promises).
 		fetching = batch;
 		batch = {};
 		// sort to improve cache hit rate
-		let qids = Object.entries(fetching).map(([qid, resolve, reject]) => qid);
+		let qids = Object.entries(fetching).map(([qid]) => qid);
 		// dynamodb can fetch at most 100 keys, and at most 16MB,
 		// whichever is smaller. for 16MB to be smaller, entries would
 		// need to be >160k. we project id, text, who, and when. text
@@ -131,7 +134,7 @@ export async function questionData(qid, qs) {
 		let data = await fetch(`/api/questions/${arg}`);
 		let json = await data.json();
 		// store back to cache
-		questionCache.update(qs => {
+		questionCache.update((qs) => {
 			for (const [qid, q] of Object.entries(json)) {
 				qs[qid] = q;
 			}
@@ -164,7 +167,7 @@ export async function questionData(qid, qs) {
 	return await promise;
 }
 
-window.addEventListener('storage', (e) => {
+window.addEventListener("storage", (e) => {
 	if (e.key == "votedFor") {
 		votedFor.set(JSON.parse(e.newValue));
 	} else if (e.key == "questions") {
