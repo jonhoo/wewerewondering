@@ -151,7 +151,7 @@ async fn main() -> Result<(), Error> {
 
         let mut state = Local::default();
         let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
-        let seed_e ="00000000000000000000000000";
+        let seed_e = "00000000000000000000000000";
         let seed_e = Ulid::from_string(seed_e).unwrap();
         state.events.insert(seed_e.clone(), String::from("secret"));
         state.questions_by_eid.insert(seed_e.clone(), Vec::new());

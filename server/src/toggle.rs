@@ -185,16 +185,24 @@ mod tests {
             let answered = &json["answered"];
             assert!(answered.is_u64(), "answered is not a u64: {answered}");
             let answered = answered.as_u64().unwrap();
-            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-            assert!(now >= answered, "answered is time travelling: [now: {now} | answered: {answered}]");
-            assert!(now - answered <= 30, "answered not within the last 30 sec: [now: {now} | answered: {answered}]")
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            assert!(
+                now >= answered,
+                "answered is time travelling: [now: {now} | answered: {answered}]"
+            );
+            assert!(
+                now - answered <= 30,
+                "answered not within the last 30 sec: [now: {now} | answered: {answered}]"
+            )
         };
 
         let check_answered_unset = |json: &Value| {
             let answered = &json["answered"];
             assert!(answered.is_null(), "answered should be null: {answered}");
         };
-
 
         // only admin should see hidden
         let toggle_res = super::toggle(
@@ -209,7 +217,12 @@ mod tests {
         )
         .await
         .unwrap();
-        assert_eq!(toggle_res["hidden"].as_bool().expect("hidden should be a bool"), true);
+        assert_eq!(
+            toggle_res["hidden"]
+                .as_bool()
+                .expect("hidden should be a bool"),
+            true
+        );
 
         check(
             crate::list::list_all(
@@ -244,7 +257,12 @@ mod tests {
         )
         .await
         .unwrap();
-        assert_eq!(toggle_res["hidden"].as_bool().expect("hidden should be a bool"), false);
+        assert_eq!(
+            toggle_res["hidden"]
+                .as_bool()
+                .expect("hidden should be a bool"),
+            false
+        );
 
         // and should now show up as answered
         let toggle_res = super::toggle(
@@ -315,7 +333,6 @@ mod tests {
                 .0,
             Some((false, Box::new(check_answered_unset), 1)),
         );
-
 
         backend.delete(&eid).await;
     }
