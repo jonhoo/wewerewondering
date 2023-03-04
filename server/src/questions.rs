@@ -17,7 +17,7 @@ use http::{
     StatusCode,
 };
 use serde_json::Value;
-use uuid::Uuid;
+use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
@@ -25,7 +25,7 @@ use tracing::{debug, error, info, trace, warn};
 impl Backend {
     pub(super) async fn questions(
         &self,
-        qids: &[Uuid],
+        qids: &[Ulid],
     ) -> Result<BatchGetItemOutput, SdkError<BatchGetItemError>> {
         match self {
             Self::Dynamo(dynamo) => {
@@ -110,7 +110,7 @@ pub(super) async fn questions(
     AppendHeaders<[(HeaderName, &'static str); 1]>,
     Result<Json<Value>, StatusCode>,
 ) {
-    let qids: Vec<_> = match qids.split(',').map(Uuid::parse_str).collect() {
+    let qids: Vec<_> = match qids.split(',').map(Ulid::from_string).collect() {
         Ok(v) => v,
         Err(e) => {
             warn!(%qids, error = %e, "got invalid uuid set");
@@ -150,7 +150,7 @@ pub(super) async fn questions(
                     let qid = q
                         .get("id")
                         .and_then(|v| v.as_s().ok())
-                        .and_then(|v| Uuid::parse_str(v).ok());
+                        .and_then(|v| ulid::Ulid::from_string(v).ok());
                     let text = q.get("text").and_then(|v| v.as_s().ok());
                     let who = q.get("who").and_then(|v| v.as_s().ok());
                     let when = q
@@ -201,7 +201,7 @@ mod tests {
 
     async fn inner(backend: Backend) {
         let e = crate::new::new(State(backend.clone())).await.unwrap();
-        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         let q1 = crate::ask::ask(
             Path(eid.clone()),

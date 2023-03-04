@@ -10,7 +10,7 @@ use http::StatusCode;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::time::{Duration, SystemTime};
-use uuid::Uuid;
+use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
@@ -20,7 +20,7 @@ const EVENTS_EXPIRE_AFTER_DAYS: u64 = 60;
 impl Backend {
     pub(super) async fn new(
         &self,
-        eid: &Uuid,
+        eid: &Ulid,
         secret: impl Into<String>,
     ) -> Result<PutItemOutput, SdkError<PutItemError>> {
         match self {
@@ -60,7 +60,7 @@ impl Backend {
     }
 
     #[cfg(test)]
-    pub(super) async fn delete(&self, eid: &Uuid) {
+    pub(super) async fn delete(&self, eid: &Ulid) {
         let qs = self.list(eid, false).await.unwrap();
         let qids: Vec<_> = qs
             .items()
@@ -109,8 +109,7 @@ impl Backend {
 pub(super) async fn new(
     State(dynamo): State<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    // TODO: UUIDv7
-    let eid = uuid::Uuid::new_v4();
+    let eid = ulid::Ulid::new();
     let secret: String = thread_rng()
         .sample_iter(&Alphanumeric)
         .take(30)
@@ -136,7 +135,7 @@ mod tests {
 
     async fn inner(backend: Backend) {
         let e = crate::new::new(State(backend.clone())).await.unwrap();
-        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         backend.delete(&eid).await;
     }

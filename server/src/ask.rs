@@ -12,7 +12,7 @@ use std::{
     collections::HashMap,
     time::{Duration, SystemTime},
 };
-use uuid::Uuid;
+use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
@@ -22,8 +22,8 @@ const QUESTIONS_EXPIRE_AFTER_DAYS: u64 = 30;
 impl Backend {
     pub(super) async fn ask(
         &self,
-        eid: &Uuid,
-        qid: &Uuid,
+        eid: &Ulid,
+        qid: &Ulid,
         q: Question,
     ) -> Result<PutItemOutput, SdkError<PutItemError>> {
         let attrs = [
@@ -83,7 +83,7 @@ pub(super) struct Question {
 }
 
 pub(super) async fn ask(
-    Path(eid): Path<Uuid>,
+    Path(eid): Path<Ulid>,
     State(dynamo): State<Backend>,
     q: Json<Question>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -96,8 +96,7 @@ pub(super) async fn ask(
     }
 
     // TODO: check that eid actually exists
-    // TODO: UUIDv7
-    let qid = uuid::Uuid::new_v4();
+    let qid = ulid::Ulid::new();
     match dynamo.ask(&eid, &qid, q.0).await {
         Ok(_) => {
             debug!(%eid, %qid, "created question");
@@ -116,7 +115,7 @@ mod tests {
 
     async fn inner(backend: Backend) {
         let e = crate::new::new(State(backend.clone())).await.unwrap();
-        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         let q = super::ask(
             Path(eid.clone()),
@@ -128,7 +127,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let _qid = Uuid::parse_str(q["id"].as_str().unwrap()).unwrap();
+        let _qid = Ulid::from_string(q["id"].as_str().unwrap()).unwrap();
         // the list test checks that it's actually returned
         backend.delete(&eid).await;
     }

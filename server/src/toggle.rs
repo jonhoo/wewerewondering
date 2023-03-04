@@ -11,7 +11,7 @@ use axum::{
 use http::StatusCode;
 use serde::Deserialize;
 use std::{collections::HashMap, time::SystemTime};
-use uuid::Uuid;
+use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
@@ -32,7 +32,7 @@ pub(super) enum ToggleRequest {
 impl Backend {
     pub(super) async fn toggle(
         &self,
-        qid: &Uuid,
+        qid: &Ulid,
         req: ToggleRequest,
     ) -> Result<UpdateItemOutput, SdkError<UpdateItemError>> {
         match self {
@@ -93,7 +93,7 @@ impl Backend {
 }
 
 pub(super) async fn toggle(
-    Path((eid, secret, qid, property)): Path<(Uuid, String, Uuid, Property)>,
+    Path((eid, secret, qid, property)): Path<(Ulid, String, Ulid, Property)>,
     State(dynamo): State<Backend>,
     body: String,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -145,7 +145,7 @@ mod tests {
 
     async fn inner(backend: Backend) {
         let e = crate::new::new(State(backend.clone())).await.unwrap();
-        let eid = Uuid::parse_str(e["id"].as_str().unwrap()).unwrap();
+        let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
             Path(eid.clone()),
@@ -158,7 +158,7 @@ mod tests {
         .await
         .unwrap();
         let qid = q["id"].as_str().unwrap();
-        let qid_u = Uuid::parse_str(qid).unwrap();
+        let qid_u = Ulid::from_string(qid).unwrap();
 
         let check = |qids: Value, expect: Option<(bool, Box<dyn Fn(&Value) -> ()>, u64)>| {
             let qids = qids.as_array().unwrap();
