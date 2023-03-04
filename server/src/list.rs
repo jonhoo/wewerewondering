@@ -137,7 +137,7 @@ async fn list_inner(
         debug!("list questions with admin access");
         if let Err(e) = super::check_secret(&dynamo, &eid, &secret).await {
             // a bad secret will not turn good and
-            // events are unlikely to re-appear with the same Uuid
+            // events are unlikely to re-appear with the same Ulid
             return (
                 AppendHeaders([(header::CACHE_CONTROL, "max-age=86400")]),
                 Err(e),
@@ -149,7 +149,7 @@ async fn list_inner(
         // ensure that the event exists:
         // this is _just_ so give 404s for old events so clients stop polling
         if let Err(e) = super::get_secret(&dynamo, &eid).await {
-            // events are unlikely to re-appear with the same Uuid
+            // events are unlikely to re-appear with the same Ulid
             return (
                 AppendHeaders([(header::CACHE_CONTROL, "max-age=86400")]),
                 Err(e),
@@ -219,7 +219,7 @@ async fn list_inner(
                 if err.is_resource_not_found_exception() {
                     warn!(%eid, error = %e, "request for non-existing event");
                     return (
-                        // it's relatively unlikely that an event Uuid that didn't exist will start
+                        // it's relatively unlikely that an event Ulid that didn't exist will start
                         // existing. but just in case, don't make it _too_ long.
                         AppendHeaders([(header::CACHE_CONTROL, "max-age=3600")]),
                         Err(http::StatusCode::NOT_FOUND),

@@ -203,13 +203,13 @@ The site uses [DynamoDB] as its storage backend, because frankly, that's
 all it needs. And it's fairly fast and cheap if you can get away with
 its limited feature set. There are two tables, `events` and `questions`,
 both of which are set up to use [on-demand provisioning]. `events` just
-holds the UUID of an event, which is also the partition key (DynamoDB
+holds the ULID of an event, which is also the partition key (DynamoDB
 [doesn't have] auto-increment integer primary keys because they don't
 scale), the event's secret key, and its creation and [auto-deletion]
 timestamp. `questions` has:
 
-- the question UUID (as the partition key)
-- the event UUID
+- the question ULID (as the partition key)
+- the event ULID
 - the question text
 - the question author (if given)
 - the number of votes
@@ -217,14 +217,14 @@ timestamp. `questions` has:
 - whether the question is hidden
 - creation and [auto-deletion] timestamps
 
-The UUIDs, the timestamps, and the question text + author never change
+The ULIDs, the timestamps, and the question text + author never change
 This is why the API to look up event info and question texts/authors is
 separated from looking up vote counts -- the former can have much longer
 cache time.
 
 To allow querying questions for a given event and receive them in sorted
 order, `questions` also has a [global secondary index] called `top`
-whose partition key is the event UUID and sort key `votes`. That index
+whose partition key is the event ULID and sort key `votes`. That index
 also projects out the "answered" and "hidden" fields so that a single
 query to that index gives all the mutable state for an event's question
 list (and can thus be queried with a single DynamoDB call by the

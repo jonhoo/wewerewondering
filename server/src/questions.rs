@@ -113,7 +113,7 @@ pub(super) async fn questions(
     let qids: Vec<_> = match qids.split(',').map(Ulid::from_string).collect() {
         Ok(v) => v,
         Err(e) => {
-            warn!(%qids, error = %e, "got invalid uuid set");
+            warn!(%qids, error = %e, "got invalid ulid set");
             return (
                 // a bad request will never become good
                 AppendHeaders([(header::CACHE_CONTROL, "max-age=864001")]),
@@ -127,7 +127,7 @@ pub(super) async fn questions(
                 warn!(?qids, "no valid qids");
                 return (
                     // it should be unlikely that someone fetches a question that hasn't been asked
-                    // it's _possible_ that it happens and _then_ a question is assigned that uuid,
+                    // it's _possible_ that it happens and _then_ a question is assigned that ulid,
                     // but it too seems rare.
                     AppendHeaders([(header::CACHE_CONTROL, "max-age=600")]),
                     Err(http::StatusCode::NOT_FOUND),
