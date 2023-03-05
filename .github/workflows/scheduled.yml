@@ -35,6 +35,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: update
+          args: --manifest-path server/Cargo.toml
       - name: cargo test
         if: hashFiles('server/Cargo.lock') != ''
         uses: actions-rs/cargo@v1
