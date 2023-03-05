@@ -26,22 +26,22 @@ jobs:
         with:
           submodules: true
       - name: Install beta
-        if: hashFiles('Cargo.lock') != ''
+        if: hashFiles('server/Cargo.lock') != ''
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: beta
           default: true
       - name: cargo update
-        if: hashFiles('Cargo.lock') != ''
+        if: hashFiles('server/Cargo.lock') != ''
         uses: actions-rs/cargo@v1
         with:
           command: update
       - name: cargo test
-        if: hashFiles('Cargo.lock') != ''
+        if: hashFiles('server/Cargo.lock') != ''
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --all-features --all-targets
+          args: --locked --all-features --all-targets --manifest-path server/Cargo.toml
         env:
           RUSTFLAGS: -D deprecated
