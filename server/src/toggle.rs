@@ -148,7 +148,7 @@ mod tests {
         let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
-            Path(eid.clone()),
+            Path(eid),
             State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
@@ -160,7 +160,8 @@ mod tests {
         let qid = q["id"].as_str().unwrap();
         let qid_u = Ulid::from_string(qid).unwrap();
 
-        let check = |qids: Value, expect: Option<(bool, Box<dyn Fn(&Value) -> ()>, u64)>| {
+        #[allow(clippy::type_complexity)]
+        let check = |qids: Value, expect: Option<(bool, Box<dyn Fn(&Value)>, u64)>| {
             let qids = qids.as_array().unwrap();
             let q = qids.iter().find(|q| dbg!(&q["qid"]) == dbg!(qid));
             if let Some((hidden, check_answered, votes)) = expect {
@@ -170,7 +171,7 @@ mod tests {
                 );
                 let q = q.unwrap();
                 assert_eq!(q["votes"].as_u64().unwrap(), votes);
-                check_answered(&q);
+                check_answered(q);
                 assert_eq!(q["hidden"].as_bool().unwrap(), hidden);
                 assert_eq!(qids.len(), 1, "extra questions in response: {qids:?}");
             } else {
@@ -206,37 +207,26 @@ mod tests {
 
         // only admin should see hidden
         let toggle_res = super::toggle(
-            Path((
-                eid.clone(),
-                secret.to_string(),
-                qid_u.clone(),
-                Property::Hidden,
-            )),
+            Path((eid, secret.to_string(), qid_u, Property::Hidden)),
             State(backend.clone()),
             String::from("on"),
         )
         .await
         .unwrap();
-        assert_eq!(
-            toggle_res["hidden"]
-                .as_bool()
-                .expect("hidden should be a bool"),
-            true
-        );
+        assert!(toggle_res["hidden"]
+            .as_bool()
+            .expect("hidden should be a bool"));
 
         check(
-            crate::list::list_all(
-                Path((eid.clone(), secret.to_string())),
-                State(backend.clone()),
-            )
-            .await
-            .1
-            .unwrap()
-            .0,
+            crate::list::list_all(Path((eid, secret.to_string())), State(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
             Some((true, Box::new(check_answered_unset), 1)),
         );
         check(
-            crate::list::list(Path(eid.clone()), State(backend.clone()))
+            crate::list::list(Path(eid), State(backend.clone()))
                 .await
                 .1
                 .unwrap()
@@ -246,32 +236,19 @@ mod tests {
 
         // should toggle back
         let toggle_res = super::toggle(
-            Path((
-                eid.clone(),
-                secret.to_string(),
-                qid_u.clone(),
-                Property::Hidden,
-            )),
+            Path((eid, secret.to_string(), qid_u, Property::Hidden)),
             State(backend.clone()),
             String::from("off"),
         )
         .await
         .unwrap();
-        assert_eq!(
-            toggle_res["hidden"]
-                .as_bool()
-                .expect("hidden should be a bool"),
-            false
-        );
+        assert!(!toggle_res["hidden"]
+            .as_bool()
+            .expect("hidden should be a bool"));
 
         // and should now show up as answered
         let toggle_res = super::toggle(
-            Path((
-                eid.clone(),
-                secret.to_string(),
-                qid_u.clone(),
-                Property::Answered,
-            )),
+            Path((eid, secret.to_string(), qid_u, Property::Answered)),
             State(backend.clone()),
             String::from("on"),
         )
@@ -280,18 +257,15 @@ mod tests {
         check_answered_set(&toggle_res);
 
         check(
-            crate::list::list_all(
-                Path((eid.clone(), secret.to_string())),
-                State(backend.clone()),
-            )
-            .await
-            .1
-            .unwrap()
-            .0,
+            crate::list::list_all(Path((eid, secret.to_string())), State(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
             Some((false, Box::new(check_answered_set), 1)),
         );
         check(
-            crate::list::list(Path(eid.clone()), State(backend.clone()))
+            crate::list::list(Path(eid), State(backend.clone()))
                 .await
                 .1
                 .unwrap()
@@ -301,12 +275,7 @@ mod tests {
 
         // answered should toggle back
         let toggle_res = super::toggle(
-            Path((
-                eid.clone(),
-                secret.to_string(),
-                qid_u.clone(),
-                Property::Answered,
-            )),
+            Path((eid, secret.to_string(), qid_u, Property::Answered)),
             State(backend.clone()),
             String::from("off"),
         )
@@ -315,18 +284,15 @@ mod tests {
         check_answered_unset(&toggle_res);
 
         check(
-            crate::list::list_all(
-                Path((eid.clone(), secret.to_string())),
-                State(backend.clone()),
-            )
-            .await
-            .1
-            .unwrap()
-            .0,
+            crate::list::list_all(Path((eid, secret.to_string())), State(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
             Some((false, Box::new(check_answered_unset), 1)),
         );
         check(
-            crate::list::list(Path(eid.clone()), State(backend.clone()))
+            crate::list::list(Path(eid), State(backend.clone()))
                 .await
                 .1
                 .unwrap()

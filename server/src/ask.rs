@@ -118,7 +118,7 @@ mod tests {
         let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         let q = super::ask(
-            Path(eid.clone()),
+            Path(eid),
             State(backend.clone()),
             Json(Question {
                 body: "hello world".into(),

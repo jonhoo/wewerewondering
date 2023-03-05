@@ -244,7 +244,7 @@ mod tests {
         let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let secret = e["secret"].as_str().unwrap();
         let q = crate::ask::ask(
-            Path(eid.clone()),
+            Path(eid),
             State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
@@ -270,17 +270,14 @@ mod tests {
         };
 
         check(
-            super::list_all(
-                Path((eid.clone(), secret.to_string())),
-                State(backend.clone()),
-            )
-            .await
-            .1
-            .unwrap()
-            .0,
+            super::list_all(Path((eid, secret.to_string())), State(backend.clone()))
+                .await
+                .1
+                .unwrap()
+                .0,
         );
         check(
-            super::list(Path(eid.clone()), State(backend.clone()))
+            super::list(Path(eid), State(backend.clone()))
                 .await
                 .1
                 .unwrap()
@@ -289,13 +286,10 @@ mod tests {
 
         // lookup with wrong secret gives 401
         assert_eq!(
-            super::list_all(
-                Path((eid.clone(), "wrong".to_string())),
-                State(backend.clone()),
-            )
-            .await
-            .1
-            .unwrap_err(),
+            super::list_all(Path((eid, "wrong".to_string())), State(backend.clone()),)
+                .await
+                .1
+                .unwrap_err(),
             StatusCode::UNAUTHORIZED
         );
 

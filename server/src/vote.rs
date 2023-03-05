@@ -99,7 +99,7 @@ mod tests {
         let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
         let _secret = e["secret"].as_str().unwrap();
         let q1 = crate::ask::ask(
-            Path(eid.clone()),
+            Path(eid),
             State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello world".into(),
@@ -110,7 +110,7 @@ mod tests {
         .unwrap();
         let qid1 = Ulid::from_string(q1["id"].as_str().unwrap()).unwrap();
         let q2 = crate::ask::ask(
-            Path(eid.clone()),
+            Path(eid),
             State(backend.clone()),
             Json(crate::ask::Question {
                 body: "hello moon".into(),
@@ -129,11 +129,11 @@ mod tests {
             }
         };
 
-        let _ = super::vote(Path((qid2.clone(), UpDown::Up)), State(backend.clone()))
+        let _ = super::vote(Path((qid2, UpDown::Up)), State(backend.clone()))
             .await
             .unwrap();
         check(
-            crate::list::list(Path(eid.clone()), State(backend.clone()))
+            crate::list::list(Path(eid), State(backend.clone()))
                 .await
                 .1
                 .unwrap()
@@ -141,14 +141,14 @@ mod tests {
             &[(&qid2, 2), (&qid1, 1)],
         );
 
-        let _ = super::vote(Path((qid1.clone(), UpDown::Up)), State(backend.clone()))
+        let _ = super::vote(Path((qid1, UpDown::Up)), State(backend.clone()))
             .await
             .unwrap();
-        let _ = super::vote(Path((qid2.clone(), UpDown::Down)), State(backend.clone()))
+        let _ = super::vote(Path((qid2, UpDown::Down)), State(backend.clone()))
             .await
             .unwrap();
         check(
-            crate::list::list(Path(eid.clone()), State(backend.clone()))
+            crate::list::list(Path(eid), State(backend.clone()))
                 .await
                 .1
                 .unwrap()

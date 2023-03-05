@@ -96,10 +96,10 @@ impl Backend {
                     ..
                 } = &mut *local;
 
-                for qid in questions_by_eid.remove(&eid).unwrap() {
+                for qid in questions_by_eid.remove(eid).unwrap() {
                     questions.remove(&qid).unwrap();
                 }
-                events.remove(&eid).unwrap();
+                events.remove(eid).unwrap();
             }
         }
     }
