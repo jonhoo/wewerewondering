@@ -129,7 +129,7 @@ mod tests {
             }
         };
 
-        super::vote(Path((qid2.clone(), UpDown::Up)), State(backend.clone()))
+        let _ = super::vote(Path((qid2.clone(), UpDown::Up)), State(backend.clone()))
             .await
             .unwrap();
         check(
@@ -141,10 +141,10 @@ mod tests {
             &[(&qid2, 2), (&qid1, 1)],
         );
 
-        super::vote(Path((qid1.clone(), UpDown::Up)), State(backend.clone()))
+        let _ = super::vote(Path((qid1.clone(), UpDown::Up)), State(backend.clone()))
             .await
             .unwrap();
-        super::vote(Path((qid2.clone(), UpDown::Down)), State(backend.clone()))
+        let _ = super::vote(Path((qid2.clone(), UpDown::Down)), State(backend.clone()))
             .await
             .unwrap();
         check(

@@ -319,7 +319,7 @@ mod tests {
         // lookup for empty but existing event gives 200
         let e = crate::new::new(State(backend.clone())).await.unwrap();
         let eid = Ulid::from_string(e["id"].as_str().unwrap()).unwrap();
-        super::list(Path(eid), State(backend.clone()))
+        let _ = super::list(Path(eid), State(backend.clone()))
             .await
             .1
             .unwrap();
