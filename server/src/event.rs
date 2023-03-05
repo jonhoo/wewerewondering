@@ -57,19 +57,19 @@ pub(super) async fn event(
 ) {
     match dynamo.event(&eid).await {
         Ok(v) => {
-            if let Some(_) = v.item() {
+            if v.item().is_some() {
                 (
                     AppendHeaders([(header::CACHE_CONTROL, "max-age=864001")]),
                     Ok(Json(serde_json::json!({}))),
                 )
             } else {
                 warn!(%eid, "non-existing event");
-                return (
+                (
                     // it's relatively unlikely that an event Ulid that didn't exist will start
                     // existing. but just in case, don't make it _too_ long.
                     AppendHeaders([(header::CACHE_CONTROL, "max-age=3600")]),
                     Err(http::StatusCode::NOT_FOUND),
-                );
+                )
             }
         }
         Err(e) => {

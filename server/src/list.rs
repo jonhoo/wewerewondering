@@ -58,7 +58,7 @@ impl Backend {
                     ..
                 } = &mut *local;
 
-                if !events.contains_key(&eid) {
+                if !events.contains_key(eid) {
                     return Err(super::mint_service_error(QueryError::new(
                         QueryErrorKind::ResourceNotFoundException(
                             ResourceNotFoundException::builder().build(),

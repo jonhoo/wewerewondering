@@ -18,6 +18,8 @@ use tracing::{debug, error, info, trace, warn};
 const EVENTS_EXPIRE_AFTER_DAYS: u64 = 60;
 
 impl Backend {
+    #[allow(clippy::wrong_self_convention)]
+    #[allow(clippy::new_ret_no_self)]
     pub(super) async fn new(
         &self,
         eid: &Ulid,
@@ -49,12 +51,9 @@ impl Backend {
                     ..
                 } = &mut *local;
 
-                questions_by_eid.insert(eid.clone(), Vec::new());
-                if events.insert(eid.clone(), secret.into()).is_some() {
-                    Ok(PutItemOutput::builder().build())
-                } else {
-                    Ok(PutItemOutput::builder().build())
-                }
+                questions_by_eid.insert(*eid, Vec::new());
+                let _ = events.insert(*eid, secret.into()).is_some();
+                Ok(PutItemOutput::builder().build())
             }
         }
     }

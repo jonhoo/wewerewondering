@@ -30,7 +30,7 @@ impl Backend {
             ("id", AttributeValue::S(qid.to_string())),
             ("eid", AttributeValue::S(eid.to_string())),
             ("votes", AttributeValue::N(1.to_string())),
-            ("text", AttributeValue::S(q.body.into())),
+            ("text", AttributeValue::S(q.body)),
             ("when", to_dynamo_timestamp(SystemTime::now())),
             (
                 "expire",
@@ -65,11 +65,11 @@ impl Backend {
                 if let Some(asker) = q.asker {
                     question.insert("who", AttributeValue::S(asker));
                 }
-                questions.insert(qid.clone(), question);
+                questions.insert(*qid, question);
                 questions_by_eid
                     .get_mut(eid)
                     .expect("adding question to event that doesn't exist")
-                    .push(qid.clone());
+                    .push(*qid);
                 Ok(PutItemOutput::builder().build())
             }
         }
