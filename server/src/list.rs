@@ -215,8 +215,8 @@ async fn list_inner(
             )
         }
         Err(e) => {
-            if let SdkError::ServiceError { ref err, .. } = e {
-                if err.is_resource_not_found_exception() {
+            if let SdkError::ServiceError(ref err) = e {
+                if err.err().is_resource_not_found_exception() {
                     warn!(%eid, error = %e, "request for non-existing event");
                     return (
                         // it's relatively unlikely that an event Ulid that didn't exist will start

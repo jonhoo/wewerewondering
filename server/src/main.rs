@@ -118,12 +118,12 @@ async fn check_secret(dynamo: &Backend, eid: &Ulid, secret: &str) -> Result<(), 
 }
 
 fn mint_service_error<E>(e: E) -> SdkError<E> {
-    SdkError::ServiceError {
-        err: e,
-        raw: aws_smithy_http::operation::Response::new(
+    SdkError::service_error(
+        e,
+        aws_smithy_http::operation::Response::new(
             http::Response::builder().body(SdkBody::empty()).unwrap(),
         ),
-    }
+    )
 }
 
 #[tokio::main]
