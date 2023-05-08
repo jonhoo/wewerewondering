@@ -64,7 +64,7 @@
 
 {#if problum}
 	<div class="fixed bottom-4 left-0 right-0">
-		<p class="mx-auto max-w-4xl bg-red-500 py-2 px-4 font-bold text-white">
+		<p class="mx-auto max-w-4xl bg-red-500 px-4 py-2 font-bold text-white">
 			{#if problum.status}
 				{#if problum.status === 404}
 					Event not found.
