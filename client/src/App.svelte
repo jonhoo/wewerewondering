@@ -1,8 +1,8 @@
 <script>
 	import { onMount } from "svelte";
+	import { event } from "./store";
 	import List from "./List.svelte";
 
-	let event;
 	let problum;
 
 	async function popstate() {
@@ -22,7 +22,7 @@
 					id: id
 				};
 			}
-			if (new_event != event) {
+			if (new_event != $event) {
 				let r = await fetch(`/api/event/${new_event.id}`).catch((e) => {
 					problum = e;
 					// server is down, retry slowly
@@ -32,7 +32,7 @@
 				if (!r.ok) {
 					if (r.status >= 400 && r.status < 500) {
 						// our fault -- don't retry
-						event = null;
+						event.set(null);
 					} else {
 						// server is sad, retry slowly
 						setTimeout(popstate, 5000);
@@ -41,10 +41,10 @@
 					return;
 				}
 				problum = null;
-				event = new_event;
+				event.set(new_event);
 			}
 		} else {
-			event = null;
+			event.set(null);
 		}
 	}
 
@@ -78,9 +78,9 @@
 	</div>
 {/if}
 
-{#if event}
+{#if $event}
 	<main class="mx-auto my-4 max-w-4xl px-4">
-		<List {event} />
+		<List />
 		<div class="mt-4 text-center text-slate-400">
 			( made on <a class="hover:text-black" href="https://github.com/jonhoo/wewerewondering"
 				>github</a

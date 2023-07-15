@@ -1,9 +1,8 @@
 <script>
 	import { onMount } from "svelte";
-	import { votedFor, questionCache, questionData, localAdjustments } from "./store.js";
+	import { votedFor, questionCache, questionData, localAdjustments, event } from "./store.js";
 
 	export let question;
-	export let event;
 
 	let now = new Date();
 	onMount(() => {
@@ -53,7 +52,7 @@
 
 	async function toggle(what) {
 		const res = await fetch(
-			`/api/event/${event.id}/questions/${event.secret}/${question.qid}/toggle/${what}`,
+			`/api/event/${$event.id}/questions/${$event.secret}/${question.qid}/toggle/${what}`,
 			{
 				method: "POST",
 				body: question[what] ? "off" : "on"
@@ -127,7 +126,7 @@
 					{#if q.who}
 						<span>by {q.who}</span>
 					{/if}
-					{#if event.secret}
+					{#if $event.secret}
 						—
 						{#if question.answered}
 							<button on:click={answered}>Mark as not answered</button>
