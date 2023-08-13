@@ -16,7 +16,7 @@
 		"eslint": "^8.40.0",
 		"eslint-config-prettier": "^8.8.0",
 		"eslint-plugin-svelte3": "^4.0.0",
-		"postcss": "^8.4.23",
+		"postcss": "^8.4.27",
 		"prettier": "^2.8.8",
 		"prettier-plugin-svelte": "^2.10.1",
 		"prettier-plugin-tailwindcss": "^0.2.6",
