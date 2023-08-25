@@ -1,9 +1,7 @@
 <script>
 	import Question from "./Question.svelte";
-	import { votedFor, localAdjustments } from "./store.js";
+	import { votedFor, localAdjustments, event } from "./store.js";
 	import { flip } from "svelte/animate";
-
-	export let event;
 
 	let inactive_hits = 0;
 	function poll_time(e) {
@@ -42,7 +40,7 @@
 	function visibilitychange() {
 		// immediately refresh when we become visible
 		if (!document.hidden) {
-			event = event;
+			event.set($event);
 		}
 	}
 
@@ -55,7 +53,7 @@
 		console.info("refresh; next in", next, "ms");
 		// set early so we'll retry even if request fails
 		interval = setTimeout(() => {
-			event = event;
+			event.set(e);
 		}, next);
 		let url = e.secret
 			? `/api/event/${e.id}/questions/${e.secret}`
@@ -79,29 +77,30 @@
 		}
 		// re-set timeout so we count from when the reload actually happened
 		interval = setTimeout(() => {
-			event = event;
+			event.set(e);
 		}, next);
 		return await r.json();
 	}
 
-	// XXX: this ends up doing _two_ loads when the page initially opens
-	//      not sure why...
+	let problum;
 	let rawQuestions;
-	$: loadQuestions(event)
-		.then((qs) => {
-			rawQuestions = qs;
-			problum = null;
-		})
-		.catch((r) => {
-			if (r.status === 404) {
-				rawQuestions = null;
-				problum = r;
-			} else {
-				// leave questions and just highlight (hopefully
-				// temporary) error.
-				problum = r;
-			}
-		});
+	event.subscribe((e) => {
+		loadQuestions(e)
+			.then((qs) => {
+				rawQuestions = qs;
+				problum = null;
+			})
+			.catch((r) => {
+				if (r.status === 404) {
+					rawQuestions = null;
+					problum = r;
+				} else {
+					// leave questions and just highlight (hopefully
+					// temporary) error.
+					problum = r;
+				}
+			});
+	});
 
 	// because of caching, we may receive a list of questions from the
 	// server that doesn't reflect changes we've made (voting, asking new
@@ -205,7 +204,6 @@
 	}
 
 	$: questions = adjustQuestions(rawQuestions, $localAdjustments, $votedFor);
-	let problum;
 	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden);
 	$: answered = (questions || [])
 		.filter((q) => q.answered && !q.hidden)
@@ -231,7 +229,7 @@
 			who = null;
 		}
 		// TODO: handle error
-		let resp = await fetch(`/api/event/${event.id}`, {
+		let resp = await fetch(`/api/event/${$event.id}`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
@@ -257,7 +255,7 @@
 	let reset;
 	async function share(e) {
 		let url = window.location + "";
-		url = url.substring(0, url.length - event.secret.length - 1);
+		url = url.substring(0, url.length - $event.secret.length - 1);
 		await navigator.clipboard.writeText(url);
 		e.target.textContent = "📋 Link copied!";
 		if (reset) {
@@ -273,7 +271,7 @@
 
 {#if questions}
 	<div class="text-center">
-		{#if event.secret}
+		{#if $event.secret}
 			<button
 				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
 				on:click={share}>{share_text}</button
@@ -308,7 +306,7 @@
 			<div class="flex flex-col divide-y">
 				{#each unanswered as question (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question {event} bind:question />
+						<Question bind:question />
 					</div>
 				{/each}
 			</div>
@@ -333,19 +331,19 @@
 			<div class="flex flex-col divide-y">
 				{#each answered as question (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question {event} bind:question />
+						<Question bind:question />
 					</div>
 				{/each}
 			</div>
 		</section>
 	{/if}
-	{#if event.secret && hidden.length > 0}
+	{#if $event.secret && hidden.length > 0}
 		<section>
 			<h2 class="mb-4 mt-8 text-center text-2xl text-slate-400 dark:text-slate-500">Hidden</h2>
 			<div class="flex flex-col divide-y">
 				{#each hidden as question (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question {event} bind:question />
+						<Question bind:question />
 					</div>
 				{/each}
 			</div>

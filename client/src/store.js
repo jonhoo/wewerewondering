@@ -1,5 +1,7 @@
 import { writable } from "svelte/store";
 
+export const event = writable(null);
+
 const storedVotedFor = JSON.parse(localStorage.getItem("votedFor"));
 export const votedFor = writable(!storedVotedFor ? {} : storedVotedFor);
 votedFor.subscribe((value) => {
