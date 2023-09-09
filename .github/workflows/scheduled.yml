@@ -30,13 +30,13 @@ jobs:
         with:
           submodules: true
       - name: Install beta
-        if: hashFiles('server/Cargo.lock') != ''
+        if: hashFiles('Cargo.lock') != ''
         uses: dtolnay/rust-toolchain@beta
       - name: cargo update
-        if: hashFiles('server/Cargo.lock') != ''
-        run: cargo update --manifest-path server/Cargo.toml
+        if: hashFiles('Cargo.lock') != ''
+        run: cargo update
       - name: cargo test
-        if: hashFiles('server/Cargo.lock') != ''
-        run: cargo test --locked --all-features --all-targets --manifest-path server/Cargo.toml
+        if: hashFiles('Cargo.lock') != ''
+        run: cargo test --locked --all-features --all-targets
         env:
           RUSTFLAGS: -D deprecated
