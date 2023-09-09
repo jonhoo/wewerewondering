@@ -31,7 +31,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
-        run: cargo generate-lockfile --manifest-path server/Cargo.toml
+        run: cargo generate-lockfile
       # https://twitter.com/jonhoo/status/1571290371124260865
       - name: cargo test --locked
-        run: cargo test --locked --all-features --all-targets --manifest-path server/Cargo.toml
+        run: cargo test --locked --all-features --all-targets
