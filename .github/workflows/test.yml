@@ -1,9 +1,15 @@
+permissions:
+  contents: read
 on:
   push:
     branches: [main]
   pull_request:
     paths:
       - 'server/**'
+# Spend CI time only on latest ref: https://github.com/jonhoo/rust-ci-conf/pull/5
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 name: server / test
 jobs:
   required:
@@ -16,24 +22,16 @@ jobs:
       matrix:
         toolchain: [stable, beta]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Install ${{ matrix.toolchain }}
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          default: true
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-          args: --manifest-path server/Cargo.toml
+        run: cargo generate-lockfile --manifest-path server/Cargo.toml
       # https://twitter.com/jonhoo/status/1571290371124260865
       - name: cargo test --locked
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --locked --all-features --all-targets --manifest-path server/Cargo.toml
+        run: cargo test --locked --all-features --all-targets --manifest-path server/Cargo.toml

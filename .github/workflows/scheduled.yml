@@ -1,3 +1,5 @@
+permissions:
+  contents: read
 on:
   push:
     branches: [main]
@@ -6,6 +8,10 @@ on:
       - 'server/**'
   schedule:
     - cron:  '7 7 * * *'
+# Spend CI time only on latest ref: https://github.com/jonhoo/rust-ci-conf/pull/5
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 name: server / rolling
 jobs:
   # https://twitter.com/alcuadrado/status/1571291687837732873
@@ -20,27 +26,17 @@ jobs:
     # Unfortunately, hashFiles only works in if on steps, so we reepeat it.
     # if: hashFiles('Cargo.lock') != ''
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Install beta
         if: hashFiles('server/Cargo.lock') != ''
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: beta
-          default: true
+        uses: dtolnay/rust-toolchain@beta
       - name: cargo update
         if: hashFiles('server/Cargo.lock') != ''
-        uses: actions-rs/cargo@v1
-        with:
-          command: update
-          args: --manifest-path server/Cargo.toml
+        run: cargo update --manifest-path server/Cargo.toml
       - name: cargo test
         if: hashFiles('server/Cargo.lock') != ''
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --locked --all-features --all-targets --manifest-path server/Cargo.toml
+        run: cargo test --locked --all-features --all-targets --manifest-path server/Cargo.toml
         env:
           RUSTFLAGS: -D deprecated
