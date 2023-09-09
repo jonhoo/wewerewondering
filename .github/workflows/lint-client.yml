@@ -14,7 +14,7 @@ jobs:
       run:
         working-directory: ./client
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Node
         uses: actions/setup-node@v3
         with:
