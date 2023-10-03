@@ -13,7 +13,7 @@
 	"devDependencies": {
 		"@sveltejs/vite-plugin-svelte": "^1.4.0",
 		"autoprefixer": "^10.4.15",
-		"eslint": "^8.47.0",
+		"eslint": "^8.50.0",
 		"eslint-config-prettier": "^9.0.0",
 		"eslint-plugin-svelte3": "^4.0.0",
 		"postcss": "^8.4.29",
