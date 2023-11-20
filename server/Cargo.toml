@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 aws-config = "0.54"
 aws-sdk-dynamodb = "0.24"
-aws-smithy-types = "0.54"
+aws-smithy-types = "1.0"
 aws-smithy-http = "0.54"
 axum = "0.6.10"
 http = "0.2"
