@@ -1,13 +1,9 @@
-use std::collections::HashMap;
-
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
-    error::{QueryError, QueryErrorKind, ResourceNotFoundException},
-    model::AttributeValue,
-    output::QueryOutput,
-    types::SdkError,
+    error::SdkError,
+    operation::query::{QueryError, QueryOutput},
+    types::{error::ResourceNotFoundException, AttributeValue},
 };
-use aws_smithy_types::Error;
 use axum::response::Json;
 use axum::{
     extract::{Path, State},
@@ -17,6 +13,7 @@ use http::{
     header::{self, HeaderName},
     StatusCode,
 };
+use std::collections::HashMap;
 use ulid::Ulid;
 
 #[allow(unused_imports)]
@@ -59,12 +56,11 @@ impl Backend {
                 } = &mut *local;
 
                 if !events.contains_key(eid) {
-                    return Err(super::mint_service_error(QueryError::new(
-                        QueryErrorKind::ResourceNotFoundException(
+                    return Err(super::mint_service_error(
+                        QueryError::ResourceNotFoundException(
                             ResourceNotFoundException::builder().build(),
                         ),
-                        Error::builder().build(),
-                    )));
+                    ));
                 }
 
                 let qs = questions_by_eid
@@ -197,10 +193,7 @@ async fn list_inner(
     match dynamo.list(&eid, has_secret).await {
         Ok(qs) => {
             trace!(%eid, n = %qs.count(), "listed questions");
-            let questions: Vec<_> = qs
-                .items()
-                .map(|qs| qs.iter().filter_map(serialize_question).collect())
-                .unwrap_or_default();
+            let questions: Vec<_> = qs.items().iter().filter_map(serialize_question).collect();
 
             let max_age = if has_secret {
                 // hosts should be allowed to see more up-to-date views

@@ -1,9 +1,10 @@
-use aws_sdk_dynamodb::{model::AttributeValue, types::SdkError};
-use aws_smithy_http::body::SdkBody;
+use aws_sdk_dynamodb::{error::SdkError, types::AttributeValue};
+use aws_smithy_types::body::SdkBody;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
 use http::StatusCode;
+use http_body_util::BodyExt;
 use lambda_http::Error;
 use std::time::SystemTime;
 use std::{
@@ -120,8 +121,9 @@ async fn check_secret(dynamo: &Backend, eid: &Ulid, secret: &str) -> Result<(), 
 fn mint_service_error<E>(e: E) -> SdkError<E> {
     SdkError::service_error(
         e,
-        aws_smithy_http::operation::Response::new(
-            http::Response::builder().body(SdkBody::empty()).unwrap(),
+        aws_smithy_runtime_api::http::Response::new(
+            aws_smithy_runtime_api::http::StatusCode::try_from(200).unwrap(),
+            SdkBody::empty(),
         ),
     )
 }
@@ -223,9 +225,8 @@ async fn main() -> Result<(), Error> {
 
     if cfg!(debug_assertions) {
         let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
-        Ok(axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .await?)
+        let listener = tokio::net::TcpListener::bind(&addr).await?;
+        Ok(axum::serve(listener, app.into_make_service()).await?)
     } else {
         // If we compile in release mode, use the Lambda Runtime
         // To run with AWS Lambda runtime, wrap in our `LambdaLayer`
@@ -286,7 +287,7 @@ where
         let fut = async move {
             let resp = fut.await?;
             let (parts, body) = resp.into_response().into_parts();
-            let bytes = hyper::body::to_bytes(body).await?;
+            let bytes = body.collect().await?.to_bytes();
             let bytes: &[u8] = &bytes;
             let resp: hyper::Response<lambda_http::Body> = match std::str::from_utf8(bytes) {
                 Ok(s) => hyper::Response::from_parts(parts, s.into()),
