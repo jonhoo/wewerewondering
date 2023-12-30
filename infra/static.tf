@@ -1,5 +1,5 @@
 locals {
-  static = "wewerewondering-static"
+  static = "wewerewondering-${data.aws_region.current.name}-static"
 }
 
 resource "aws_s3_bucket" "static" {

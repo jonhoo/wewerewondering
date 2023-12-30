@@ -10,7 +10,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "eu-north-1"
   assume_role {
     role_arn    = "arn:aws:iam::880545379339:role/OrganizationAccountAccessRole"
     external_id = "terraform"

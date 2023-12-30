@@ -1,5 +1,5 @@
 locals {
-  athena = "wewerewondering-athena"
+  athena = "wewerewondering-${data.aws_region.current.name}-athena"
   db     = "default"
   tbl    = "cloudfront_logs"
 }

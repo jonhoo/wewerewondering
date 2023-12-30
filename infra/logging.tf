@@ -1,5 +1,5 @@
 locals {
-  logs = "wewerewondering-logs"
+  logs = "wewerewondering-${data.aws_region.current.name}-logs"
 }
 
 data "aws_canonical_user_id" "current" {}
