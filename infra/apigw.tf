@@ -113,57 +113,41 @@ import {
   id = "je8z4t28h4/iih0hlf"
 }
 
-resource "aws_apigatewayv2_route" "api_event_eid_questions_get" {
+resource "aws_apigatewayv2_route" "api_route" {
+  for_each = {
+    get_eeq     = "GET /api/event/{eid}/questions",
+    get_eeqs    = "GET /api/event/{eid}/questions/{secret}",
+    post_toggle = "POST /api/event/{eid}/questions/{secret}/{qid}/toggle/{property}",
+    get_q       = "GET /api/questions/{qids}",
+    post_vote   = "POST /api/vote/{qid}/{updown}",
+  }
+
   api_id    = aws_apigatewayv2_api.www.id
-  route_key = "GET /api/event/{eid}/questions"
+  route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.www.id}"
 }
 
 import {
-  to = aws_apigatewayv2_route.api_event_eid_questions_get
+  to = aws_apigatewayv2_route.api_route["get_eeq"]
   id = "je8z4t28h4/ezhnbti"
 }
 
-resource "aws_apigatewayv2_route" "api_event_eid_questions_secret_get" {
-  api_id    = aws_apigatewayv2_api.www.id
-  route_key = "GET /api/event/{eid}/questions/{secret}"
-  target    = "integrations/${aws_apigatewayv2_integration.www.id}"
-}
-
 import {
-  to = aws_apigatewayv2_route.api_event_eid_questions_secret_get
+  to = aws_apigatewayv2_route.api_route["get_eeqs"]
   id = "je8z4t28h4/fb0pv8e"
 }
 
-resource "aws_apigatewayv2_route" "api_event_toggle_post" {
-  api_id    = aws_apigatewayv2_api.www.id
-  route_key = "POST /api/event/{eid}/questions/{secret}/{qid}/toggle/{property}"
-  target    = "integrations/${aws_apigatewayv2_integration.www.id}"
-}
-
 import {
-  to = aws_apigatewayv2_route.api_event_toggle_post
+  to = aws_apigatewayv2_route.api_route["post_toggle"]
   id = "je8z4t28h4/0y2fhvt"
 }
 
-resource "aws_apigatewayv2_route" "api_questions_get" {
-  api_id    = aws_apigatewayv2_api.www.id
-  route_key = "GET /api/questions/{qids}"
-  target    = "integrations/${aws_apigatewayv2_integration.www.id}"
-}
-
 import {
-  to = aws_apigatewayv2_route.api_questions_get
+  to = aws_apigatewayv2_route.api_route["get_q"]
   id = "je8z4t28h4/5j62zea"
 }
 
-resource "aws_apigatewayv2_route" "api_vote_post" {
-  api_id    = aws_apigatewayv2_api.www.id
-  route_key = "POST /api/vote/{qid}/{updown}"
-  target    = "integrations/${aws_apigatewayv2_integration.www.id}"
-}
-
 import {
-  to = aws_apigatewayv2_route.api_vote_post
+  to = aws_apigatewayv2_route.api_route["post_vote"]
   id = "je8z4t28h4/d6f5hnm"
 }
