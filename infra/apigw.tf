@@ -86,3 +86,11 @@ resource "aws_apigatewayv2_route" "api_route" {
   route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.www.id}"
 }
+
+resource "aws_lambda_permission" "www" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.www.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_stage.www.execution_arn}/*"
+}
