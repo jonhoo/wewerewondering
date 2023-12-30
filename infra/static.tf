@@ -7,11 +7,6 @@ resource "aws_s3_bucket" "static" {
   force_destroy = true
 }
 
-import {
-  to = aws_s3_bucket.static
-  id = local.static
-}
-
 resource "aws_s3_bucket_ownership_controls" "static" {
   bucket = aws_s3_bucket.static.id
 
@@ -20,21 +15,11 @@ resource "aws_s3_bucket_ownership_controls" "static" {
   }
 }
 
-import {
-  to = aws_s3_bucket_ownership_controls.static
-  id = local.static
-}
-
 resource "aws_s3_bucket_acl" "static" {
   depends_on = [aws_s3_bucket_ownership_controls.static]
 
   bucket = aws_s3_bucket.static.id
   acl    = "private"
-}
-
-import {
-  to = aws_s3_bucket_acl.static
-  id = "${local.static},private"
 }
 
 data "aws_iam_policy_document" "cloudfront_s3" {
@@ -72,11 +57,6 @@ resource "aws_s3_bucket_policy" "cloudfront" {
   policy = data.aws_iam_policy_document.cloudfront_s3.json
 }
 
-import {
-  to = aws_s3_bucket_policy.cloudfront
-  id = local.static
-}
-
 resource "terraform_data" "npm_build" {
   triggers_replace = {
     package_json = "${base64sha256(file("${path.module}/../client/package.json"))}"
@@ -104,31 +84,3 @@ resource "aws_s3_object" "dist" {
 }
 
 # TODO: delete old files in assets/ ?
-
-# TODO: requires 1.7: https://github.com/hashicorp/terraform/pull/33932#issuecomment-1761821359
-#import {
-#  for_each = fileset("${path.module}/../client/dist", "**")
-#
-#  to = aws_s3_object.dist[each.value]
-#  id = "${aws_s3_bucket.static.id}/${each.value}"
-#}
-import {
-  to = aws_s3_object.dist["index.html"]
-  id = "${aws_s3_bucket.static.id}/index.html"
-}
-import {
-  to = aws_s3_object.dist["robots.txt"]
-  id = "${aws_s3_bucket.static.id}/robots.txt"
-}
-import {
-  to = aws_s3_object.dist["favicon.ico"]
-  id = "${aws_s3_bucket.static.id}/favicon.ico"
-}
-import {
-  to = aws_s3_object.dist["favicon.png"]
-  id = "${aws_s3_bucket.static.id}/favicon.png"
-}
-import {
-  to = aws_s3_object.dist["apple-touch-icon.png"]
-  id = "${aws_s3_bucket.static.id}/apple-touch-icon.png"
-}

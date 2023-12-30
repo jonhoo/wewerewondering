@@ -9,11 +9,6 @@ resource "aws_s3_bucket" "athena" {
   # https://docs.aws.amazon.com/athena/latest/ug/querying.html#query-results-specify-location
 }
 
-import {
-  to = aws_s3_bucket.athena
-  id = local.athena
-}
-
 resource "aws_s3_bucket_ownership_controls" "athena" {
   bucket = aws_s3_bucket.athena.id
 
@@ -22,21 +17,11 @@ resource "aws_s3_bucket_ownership_controls" "athena" {
   }
 }
 
-import {
-  to = aws_s3_bucket_ownership_controls.athena
-  id = local.athena
-}
-
 resource "aws_s3_bucket_acl" "athena" {
   depends_on = [aws_s3_bucket_ownership_controls.athena]
 
   bucket = aws_s3_bucket.athena.id
   acl    = "private"
-}
-
-import {
-  to = aws_s3_bucket_acl.athena
-  id = "${local.athena},private"
 }
 
 # https://docs.aws.amazon.com/athena/latest/ug/cloudfront-logs.html
@@ -197,11 +182,6 @@ resource "aws_glue_catalog_table" "cf_logs" {
   }
 }
 
-import {
-  to = aws_glue_catalog_table.cf_logs
-  id = "880545379339:default:cloudfront_logs"
-}
-
 resource "aws_athena_workgroup" "www" {
   name = "primary"
 
@@ -213,9 +193,4 @@ resource "aws_athena_workgroup" "www" {
       output_location = "s3://${aws_s3_bucket.athena.bucket}/"
     }
   }
-}
-
-import {
-  to = aws_athena_workgroup.www
-  id = "primary"
 }

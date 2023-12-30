@@ -8,22 +8,12 @@ resource "aws_s3_bucket" "logs" {
   bucket = local.logs
 }
 
-import {
-  to = aws_s3_bucket.logs
-  id = local.logs
-}
-
 resource "aws_s3_bucket_ownership_controls" "logs" {
   bucket = aws_s3_bucket.logs.id
 
   rule {
     object_ownership = "BucketOwnerPreferred"
   }
-}
-
-import {
-  to = aws_s3_bucket_ownership_controls.logs
-  id = local.logs
 }
 
 resource "aws_s3_bucket_acl" "logs" {
@@ -54,20 +44,10 @@ resource "aws_s3_bucket_acl" "logs" {
   }
 }
 
-import {
-  to = aws_s3_bucket_acl.logs
-  id = local.logs
-}
-
 resource "aws_cloudwatch_log_group" "lambda" {
   name = "/aws/lambda/wewerewondering-api"
   # TODO
   retention_in_days = 0
-}
-
-import {
-  to = aws_cloudwatch_log_group.lambda
-  id = "/aws/lambda/wewerewondering-api"
 }
 
 resource "aws_cloudwatch_log_group" "apigw" {
@@ -75,10 +55,3 @@ resource "aws_cloudwatch_log_group" "apigw" {
   # TODO
   retention_in_days = 0
 }
-
-import {
-  to = aws_cloudwatch_log_group.apigw
-  id = "/aws/api-gateway/wewerewondering"
-}
-
-# arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs

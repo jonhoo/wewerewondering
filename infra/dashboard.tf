@@ -132,8 +132,3 @@ resource "aws_cloudwatch_dashboard" "www" {
     ]
   })
 }
-
-import {
-  to = aws_cloudwatch_dashboard.www
-  id = "ApiGatewayHttp"
-}

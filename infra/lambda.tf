@@ -15,11 +15,6 @@ resource "aws_iam_policy" "xray" {
   policy = data.aws_iam_policy_document.xray.json
 }
 
-import {
-  to = aws_iam_policy.xray
-  id = "arn:aws:iam::880545379339:policy/service-role/AWSLambdaTracerAccessExecutionRole-14a6d1b5-3a03-4b02-94ca-fec2eced24ab"
-}
-
 data "aws_iam_policy_document" "cloudwatch" {
   statement {
     actions = [
@@ -44,11 +39,6 @@ resource "aws_iam_policy" "cloudwatch" {
   policy = data.aws_iam_policy_document.cloudwatch.json
 }
 
-import {
-  to = aws_iam_policy.cloudwatch
-  id = "arn:aws:iam::880545379339:policy/service-role/AWSLambdaBasicExecutionRole-b586114a-ba08-47b0-afe0-82c4d81857a0"
-}
-
 data "aws_iam_policy_document" "assume_role" {
   statement {
     principals {
@@ -68,11 +58,6 @@ resource "aws_iam_role" "www" {
     aws_iam_policy.xray.arn,
     "arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"
   ]
-}
-
-import {
-  to = aws_iam_role.www
-  id = "wewerewondering-api"
 }
 
 data "aws_iam_policy_document" "dynamodb" {
@@ -97,11 +82,6 @@ resource "aws_iam_role_policy" "dynamodb" {
   name   = "api-db-access"
   role   = aws_iam_role.www.id
   policy = data.aws_iam_policy_document.dynamodb.json
-}
-
-import {
-  to = aws_iam_role_policy.dynamodb
-  id = "wewerewondering-api:api-db-access"
 }
 
 resource "terraform_data" "cargo_lambda" {
@@ -146,9 +126,4 @@ resource "aws_lambda_function" "www" {
   depends_on = [
     aws_cloudwatch_log_group.lambda,
   ]
-}
-
-import {
-  to = aws_lambda_function.www
-  id = "wewerewondering-api"
 }

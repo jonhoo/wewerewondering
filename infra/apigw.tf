@@ -3,11 +3,6 @@ resource "aws_apigatewayv2_api" "www" {
   protocol_type = "HTTP"
 }
 
-import {
-  to = aws_apigatewayv2_api.www
-  id = "je8z4t28h4"
-}
-
 data "aws_iam_policy_document" "apigw_assume" {
   statement {
     principals {
@@ -25,18 +20,8 @@ resource "aws_iam_role" "apigw_cw" {
   managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"]
 }
 
-import {
-  to = aws_iam_role.apigw_cw
-  id = "wewerewondering-api-gw"
-}
-
 resource "aws_api_gateway_account" "www" {
   cloudwatch_role_arn = aws_iam_role.apigw_cw.arn
-}
-
-import {
-  to = aws_api_gateway_account.www
-  id = "api-gateway-account"
 }
 
 resource "aws_apigatewayv2_stage" "www" {
@@ -62,11 +47,6 @@ resource "aws_apigatewayv2_stage" "www" {
   }
 }
 
-import {
-  to = aws_apigatewayv2_stage.www
-  id = "je8z4t28h4/$default"
-}
-
 resource "aws_apigatewayv2_integration" "www" {
   api_id                 = aws_apigatewayv2_api.www.id
   integration_type       = "AWS_PROXY"
@@ -75,20 +55,10 @@ resource "aws_apigatewayv2_integration" "www" {
   payload_format_version = "2.0"
 }
 
-import {
-  to = aws_apigatewayv2_integration.www
-  id = "je8z4t28h4/4y6aomd"
-}
-
 resource "aws_apigatewayv2_route" "api_event_post" {
   api_id    = aws_apigatewayv2_api.www.id
   route_key = "POST /api/event"
   target    = "integrations/${aws_apigatewayv2_integration.www.id}"
-}
-
-import {
-  to = aws_apigatewayv2_route.api_event_post
-  id = "je8z4t28h4/lmcxybh"
 }
 
 resource "aws_apigatewayv2_route" "api_event_eid_post" {
@@ -97,20 +67,10 @@ resource "aws_apigatewayv2_route" "api_event_eid_post" {
   target    = "integrations/${aws_apigatewayv2_integration.www.id}"
 }
 
-import {
-  to = aws_apigatewayv2_route.api_event_eid_post
-  id = "je8z4t28h4/cyva0m4"
-}
-
 resource "aws_apigatewayv2_route" "api_event_eid_get" {
   api_id    = aws_apigatewayv2_api.www.id
   route_key = "GET /api/event/{eid}"
   target    = "integrations/${aws_apigatewayv2_integration.www.id}"
-}
-
-import {
-  to = aws_apigatewayv2_route.api_event_eid_get
-  id = "je8z4t28h4/iih0hlf"
 }
 
 resource "aws_apigatewayv2_route" "api_route" {
@@ -125,29 +85,4 @@ resource "aws_apigatewayv2_route" "api_route" {
   api_id    = aws_apigatewayv2_api.www.id
   route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.www.id}"
-}
-
-import {
-  to = aws_apigatewayv2_route.api_route["get_eeq"]
-  id = "je8z4t28h4/ezhnbti"
-}
-
-import {
-  to = aws_apigatewayv2_route.api_route["get_eeqs"]
-  id = "je8z4t28h4/fb0pv8e"
-}
-
-import {
-  to = aws_apigatewayv2_route.api_route["post_toggle"]
-  id = "je8z4t28h4/0y2fhvt"
-}
-
-import {
-  to = aws_apigatewayv2_route.api_route["get_q"]
-  id = "je8z4t28h4/5j62zea"
-}
-
-import {
-  to = aws_apigatewayv2_route.api_route["post_vote"]
-  id = "je8z4t28h4/d6f5hnm"
 }

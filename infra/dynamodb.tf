@@ -14,11 +14,6 @@ resource "aws_dynamodb_table" "events" {
   }
 }
 
-import {
-  to = aws_dynamodb_table.events
-  id = "events"
-}
-
 resource "aws_dynamodb_table" "questions" {
   name         = "questions"
   billing_mode = "PAY_PER_REQUEST"
@@ -51,9 +46,4 @@ resource "aws_dynamodb_table" "questions" {
     projection_type    = "INCLUDE"
     non_key_attributes = ["answered", "hidden"]
   }
-}
-
-import {
-  to = aws_dynamodb_table.questions
-  id = "questions"
 }

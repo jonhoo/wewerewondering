@@ -10,11 +10,6 @@ resource "aws_cloudfront_origin_access_control" "static" {
   signing_protocol                  = "sigv4"
 }
 
-import {
-  to = aws_cloudfront_origin_access_control.static
-  id = "E2O0QG272YYJYR"
-}
-
 resource "aws_cloudfront_cache_policy" "cache_when_requested" {
   name        = "CacheWhenRequested"
   default_ttl = 1
@@ -35,20 +30,10 @@ resource "aws_cloudfront_cache_policy" "cache_when_requested" {
   }
 }
 
-import {
-  to = aws_cloudfront_cache_policy.cache_when_requested
-  id = "fcc8df6d-6613-4210-8246-f45d18f04835"
-}
-
 resource "aws_cloudfront_function" "index_everywhere" {
   name    = "index-everywhere"
   runtime = "cloudfront-js-1.0"
   code    = file("${path.module}/index-everywhere.js")
-}
-
-import {
-  to = aws_cloudfront_function.index_everywhere
-  id = "index-everywhere"
 }
 
 resource "aws_cloudfront_distribution" "www" {
@@ -128,9 +113,4 @@ resource "aws_cloudfront_distribution" "www" {
     minimum_protocol_version = "TLSv1.2_2021"
     ssl_support_method       = "sni-only"
   }
-}
-
-import {
-  to = aws_cloudfront_distribution.www
-  id = "E1ECZRHBXFKMHK"
 }
