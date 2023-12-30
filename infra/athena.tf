@@ -44,6 +44,7 @@ resource "aws_glue_catalog_table" "cf_logs" {
   name          = "cloudfront_logs"
   database_name = "default"
   table_type    = "EXTERNAL_TABLE"
+  owner         = "hadoop"
   parameters = {
     EXTERNAL                 = "TRUE"
     "skip.header.line.count" = 2
