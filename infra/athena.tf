@@ -19,6 +19,10 @@ resource "aws_s3_bucket_ownership_controls" "athena" {
   }
 }
 
+resource "aws_glue_catalog_database" "default" {
+  name = local.db
+}
+
 # https://docs.aws.amazon.com/athena/latest/ug/cloudfront-logs.html
 resource "aws_glue_catalog_table" "cf_logs" {
   name          = local.tbl
@@ -29,6 +33,7 @@ resource "aws_glue_catalog_table" "cf_logs" {
     EXTERNAL                 = "TRUE"
     "skip.header.line.count" = 2
   }
+  depends_on = [aws_glue_catalog_database.default]
   storage_descriptor {
     input_format  = "org.apache.hadoop.mapred.TextInputFormat"
     location      = "s3://${aws_s3_bucket.logs.id}/"
