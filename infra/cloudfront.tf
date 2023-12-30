@@ -32,7 +32,7 @@ resource "aws_cloudfront_cache_policy" "cache_when_requested" {
 
 resource "aws_cloudfront_function" "index_everywhere" {
   name    = "index-everywhere"
-  runtime = "cloudfront-js-1.0"
+  runtime = "cloudfront-js-2.0"
   code    = file("${path.module}/index-everywhere.js")
 }
 
