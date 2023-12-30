@@ -28,7 +28,6 @@ import {
 
 resource "aws_s3_bucket_acl" "logs" {
   depends_on = [aws_s3_bucket_ownership_controls.logs]
-
   bucket = aws_s3_bucket.logs.id
 
   access_control_policy {
@@ -50,7 +49,6 @@ resource "aws_s3_bucket_acl" "logs" {
     }
 
     owner {
-      display_name = "admin"
       id           = data.aws_canonical_user_id.current.id
     }
   }
