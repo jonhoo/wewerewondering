@@ -29,3 +29,12 @@ provider "aws" {
 }
 
 data "aws_region" "current" {}
+
+terraform {
+  cloud {
+    organization = "wewerewondering"
+    workspaces {
+      name = "wewerewondering"
+    }
+  }
+}
