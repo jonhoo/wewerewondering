@@ -106,6 +106,20 @@ resource "aws_route53_record" "www_cert" {
   zone_id         = aws_route53_zone.www.zone_id
 }
 
+# TODO: requires 1.7: https://github.com/hashicorp/terraform/pull/33932#issuecomment-1761821359
+#import {
+#  for_each = {
+#    for dvo in aws_acm_certificate.www.domain_validation_options : dvo.domain_name => {
+#      name   = dvo.resource_record_name
+#      record = dvo.resource_record_value
+#      type   = dvo.resource_record_type
+#    }
+#  }
+#
+#  to = aws_route53_record.www_cert[local.domain]
+#  id = "Z4KAPRWWNC7JR_${each.name}.${local.domain}_${each.type}"
+#}
+
 resource "aws_acm_certificate_validation" "www" {
   provider                = aws.us-east-1
   certificate_arn         = aws_acm_certificate.www.arn
