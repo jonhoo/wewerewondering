@@ -1,7 +1,7 @@
 locals {
   athena = "wewerewondering-athena"
-  db = "default"
-  tbl = "cloudfront_logs"
+  db     = "default"
+  tbl    = "cloudfront_logs"
 }
 
 resource "aws_s3_bucket" "athena" {
@@ -198,15 +198,41 @@ resource "aws_athena_workgroup" "www" {
 }
 
 resource "aws_athena_named_query" "common_errs" {
-  name = "Common errors"
+  name      = "Common errors"
   workgroup = aws_athena_workgroup.www.name
-  database = local.db
-  query = "SELECT request_ip, method, uri, status, COUNT(*) AS n FROM \"${local.db}\".\"${local.tbl}\" where status >= 400 AND from_iso8601_timestamp(concat(to_iso8601(\"date\"), 'T', time)) > current_timestamp - interval '8' hour GROUP BY status, method, uri, request_ip HAVING COUNT(*) > 1 ORDER BY n DESC;"
+  database  = local.db
+  query     = <<-EOF
+  SELECT
+    request_ip,
+    method,
+    uri,
+    status,
+    COUNT(*) AS n
+  FROM "${local.db}"."${local.tbl}"
+  WHERE status >= 400
+    AND from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) > current_timestamp - interval '8' hour
+  GROUP BY status, method, uri, request_ip
+  HAVING COUNT(*) > 1
+  ORDER BY n DESC;
+  EOF
 }
 
 resource "aws_athena_named_query" "recent_errs" {
-  name = "Recent errors"
+  name      = "Recent errors"
   workgroup = aws_athena_workgroup.www.name
-  database = local.db
-  query = "SELECT from_iso8601_timestamp(concat(to_iso8601(\"date\"), 'T', time)) AT TIME ZONE 'America/Los_Angeles' as \"when\", request_ip, method, uri, status FROM \"${local.db}\".\"${local.tbl}\" where status >= 400 AND status <= 599 AND from_iso8601_timestamp(concat(to_iso8601(\"date\"), 'T', time)) > current_timestamp - interval '1' hour ORDER BY \"when\" desc limit 25;"
+  database  = local.db
+  query     = <<-EOF
+  SELECT
+    from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) AT TIME ZONE 'America/Los_Angeles' as "when",
+    request_ip,
+    method,
+    uri,
+    status
+  FROM "${local.db}"."${local.tbl}"
+  WHERE status >= 400
+    AND status <= 599
+    AND from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) > current_timestamp - interval '1' hour
+  ORDER BY "when" DESC
+  LIMIT 25;
+  EOF
 }
