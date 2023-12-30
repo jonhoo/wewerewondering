@@ -104,10 +104,15 @@ import {
   id = "wewerewondering-api:api-db-access"
 }
 
-check "lambda-built" {
-  assert {
-    condition     = fileexists("${path.module}/../server/target/lambda/wewerewondering-api/bootstrap")
-    error_message = "Run `cargo lambda build --release --arm64` in ../server"
+resource "terraform_data" "cargo_lambda" {
+  triggers_replace = {
+    cargo_toml = "${base64sha256(file("${path.module}/../server/Cargo.toml"))}"
+    main_rs    = "${base64sha256(file("${path.module}/../server/src/main.rs"))}"
+  }
+
+  provisioner "local-exec" {
+    command     = "cargo lambda build --release --arm64"
+    working_dir = "../server"
   }
 }
 
@@ -115,6 +120,7 @@ data "archive_file" "lambda" {
   type        = "zip"
   source_file = "${path.module}/../server/target/lambda/wewerewondering-api/bootstrap"
   output_path = "lambda_function_payload.zip"
+  depends_on  = [terraform_data.cargo_lambda]
 }
 
 resource "aws_lambda_function" "www" {
