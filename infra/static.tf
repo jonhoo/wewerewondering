@@ -15,13 +15,6 @@ resource "aws_s3_bucket_ownership_controls" "static" {
   }
 }
 
-resource "aws_s3_bucket_acl" "static" {
-  depends_on = [aws_s3_bucket_ownership_controls.static]
-
-  bucket = aws_s3_bucket.static.id
-  acl    = "private"
-}
-
 data "aws_iam_policy_document" "cloudfront_s3" {
   policy_id = "PolicyForCloudFrontPrivateContent"
 

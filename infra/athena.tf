@@ -19,13 +19,6 @@ resource "aws_s3_bucket_ownership_controls" "athena" {
   }
 }
 
-resource "aws_s3_bucket_acl" "athena" {
-  depends_on = [aws_s3_bucket_ownership_controls.athena]
-
-  bucket = aws_s3_bucket.athena.id
-  acl    = "private"
-}
-
 # https://docs.aws.amazon.com/athena/latest/ug/cloudfront-logs.html
 resource "aws_glue_catalog_table" "cf_logs" {
   name          = local.tbl
