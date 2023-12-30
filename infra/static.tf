@@ -93,6 +93,8 @@ resource "aws_s3_object" "dist" {
   source        = "${path.module}/../client/dist/${each.value}"
   # etag makes the file update when it changes; see https://stackoverflow.com/questions/56107258/terraform-upload-file-to-s3-on-every-apply
   etag = filemd5("${path.module}/../client/dist/${each.value}")
+
+  cache_control = each.value == "index.html" ? "max-age=300" : null
 }
 
 # TODO: delete old files in assets/ ?
