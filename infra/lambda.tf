@@ -9,7 +9,7 @@ data "aws_iam_policy_document" "xray" {
 }
 
 resource "aws_iam_policy" "xray" {
-  # TODO
+  # TODO: https://github.com/hashicorp/terraform-provider-aws/issues/32906
   name   = "AWSLambdaTracerAccessExecutionRole-14a6d1b5-3a03-4b02-94ca-fec2eced24ab"
   path   = "/service-role/"
   policy = data.aws_iam_policy_document.xray.json
@@ -33,7 +33,7 @@ data "aws_iam_policy_document" "cloudwatch" {
 }
 
 resource "aws_iam_policy" "cloudwatch" {
-  # TODO
+  # TODO: https://github.com/hashicorp/terraform-provider-aws/issues/32906
   name   = "AWSLambdaBasicExecutionRole-b586114a-ba08-47b0-afe0-82c4d81857a0"
   path   = "/service-role/"
   policy = data.aws_iam_policy_document.cloudwatch.json
