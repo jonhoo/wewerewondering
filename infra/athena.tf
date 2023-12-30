@@ -210,7 +210,7 @@ resource "aws_athena_named_query" "common_errs" {
     COUNT(*) AS n
   FROM "${local.db}"."${local.tbl}"
   WHERE status >= 400
-    AND from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) > current_timestamp - interval '8' hour
+    AND from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) > current_timestamp - interval '14' day
   GROUP BY status, method, uri, request_ip
   HAVING COUNT(*) > 1
   ORDER BY n DESC;
@@ -223,7 +223,7 @@ resource "aws_athena_named_query" "recent_errs" {
   database  = local.db
   query     = <<-EOF
   SELECT
-    from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) AT TIME ZONE 'America/Los_Angeles' as "when",
+    from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) AT TIME ZONE 'Europe/Oslo' as "when",
     request_ip,
     method,
     uri,
@@ -231,7 +231,7 @@ resource "aws_athena_named_query" "recent_errs" {
   FROM "${local.db}"."${local.tbl}"
   WHERE status >= 400
     AND status <= 599
-    AND from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) > current_timestamp - interval '1' hour
+    AND from_iso8601_timestamp(concat(to_iso8601("date"), 'T', time)) > current_timestamp - interval '8' hour
   ORDER BY "when" DESC
   LIMIT 25;
   EOF
