@@ -28,7 +28,7 @@ import {
 
 resource "aws_s3_bucket_acl" "logs" {
   depends_on = [aws_s3_bucket_ownership_controls.logs]
-  bucket = aws_s3_bucket.logs.id
+  bucket     = aws_s3_bucket.logs.id
 
   access_control_policy {
     grant {
@@ -43,13 +43,13 @@ resource "aws_s3_bucket_acl" "logs" {
     grant {
       grantee {
         type = "CanonicalUser"
-        uri  = "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
+        id   = "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
       }
       permission = "FULL_CONTROL"
     }
 
     owner {
-      id           = data.aws_canonical_user_id.current.id
+      id = data.aws_canonical_user_id.current.id
     }
   }
 }
