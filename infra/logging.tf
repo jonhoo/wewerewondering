@@ -45,11 +45,11 @@ resource "aws_s3_bucket_acl" "logs" {
 }
 
 resource "aws_cloudwatch_log_group" "lambda" {
-  name = "/aws/lambda/wewerewondering-api"
+  name              = "/aws/lambda/wewerewondering-api"
   retention_in_days = 180
 }
 
 resource "aws_cloudwatch_log_group" "apigw" {
-  name = "/aws/api-gateway/wewerewondering"
+  name              = "/aws/api-gateway/wewerewondering"
   retention_in_days = 180
 }
