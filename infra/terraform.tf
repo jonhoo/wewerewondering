@@ -130,11 +130,6 @@ resource "tfe_workspace" "www" {
   file_triggers_enabled = false
   queue_all_runs        = false
   working_directory     = "infra"
-  vcs_repo {
-    github_app_installation_id = "ghain-nWxKvtfhePtbP3sZ"
-    identifier                 = "jonhoo/wewerewondering"
-    ingress_submodules         = false
-  }
 }
 
 # The following variables must be set to allow runs
