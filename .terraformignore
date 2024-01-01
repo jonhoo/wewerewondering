@@ -1,0 +1,5 @@
+client/
+!client/dist/
+server/target/release
+server/target/aarch64-unknown-linux-gnu
+server/target/debug
