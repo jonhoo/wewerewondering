@@ -136,22 +136,27 @@ resource "tfe_workspace" "www" {
 # to authenticate to AWS.
 #
 # https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable
-resource "tfe_variable" "enable_aws_provider_auth" {
-  workspace_id = tfe_workspace.www.id
-
-  key      = "TFC_AWS_PROVIDER_AUTH"
-  value    = "true"
-  category = "env"
-
-  description = "Enable the Workload Identity integration for AWS."
-}
-
-resource "tfe_variable" "tfc_aws_role_arn" {
-  workspace_id = tfe_workspace.www.id
-
-  key      = "TFC_AWS_RUN_ROLE_ARN"
-  value    = aws_iam_role.tfc_role.arn
-  category = "env"
-
-  description = "The AWS role arn runs will use to authenticate."
-}
+#
+# NOTE: commented out because managing these workspace configuration bits
+# requires special permissions that the normal execution environment doesn't
+# have: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens#access-levels
+# keeping them here for future reference though.
+#resource "tfe_variable" "enable_aws_provider_auth" {
+#  workspace_id = tfe_workspace.www.id
+#
+#  key      = "TFC_AWS_PROVIDER_AUTH"
+#  value    = "true"
+#  category = "env"
+#
+#  description = "Enable the Workload Identity integration for AWS."
+#}
+#
+#resource "tfe_variable" "tfc_aws_role_arn" {
+#  workspace_id = tfe_workspace.www.id
+#
+#  key      = "TFC_AWS_RUN_ROLE_ARN"
+#  value    = aws_iam_role.tfc_role.arn
+#  category = "env"
+#
+#  description = "The AWS role arn runs will use to authenticate."
+#}
