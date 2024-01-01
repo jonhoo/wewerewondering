@@ -50,21 +50,15 @@ resource "aws_s3_bucket_policy" "cloudfront" {
   policy = data.aws_iam_policy_document.cloudfront_s3.json
 }
 
-resource "terraform_data" "npm_build" {
-  triggers_replace = {
-    package_json = "${base64sha256(file("${path.module}/../client/package.json"))}"
-    index_html   = "${base64sha256(file("${path.module}/../client/index.html"))}"
-  }
-
-  provisioner "local-exec" {
-    command     = "npm run build"
-    working_dir = "../client"
+check "static-built" {
+  assert {
+    condition     = fileexists("${path.module}/../client/dist/index.html")
+    error_message = "Run `npm run build` in ../client"
   }
 }
 
 resource "aws_s3_object" "dist" {
-  depends_on = [terraform_data.npm_build]
-  for_each   = fileset("${path.module}/../client/dist", "**")
+  for_each = fileset("${path.module}/../client/dist", "**")
 
   force_destroy = true
   bucket        = aws_s3_bucket.static.id
