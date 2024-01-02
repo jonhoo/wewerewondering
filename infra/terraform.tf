@@ -176,32 +176,36 @@ resource "tfe_workspace" "www" {
 # requires special permissions that the normal execution environment doesn't
 # have: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens#access-levels
 # keeping them here for future reference though.
-resource "tfe_variable" "enable_aws_provider_auth" {
-  workspace_id = tfe_workspace.www.id
-
-  key      = "TFC_AWS_PROVIDER_AUTH"
-  value    = "true"
-  category = "env"
-
-  description = "Enable the Workload Identity integration for AWS."
-}
-
-resource "tfe_variable" "tfc_aws_plan_role_arn" {
-  workspace_id = tfe_workspace.www.id
-
-  key      = "TFC_AWS_PLAN_ROLE_ARN"
-  value    = aws_iam_role.tfc_plan.arn
-  category = "env"
-
-  description = "The AWS role arn plan runs will use to authenticate."
-}
-
-resource "tfe_variable" "tfc_aws_apply_role_arn" {
-  workspace_id = tfe_workspace.www.id
-
-  key      = "TFC_AWS_APPLY_ROLE_ARN"
-  value    = aws_iam_role.tfc_apply.arn
-  category = "env"
-
-  description = "The AWS role arn apply runs will use to authenticate."
-}
+#
+# To (re-)apply them, generate a short-lived organization token, set the
+# TFE_TOKEN variable to it, run `terraform import` (probably optional), and
+# apply. Then, unset TFE_TOKEN again.
+#resource "tfe_variable" "enable_aws_provider_auth" {
+#  workspace_id = tfe_workspace.www.id
+#
+#  key      = "TFC_AWS_PROVIDER_AUTH"
+#  value    = "true"
+#  category = "env"
+#
+#  description = "Enable the Workload Identity integration for AWS."
+#}
+#
+#resource "tfe_variable" "tfc_aws_plan_role_arn" {
+#  workspace_id = tfe_workspace.www.id
+#
+#  key      = "TFC_AWS_PLAN_ROLE_ARN"
+#  value    = aws_iam_role.tfc_plan.arn
+#  category = "env"
+#
+#  description = "The AWS role arn plan runs will use to authenticate."
+#}
+#
+#resource "tfe_variable" "tfc_aws_apply_role_arn" {
+#  workspace_id = tfe_workspace.www.id
+#
+#  key      = "TFC_AWS_APPLY_ROLE_ARN"
+#  value    = aws_iam_role.tfc_apply.arn
+#  category = "env"
+#
+#  description = "The AWS role arn apply runs will use to authenticate."
+#}
