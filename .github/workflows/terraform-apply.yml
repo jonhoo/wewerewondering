@@ -1,0 +1,86 @@
+# This template is pre-configured to create an applyable run in Terraform Cloud.
+# If the plan phase is successful, the run will be applied for the specified workspace.
+#
+# This workflow is configured to trigger when a push against your `main` branch occurs,
+# **IF** the set paths contain files that have changed.
+#
+# Copied from
+# https://github.com/hashicorp/tfc-workflows-github/blob/4e91ea58dde1e255e6cecdfd7a19c5f395538393/workflow-templates/terraform-cloud.apply-run.workflow.yml
+---
+name: Terraform Cloud Apply Run
+
+on:
+  push:
+    branches:
+      - main
+    ## RECOMMENDED: Specify to only run this workflow file when terraform configuration has changed.
+    paths:
+      - <<INPUT REQUIRED>> ## Example: 'terraform/**.tf'
+
+## RECOMMENDED: Limit apply runs job / workflow to a single concurrency group at a time.
+## link: https://docs.github.com/en/actions/using-jobs/using-concurrency
+concurrency: production
+
+## Add shared Environment Variables across jobs here ##
+env:
+  NODE_VERSION: 18
+  TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+  TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+  TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
+  CONFIG_DIRECTORY: "infra/"
+  ## Additional env variables
+  # TF_LOG: DEBUG ## Helpful for troubleshooting
+  # TF_MAX_TIMEOUT: "30m" ## If you wish to override the default "1h"
+
+jobs:
+  terraform-cloud-apply-run:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - run: npm ci
+        with:
+          working-directory: ./client
+
+      - run: npm run build
+        with:
+          working-directory: ./client
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: cargo install cargo-lambda
+        uses: taiki-e/install-action@cargo-lambda
+
+      - run: cargo lambda build --release --arm64
+        with:
+          working-directory: ./server
+
+      - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.1.1
+        id: upload
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          directory: ${{ env.CONFIG_DIRECTORY }}
+
+      - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.1.1
+        id: create-run
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
+
+      - uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.1.1
+        id: apply
+        if: ${{ fromJSON(steps.create-run.outputs.payload).data.attributes.actions.IsConfirmable }}
+        with:
+          run: ${{ steps.create-run.outputs.run_id }}
+          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"

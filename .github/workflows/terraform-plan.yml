@@ -1,0 +1,136 @@
+# This template is pre-configured to run what's known as a speculative plan in Terraform Cloud.
+# Speculative plans are plan-only runs to test changes to configuration. Perfect for code reviews on a Pull Request.
+#
+# This workflow is configured to trigger when a pull request is opened against your `main` branch,
+# **IF** the set paths contain files that have changed. If the workflow runs, the included steps will upload your terraform configuration, create a new run, and output the plan information to a PR comment.
+#
+# NOTE: The last step in this template includes a script that will upsert a PR comment. (REQUIRES `Read and write permissions`)
+#
+# Copied from
+# https://github.com/hashicorp/tfc-workflows-github/blob/4e91ea58dde1e255e6cecdfd7a19c5f395538393/workflow-templates/terraform-cloud.speculative-run.workflow.yml
+---
+name: Terraform Cloud Speculative Run
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      # Only plan if TF has changed, even though we may _apply_ regardless
+      # to re-push client/ or server/ artifacts.
+      - "infra/**.tf"
+
+## Add shared Environment Variables across jobs here ##
+env:
+  NODE_VERSION: 18
+  TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+  TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+  TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
+  CONFIG_DIRECTORY: "infra/"
+  ## Additional env variables
+  # TF_LOG: DEBUG ## Helpful for troubleshooting
+  # TF_MAX_TIMEOUT: "30m" ## If you wish to override the default "1h"
+
+jobs:
+  terraform-cloud-speculative-run:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull_request: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - run: npm ci
+        with:
+          working-directory: ./client
+
+      - run: npm run build
+        with:
+          working-directory: ./client
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: cargo install cargo-lambda
+        uses: taiki-e/install-action@cargo-lambda
+
+      - run: cargo lambda build --release --arm64
+        with:
+          working-directory: ./server
+
+      - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.1.1
+        id: upload
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          directory: ${{ env.CONFIG_DIRECTORY }}
+          speculative: true
+
+      - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.1.1
+        id: run
+        ## run may fail, if so continue to output PR comment
+        ## step.terraform-cloud-check-run-status will fail job after pr comment is created/updated.
+        continue-on-error: true
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
+          plan_only: true
+          message: "Triggered From GitHub Actions CI ${{ github.sha }}"
+
+      - uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.1.1
+        id: plan-output
+        with:
+          plan: ${{ steps.run.outputs.plan_id }}
+
+      - uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // 1. Retrieve existing bot comments for the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Terraform Cloud Plan Output')
+            })
+            const output = `#### Terraform Cloud Plan Output
+               \`\`\`\n
+               Plan: ${{ steps.plan-output.outputs.add }} to add, ${{ steps.plan-output.outputs.change }} to change, ${{ steps.plan-output.outputs.destroy }} to destroy.
+               \`\`\`
+               [Terraform Cloud Plan](${{ steps.run.outputs.run_link }})
+               `
+            // 3. If we have a comment, update it, otherwise create a new one
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              })
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              })
+            }
+
+        ## Check Run Status, if not planned_and_finished fail the job
+      - id: terraform-cloud-check-run-status
+        if: ${{ steps.run.outputs.run_status != 'planned_and_finished'}}
+        run: |
+          echo "Terraform Cloud Run Failed or Requires Further Attention"
+          echo "Run Status: '${{ steps.run.outputs.run_status }}'"
+          echo "${{ steps.run.outputs.run_link }}"
+          exit 1
