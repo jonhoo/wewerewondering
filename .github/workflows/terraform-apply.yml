@@ -38,6 +38,7 @@ jobs:
   terraform-cloud-apply-run:
     name: "Terraform Apply"
     runs-on: ubuntu-latest
+    environment: prod
     permissions:
       contents: read
     steps:
