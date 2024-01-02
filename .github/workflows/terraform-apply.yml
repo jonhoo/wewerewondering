@@ -14,8 +14,10 @@ on:
     branches:
       - main
     ## RECOMMENDED: Specify to only run this workflow file when terraform configuration has changed.
-    paths:
-      - <<INPUT REQUIRED>> ## Example: 'terraform/**.tf'
+    # NOTE: not setting this since we want the client/server artifacts to be
+    # re-deployed when re-built.
+    # paths:
+    #   - <<INPUT REQUIRED>> ## Example: 'terraform/**.tf'
 
 ## RECOMMENDED: Limit apply runs job / workflow to a single concurrency group at a time.
 ## link: https://docs.github.com/en/actions/using-jobs/using-concurrency
