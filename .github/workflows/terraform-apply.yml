@@ -72,15 +72,13 @@ jobs:
         id: upload
         with:
           workspace: ${{ env.TF_WORKSPACE }}
-          directory: ${{ env.CONFIG_DIRECTORY }}
+          # directory: ${{ env.CONFIG_DIRECTORY }}
 
       - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.1.1
         id: create-run
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
-        env:
-          TF_DIRECTORY: ${{ env.CONFIG_DIRECTORY }}
 
       - uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.1.1
         id: apply
@@ -88,5 +86,3 @@ jobs:
         with:
           run: ${{ steps.create-run.outputs.run_id }}
           comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
-        env:
-          TF_DIRECTORY: ${{ env.CONFIG_DIRECTORY }}

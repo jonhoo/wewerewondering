@@ -73,7 +73,7 @@ jobs:
         id: upload
         with:
           workspace: ${{ env.TF_WORKSPACE }}
-          directory: ${{ env.CONFIG_DIRECTORY }}
+          # directory: ${{ env.CONFIG_DIRECTORY }}
           speculative: true
 
       - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.1.1
@@ -86,15 +86,11 @@ jobs:
           configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
           plan_only: true
           message: "Triggered From GitHub Actions CI ${{ github.sha }}"
-        env:
-          TF_DIRECTORY: ${{ env.CONFIG_DIRECTORY }}
 
       - uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.1.1
         id: plan-output
         with:
           plan: ${{ steps.run.outputs.plan_id }}
-        env:
-          TF_DIRECTORY: ${{ env.CONFIG_DIRECTORY }}
 
       - uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
