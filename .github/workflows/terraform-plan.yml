@@ -19,6 +19,7 @@ on:
       # Only plan if TF has changed, even though we may _apply_ regardless
       # to re-push client/ or server/ artifacts.
       - "infra/**.tf"
+      - ".github/workflows/terraform-plan.yml"
 
 ## Add shared Environment Variables across jobs here ##
 env:
