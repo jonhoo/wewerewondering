@@ -42,11 +42,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install zig for cargo-lambda
-        run: |
-          sudo apt-get update
-          sudo apt-get install zig
-
       - name: Install Node ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
@@ -67,6 +62,9 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-lambda@1
+
+      - name: Install zig for cargo-lambda
+        uses: goto-bus-stop/setup-zig@v2
 
       - run: cargo lambda build --release --arm64
         working-directory: ./server
