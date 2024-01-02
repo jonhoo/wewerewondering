@@ -50,12 +50,10 @@ jobs:
           cache-dependency-path: client/package-lock.json
 
       - run: npm ci
-        with:
-          working-directory: ./client
+        working-directory: ./client
 
       - run: npm run build
-        with:
-          working-directory: ./client
+        working-directory: ./client
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -64,8 +62,7 @@ jobs:
         uses: taiki-e/install-action@cargo-lambda
 
       - run: cargo lambda build --release --arm64
-        with:
-          working-directory: ./server
+        working-directory: ./server
 
       - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.1.1
         id: upload
