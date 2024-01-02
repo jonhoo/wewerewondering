@@ -27,7 +27,7 @@ env:
   TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
   TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
   TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
-  CONFIG_DIRECTORY: "infra/"
+  CONFIG_DIRECTORY: "./infra"
   ## Additional env variables
   # TF_LOG: DEBUG ## Helpful for troubleshooting
   # TF_MAX_TIMEOUT: "30m" ## If you wish to override the default "1h"
@@ -70,20 +70,18 @@ jobs:
 
       - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.1.1
         id: upload
-        working-directory: ${{ env.CONFIG_DIRECTORY }}
         with:
           workspace: ${{ env.TF_WORKSPACE }}
+          directory: ${{ env.CONFIG_DIRECTORY }}
 
       - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.1.1
         id: create-run
-        working-directory: ${{ env.CONFIG_DIRECTORY }}
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
 
       - uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.1.1
         id: apply
-        working-directory: ${{ env.CONFIG_DIRECTORY }}
         if: ${{ fromJSON(steps.create-run.outputs.payload).data.attributes.actions.IsConfirmable }}
         with:
           run: ${{ steps.create-run.outputs.run_id }}

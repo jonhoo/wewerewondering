@@ -27,7 +27,7 @@ env:
   TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
   TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
   TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
-  CONFIG_DIRECTORY: "infra/"
+  CONFIG_DIRECTORY: "./infra"
   ## Additional env variables
   # TF_LOG: DEBUG ## Helpful for troubleshooting
   # TF_MAX_TIMEOUT: "30m" ## If you wish to override the default "1h"
@@ -71,14 +71,13 @@ jobs:
 
       - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.1.1
         id: upload
-        working-directory: ${{ env.CONFIG_DIRECTORY }}
         with:
           workspace: ${{ env.TF_WORKSPACE }}
+          directory: ${{ env.CONFIG_DIRECTORY }}
           speculative: true
 
       - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.1.1
         id: run
-        working-directory: ${{ env.CONFIG_DIRECTORY }}
         ## run may fail, if so continue to output PR comment
         ## step.terraform-cloud-check-run-status will fail job after pr comment is created/updated.
         continue-on-error: true
@@ -90,7 +89,6 @@ jobs:
 
       - uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.1.1
         id: plan-output
-        working-directory: ${{ env.CONFIG_DIRECTORY }}
         with:
           plan: ${{ steps.run.outputs.plan_id }}
 
