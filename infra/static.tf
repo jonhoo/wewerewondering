@@ -57,6 +57,18 @@ check "static-built" {
   }
 }
 
+locals {
+  content_types = {
+    css  = "text/css"
+    html = "text/html"
+    js   = "application/javascript"
+    json = "application/json"
+    txt  = "text/plain"
+    png  = "image/png"
+    ico  = "image/vnd.microsoft.icon"
+  }
+}
+
 resource "aws_s3_object" "dist" {
   for_each = fileset("${path.module}/../client/dist", "**")
 
@@ -68,6 +80,7 @@ resource "aws_s3_object" "dist" {
   etag = filemd5("${path.module}/../client/dist/${each.value}")
 
   cache_control = each.value == "index.html" ? "max-age=300" : null
+  content_type  = local.content_types[element(split(".", each.value), length(split(".", each.value)) - 1)]
 }
 
 # TODO: delete old files in assets/ ?
