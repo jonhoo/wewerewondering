@@ -25,7 +25,7 @@ on:
 env:
   NODE_VERSION: 18
   TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
-  TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+  TF_API_TOKEN: ${{ vars.TF_API_PLAN_TOKEN }}
   TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
   CONFIG_DIRECTORY: "./infra"
   ## Additional env variables
