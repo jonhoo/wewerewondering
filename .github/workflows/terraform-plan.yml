@@ -64,7 +64,7 @@ jobs:
           tool: cargo-lambda@1
 
       - name: Install zig for cargo-lambda
-        uses: goto-bus-stop/setup-zig@v2
+        run: snap install zig --classic --beta
 
       - run: cargo lambda build --release --arm64
         working-directory: ./server
