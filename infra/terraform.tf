@@ -108,8 +108,120 @@ resource "aws_iam_role" "tfc_apply" {
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy
 data "aws_iam_policy_document" "tfc_plan_policy" {
   statement {
-    actions   = ["*"]
+    actions = [
+      "acm:ListCertificates",
+      "athena:ListTagsForResource",
+      "cloudfront:GetOriginAccessControl",
+      "cloudfront:ListCachePolicies",
+      "cloudfront:ListDistributions",
+      "cloudfront:ListFunctions",
+      "cloudfront:ListOriginAccessControls",
+      "cloudwatch:ListDashboards",
+      "dynamodb:ListTagsOfResource",
+      "glue:GetDatabases",
+      "logs:ListTagsLogGroup",
+      "s3:ListAllMyBuckets",
+      "sts:GetCallerIdentity",
+    ]
     resources = ["*"]
+  }
+  statement {
+    actions   = ["apigateway:GET"]
+    resources = ["*"]
+  }
+  statement {
+    actions = ["athena:GetWorkGroup"]
+    resources = [
+      aws_athena_workgroup.www.arn
+    ]
+  }
+  statement {
+    actions = ["athena:GetNamedQuery"]
+    # NOTE: intentionally left as * since named queries are always re-created
+    resources = ["*"]
+  }
+  statement {
+    actions   = ["acm:DescribeCertificate", "acm:ListTagsForCertificate"]
+    resources = [aws_acm_certificate.www.arn]
+  }
+  statement {
+    actions = ["logs:DescribeLogGroups"]
+    resources = [
+      # no per-resource access for this endpoint
+      # https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeLogGroups.html
+      # aws_cloudwatch_log_group.lambda.arn,
+      # aws_cloudwatch_log_group.apigw.arn
+      "*"
+    ]
+  }
+  statement {
+    actions = ["cloudfront:GetDistribution", "cloudfront:ListTagsForResource"]
+    resources = [
+      aws_cloudfront_distribution.www.arn
+    ]
+  }
+  statement {
+    actions = ["cloudfront:GetCachePolicy", "cloudfront:GetCachePolicyConfig"]
+    resources = [
+      "arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:cache-policy/${aws_cloudfront_cache_policy.cache_when_requested.id}"
+    ]
+  }
+  statement {
+    actions = ["cloudfront:DescribeFunction", "cloudfront:GetFunction"]
+    resources = [
+      aws_cloudfront_function.index_everywhere.arn
+    ]
+  }
+  statement {
+    actions   = ["cloudwatch:GetDashboard"]
+    resources = [aws_cloudwatch_dashboard.www.dashboard_arn]
+  }
+  statement {
+    actions = ["dynamodb:Describe*"]
+    resources = [
+      aws_dynamodb_table.events.arn,
+      aws_dynamodb_table.questions.arn
+    ]
+  }
+  statement {
+    actions = ["glue:GetDatabase", "glue:GetTags"]
+    resources = [
+      "arn:aws:glue:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.default.arn
+    ]
+  }
+  statement {
+    actions = ["glue:GetTable"]
+    resources = [
+      "arn:aws:glue:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.default.arn,
+      aws_glue_catalog_table.cf_logs.arn
+    ]
+  }
+  statement {
+    actions = ["route53:GetHostedZone", "route53:ListTagsForResource", "route53:ListResourceRecordSets"]
+    resources = [
+      aws_route53_zone.www.arn
+    ]
+  }
+  statement {
+    actions   = ["iam:List*", "iam:Get*"]
+    resources = ["*"]
+  }
+  statement {
+    actions   = ["lambda:GetFunctionCodeSigningConfig", "lambda:ListVersionsByFunction", "lambda:GetFunction", "lambda:GetPolicy"]
+    resources = [aws_lambda_function.www.arn]
+  }
+  statement {
+    actions = ["s3:Get*", "s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.static.arn,
+      aws_s3_bucket.athena.arn,
+      aws_s3_bucket.logs.arn,
+      "${aws_s3_bucket.static.arn}/*",
+      "${aws_s3_bucket.athena.arn}/*",
+      "${aws_s3_bucket.logs.arn}/*",
+    ]
   }
 }
 resource "aws_iam_policy" "tfc_plan_policy" {

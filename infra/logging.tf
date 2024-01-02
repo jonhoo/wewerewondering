@@ -2,8 +2,6 @@ locals {
   logs = "wewerewondering-${data.aws_region.current.name}-logs"
 }
 
-data "aws_canonical_user_id" "current" {}
-
 resource "aws_s3_bucket" "logs" {
   bucket = local.logs
 }
