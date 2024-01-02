@@ -71,13 +71,14 @@ jobs:
 
       - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.1.1
         id: upload
+        working-directory: ${{ env.CONFIG_DIRECTORY }}
         with:
           workspace: ${{ env.TF_WORKSPACE }}
-          directory: ${{ env.CONFIG_DIRECTORY }}
           speculative: true
 
       - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.1.1
         id: run
+        working-directory: ${{ env.CONFIG_DIRECTORY }}
         ## run may fail, if so continue to output PR comment
         ## step.terraform-cloud-check-run-status will fail job after pr comment is created/updated.
         continue-on-error: true
@@ -89,6 +90,7 @@ jobs:
 
       - uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.1.1
         id: plan-output
+        working-directory: ${{ env.CONFIG_DIRECTORY }}
         with:
           plan: ${{ steps.run.outputs.plan_id }}
 
