@@ -49,62 +49,97 @@ resource "aws_iam_openid_connect_provider" "tfc_provider" {
 # cloud workspace.
 #
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
-resource "aws_iam_role" "tfc_role" {
-  name = "tfc-role"
+data "aws_iam_policy_document" "tfc_plan_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
 
-  assume_role_policy = <<EOF
-{
- "Version": "2012-10-17",
- "Statement": [
-   {
-     "Effect": "Allow",
-     "Principal": {
-       "Federated": "${aws_iam_openid_connect_provider.tfc_provider.arn}"
-     },
-     "Action": "sts:AssumeRoleWithWebIdentity",
-     "Condition": {
-       "StringEquals": {
-         "${var.tfc_hostname}:aud": "${one(aws_iam_openid_connect_provider.tfc_provider.client_id_list)}"
-       },
-       "StringLike": {
-         "${var.tfc_hostname}:sub": "organization:${var.tfc_organization_name}:project:${var.tfc_project_name}:workspace:${var.tfc_workspace_name}:run_phase:*"
-       }
-     }
-   }
- ]
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.tfc_provider.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${var.tfc_hostname}:aud"
+      values   = ["${one(aws_iam_openid_connect_provider.tfc_provider.client_id_list)}"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${var.tfc_hostname}:sub"
+      values   = ["organization:${var.tfc_organization_name}:project:${var.tfc_project_name}:workspace:${var.tfc_workspace_name}:run_phase:plan"]
+    }
+  }
 }
-EOF
+resource "aws_iam_role" "tfc_plan" {
+  name               = "tfc-plan-role"
+  assume_role_policy = data.aws_iam_policy_document.tfc_plan_assume.json
+}
+data "aws_iam_policy_document" "tfc_apply_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.tfc_provider.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${var.tfc_hostname}:aud"
+      values   = ["${one(aws_iam_openid_connect_provider.tfc_provider.client_id_list)}"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${var.tfc_hostname}:sub"
+      values   = ["organization:${var.tfc_organization_name}:project:${var.tfc_project_name}:workspace:${var.tfc_workspace_name}:run_phase:apply"]
+    }
+  }
+}
+resource "aws_iam_role" "tfc_apply" {
+  name               = "tfc-apply-role"
+  assume_role_policy = data.aws_iam_policy_document.tfc_apply_assume.json
 }
 
 # Creates a policy that will be used to define the permissions that
 # the previously created role has within AWS.
 #
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy
-resource "aws_iam_policy" "tfc_policy" {
-  name        = "tfc-policy"
-  description = "TFC run policy"
-
-  policy = <<EOF
-{
- "Version": "2012-10-17",
- "Statement": [
-   {
-     "Effect": "Allow",
-     "Action": "*",
-     "Resource": "*"
-   }
- ]
+data "aws_iam_policy_document" "tfc_plan_policy" {
+  statement {
+    actions   = ["*"]
+    resources = ["*"]
+  }
 }
-EOF
+resource "aws_iam_policy" "tfc_plan_policy" {
+  name        = "tfc-plan-policy"
+  description = "TFC plan run policy"
+  policy      = data.aws_iam_policy_document.tfc_plan_policy.json
+}
+data "aws_iam_policy_document" "tfc_apply_policy" {
+  statement {
+    actions   = ["*"]
+    resources = ["*"]
+  }
+}
+resource "aws_iam_policy" "tfc_apply_policy" {
+  name        = "tfc-apply-policy"
+  description = "TFC applyrun policy"
+  policy      = data.aws_iam_policy_document.tfc_apply_policy.json
 }
 
 # Creates an attachment to associate the above policy with the
 # previously created role.
 #
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment
-resource "aws_iam_role_policy_attachment" "tfc_policy_attachment" {
-  role       = aws_iam_role.tfc_role.name
-  policy_arn = aws_iam_policy.tfc_policy.arn
+resource "aws_iam_role_policy_attachment" "tfc_plan" {
+  role       = aws_iam_role.tfc_plan.name
+  policy_arn = aws_iam_policy.tfc_plan_policy.arn
+}
+resource "aws_iam_role_policy_attachment" "tfc_apply" {
+  role       = aws_iam_role.tfc_apply.name
+  policy_arn = aws_iam_policy.tfc_apply_policy.arn
 }
 
 # Data source used to grab the project under which a workspace will be created.
@@ -141,22 +176,32 @@ resource "tfe_workspace" "www" {
 # requires special permissions that the normal execution environment doesn't
 # have: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens#access-levels
 # keeping them here for future reference though.
-#resource "tfe_variable" "enable_aws_provider_auth" {
-#  workspace_id = tfe_workspace.www.id
-#
-#  key      = "TFC_AWS_PROVIDER_AUTH"
-#  value    = "true"
-#  category = "env"
-#
-#  description = "Enable the Workload Identity integration for AWS."
-#}
-#
-#resource "tfe_variable" "tfc_aws_role_arn" {
-#  workspace_id = tfe_workspace.www.id
-#
-#  key      = "TFC_AWS_RUN_ROLE_ARN"
-#  value    = aws_iam_role.tfc_role.arn
-#  category = "env"
-#
-#  description = "The AWS role arn runs will use to authenticate."
-#}
+resource "tfe_variable" "enable_aws_provider_auth" {
+  workspace_id = tfe_workspace.www.id
+
+  key      = "TFC_AWS_PROVIDER_AUTH"
+  value    = "true"
+  category = "env"
+
+  description = "Enable the Workload Identity integration for AWS."
+}
+
+resource "tfe_variable" "tfc_aws_plan_role_arn" {
+  workspace_id = tfe_workspace.www.id
+
+  key      = "TFC_AWS_PLAN_ROLE_ARN"
+  value    = aws_iam_role.tfc_plan.arn
+  category = "env"
+
+  description = "The AWS role arn plan runs will use to authenticate."
+}
+
+resource "tfe_variable" "tfc_aws_apply_role_arn" {
+  workspace_id = tfe_workspace.www.id
+
+  key      = "TFC_AWS_APPLY_ROLE_ARN"
+  value    = aws_iam_role.tfc_apply.arn
+  category = "env"
+
+  description = "The AWS role arn run runs will use to authenticate."
+}
