@@ -203,5 +203,5 @@ resource "tfe_variable" "tfc_aws_apply_role_arn" {
   value    = aws_iam_role.tfc_apply.arn
   category = "env"
 
-  description = "The AWS role arn run runs will use to authenticate."
+  description = "The AWS role arn apply runs will use to authenticate."
 }
