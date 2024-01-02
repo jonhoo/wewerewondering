@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
-    error::GetItemError, model::AttributeValue, output::GetItemOutput, types::SdkError,
+    error::SdkError,
+    operation::get_item::{GetItemError, GetItemOutput},
+    types::AttributeValue,
 };
 use axum::{
     extract::{Path, State},
@@ -14,6 +14,7 @@ use http::{
     StatusCode,
 };
 use serde_json::Value;
+use std::collections::HashMap;
 use ulid::Ulid;
 
 #[allow(unused_imports)]

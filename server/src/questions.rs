@@ -1,11 +1,8 @@
-use std::collections::HashMap;
-
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
-    error::BatchGetItemError,
-    model::{AttributeValue, KeysAndAttributes},
-    output::BatchGetItemOutput,
-    types::SdkError,
+    error::SdkError,
+    operation::batch_get_item::{BatchGetItemError, BatchGetItemOutput},
+    types::{AttributeValue, KeysAndAttributes},
 };
 use axum::{
     extract::{Path, State},
@@ -17,6 +14,7 @@ use http::{
     StatusCode,
 };
 use serde_json::Value;
+use std::collections::HashMap;
 use ulid::Ulid;
 
 #[allow(unused_imports)]
@@ -47,7 +45,8 @@ impl Backend {
                             .projection_expression("id,#text,#when,who")
                             .expression_attribute_names("#text", "text")
                             .expression_attribute_names("#when", "when")
-                            .build(),
+                            .build()
+                            .expect("we're building correct things"),
                     )
                     .send()
                     .await
@@ -74,7 +73,8 @@ impl Backend {
                         KeysAndAttributes::builder()
                             .set_keys(Some(unprocessed))
                             .projection_expression("text,when,who")
-                            .build(),
+                            .build()
+                            .expect("we build correctly"),
                     )]))
                 };
 

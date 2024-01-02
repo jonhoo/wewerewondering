@@ -1,8 +1,9 @@
-use crate::to_dynamo_timestamp;
-
 use super::{Backend, Local};
+use crate::to_dynamo_timestamp;
 use aws_sdk_dynamodb::{
-    error::PutItemError, model::AttributeValue, output::PutItemOutput, types::SdkError,
+    error::SdkError,
+    operation::put_item::{PutItemError, PutItemOutput},
+    types::AttributeValue,
 };
 use axum::extract::{Path, State};
 use axum::response::Json;

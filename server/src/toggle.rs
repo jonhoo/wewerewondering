@@ -1,8 +1,9 @@
-use crate::to_dynamo_timestamp;
-
 use super::{Backend, Local};
+use crate::to_dynamo_timestamp;
 use aws_sdk_dynamodb::{
-    error::UpdateItemError, model::AttributeValue, output::UpdateItemOutput, types::SdkError,
+    error::SdkError,
+    operation::update_item::{UpdateItemError, UpdateItemOutput},
+    types::AttributeValue,
 };
 use axum::{
     extract::{Path, State},
@@ -10,7 +11,7 @@ use axum::{
 };
 use http::StatusCode;
 use serde::Deserialize;
-use std::{collections::HashMap, time::SystemTime};
+use std::time::SystemTime;
 use ulid::Ulid;
 
 #[allow(unused_imports)]
@@ -63,14 +64,6 @@ impl Backend {
             Self::Local(local) => {
                 let mut local = local.lock().unwrap();
                 let Local { questions, .. } = &mut *local;
-
-                fn invert(q: &mut HashMap<&'static str, AttributeValue>, key: &'static str) {
-                    if let AttributeValue::Bool(b) = q[key] {
-                        q.insert(key, AttributeValue::Bool(!b));
-                    } else {
-                        unreachable!("all properties are bools");
-                    }
-                }
 
                 let q = questions
                     .get_mut(qid)

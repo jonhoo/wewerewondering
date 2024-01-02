@@ -1,9 +1,8 @@
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
-    error::UpdateItemError,
-    model::{AttributeValue, ReturnValue},
-    output::UpdateItemOutput,
-    types::SdkError,
+    error::SdkError,
+    operation::update_item::{UpdateItemError, UpdateItemOutput},
+    types::{AttributeValue, ReturnValue},
 };
 use axum::extract::{Path, State};
 use axum::response::Json;

@@ -2,7 +2,9 @@ use crate::to_dynamo_timestamp;
 
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
-    error::PutItemError, model::AttributeValue, output::PutItemOutput, types::SdkError,
+    error::SdkError,
+    operation::put_item::{PutItemError, PutItemOutput},
+    types::AttributeValue,
 };
 use axum::extract::State;
 use axum::response::Json;
@@ -63,8 +65,8 @@ impl Backend {
         let qs = self.list(eid, false).await.unwrap();
         let qids: Vec<_> = qs
             .items()
-            .into_iter()
-            .flat_map(|qs| qs.iter().filter_map(|doc| doc["id"].as_s().ok()))
+            .iter()
+            .filter_map(|doc| doc["id"].as_s().ok())
             .cloned()
             .collect();
 
@@ -123,6 +125,7 @@ pub(super) async fn new(
         }
         Err(e) => {
             error!(%eid, error = %e, "dynamodb request to create event failed");
+            eprintln!("{e:?}");
             Err(http::StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
