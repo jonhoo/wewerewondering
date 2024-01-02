@@ -91,7 +91,7 @@ data "aws_iam_policy_document" "tfc_apply_assume" {
     }
 
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "${var.tfc_hostname}:sub"
       values   = ["organization:${var.tfc_organization_name}:project:${var.tfc_project_name}:workspace:${var.tfc_workspace_name}:run_phase:*"]
     }
