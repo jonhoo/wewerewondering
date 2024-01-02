@@ -63,7 +63,7 @@ jobs:
           tool: cargo-lambda@1
 
       - name: Install zig for cargo-lambda
-        run: snap install zig --classic --beta
+        run: sudo snap install zig --classic --beta
 
       - run: cargo lambda build --release --arm64
         working-directory: ./server
