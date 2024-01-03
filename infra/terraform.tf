@@ -74,6 +74,11 @@ data "aws_iam_policy_document" "tfc_plan_assume" {
 resource "aws_iam_role" "tfc_plan" {
   name               = "tfc-plan-role"
   assume_role_policy = data.aws_iam_policy_document.tfc_plan_assume.json
+
+  inline_policy {
+    name   = "planning-permits"
+    policy = data.aws_iam_policy_document.tfc_plan_policy.json
+  }
 }
 data "aws_iam_policy_document" "tfc_apply_assume" {
   statement {
@@ -100,6 +105,11 @@ data "aws_iam_policy_document" "tfc_apply_assume" {
 resource "aws_iam_role" "tfc_apply" {
   name               = "tfc-apply-role"
   assume_role_policy = data.aws_iam_policy_document.tfc_apply_assume.json
+
+  inline_policy {
+    name   = "apply-permits"
+    policy = data.aws_iam_policy_document.tfc_apply_policy.json
+  }
 }
 
 # Creates a policy that will be used to define the permissions that
@@ -224,34 +234,11 @@ data "aws_iam_policy_document" "tfc_plan_policy" {
     ]
   }
 }
-resource "aws_iam_policy" "tfc_plan_policy" {
-  name        = "tfc-plan-policy"
-  description = "TFC plan run policy"
-  policy      = data.aws_iam_policy_document.tfc_plan_policy.json
-}
 data "aws_iam_policy_document" "tfc_apply_policy" {
   statement {
     actions   = ["*"]
     resources = ["*"]
   }
-}
-resource "aws_iam_policy" "tfc_apply_policy" {
-  name        = "tfc-apply-policy"
-  description = "TFC applyrun policy"
-  policy      = data.aws_iam_policy_document.tfc_apply_policy.json
-}
-
-# Creates an attachment to associate the above policy with the
-# previously created role.
-#
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment
-resource "aws_iam_role_policy_attachment" "tfc_plan" {
-  role       = aws_iam_role.tfc_plan.name
-  policy_arn = aws_iam_policy.tfc_plan_policy.arn
-}
-resource "aws_iam_role_policy_attachment" "tfc_apply" {
-  role       = aws_iam_role.tfc_apply.name
-  policy_arn = aws_iam_policy.tfc_apply_policy.arn
 }
 
 # Data source used to grab the project under which a workspace will be created.

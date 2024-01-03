@@ -8,13 +8,6 @@ data "aws_iam_policy_document" "xray" {
   }
 }
 
-resource "aws_iam_policy" "xray" {
-  # TODO: https://github.com/hashicorp/terraform-provider-aws/issues/32906
-  name   = "AWSLambdaTracerAccessExecutionRole-14a6d1b5-3a03-4b02-94ca-fec2eced24ab"
-  path   = "/service-role/"
-  policy = data.aws_iam_policy_document.xray.json
-}
-
 data "aws_iam_policy_document" "cloudwatch" {
   statement {
     actions = [
@@ -30,34 +23,6 @@ data "aws_iam_policy_document" "cloudwatch" {
     ]
     resources = ["${aws_cloudwatch_log_group.lambda.arn}:*"]
   }
-}
-
-resource "aws_iam_policy" "cloudwatch" {
-  # TODO: https://github.com/hashicorp/terraform-provider-aws/issues/32906
-  name   = "AWSLambdaBasicExecutionRole-b586114a-ba08-47b0-afe0-82c4d81857a0"
-  path   = "/service-role/"
-  policy = data.aws_iam_policy_document.cloudwatch.json
-}
-
-data "aws_iam_policy_document" "assume_role" {
-  statement {
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-    actions = ["sts:AssumeRole"]
-  }
-}
-
-resource "aws_iam_role" "www" {
-  name               = "wewerewondering-api"
-  assume_role_policy = data.aws_iam_policy_document.assume_role.json
-  path               = "/service-role/"
-  managed_policy_arns = [
-    aws_iam_policy.cloudwatch.arn,
-    aws_iam_policy.xray.arn,
-    "arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"
-  ]
 }
 
 data "aws_iam_policy_document" "dynamodb" {
@@ -78,10 +43,36 @@ data "aws_iam_policy_document" "dynamodb" {
   }
 }
 
-resource "aws_iam_role_policy" "dynamodb" {
-  name   = "api-db-access"
-  role   = aws_iam_role.www.id
-  policy = data.aws_iam_policy_document.dynamodb.json
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "www" {
+  name               = "wewerewondering-api"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+  path               = "/service-role/"
+
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"
+  ]
+  inline_policy {
+    name   = "xray"
+    policy = data.aws_iam_policy_document.xray.json
+  }
+  inline_policy {
+    name   = "cloudwatch"
+    policy = data.aws_iam_policy_document.cloudwatch.json
+  }
+  inline_policy {
+    name   = "api-db-access"
+    policy = data.aws_iam_policy_document.dynamodb.json
+  }
 }
 
 check "lambda-built" {
