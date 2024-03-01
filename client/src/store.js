@@ -26,7 +26,7 @@ export const localAdjustments = writable(
 					//   voted_when: int
 					// }
 				}
-		  }
+			}
 		: storedLocalAdjustments
 );
 localAdjustments.subscribe((value) => {
