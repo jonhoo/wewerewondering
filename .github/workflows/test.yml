@@ -1,3 +1,11 @@
+# This is the main CI workflow that runs the test suite on all pushes to main and all pull requests.
+# It runs the following jobs:
+# - required: runs the test suite on ubuntu with stable and beta rust toolchains
+# - minimal: runs the test suite with the minimal versions of the dependencies that satisfy the
+#   requirements of this crate, and its dependencies
+# - os-check: runs the test suite on mac and windows
+# - coverage: runs the test suite and collects coverage information
+# See check.yml for information about how the concurrency cancellation and workflow triggering works
 permissions:
   contents: read
 on:
@@ -6,7 +14,7 @@ on:
   pull_request:
     paths:
       - 'server/**'
-# Spend CI time only on latest ref: https://github.com/jonhoo/rust-ci-conf/pull/5
+      - '.github/workflows/test.yml'
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -20,6 +28,8 @@ jobs:
         working-directory: ./server
     strategy:
       matrix:
+        # run on stable and beta to ensure that tests won't break on the next version of the rust
+        # toolchain
         toolchain: [stable, beta]
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +40,8 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
       - name: cargo generate-lockfile
-        if: hashFiles('Cargo.lock') == ''
+        # enable this ci template to run regardless of whether the lockfile is checked in or not
+        if: hashFiles('server/Cargo.lock') == ''
         run: cargo generate-lockfile
       # https://twitter.com/jonhoo/status/1571290371124260865
       - name: cargo test --locked

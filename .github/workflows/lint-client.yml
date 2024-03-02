@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'client/**'
+      - '.github/workflows/lint-client.yml'
 name: client
 env:
   NODE_VERSION: 18
