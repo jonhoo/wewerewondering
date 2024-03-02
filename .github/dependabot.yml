@@ -12,5 +12,5 @@ updates:
     directory: /server
     schedule:
       interval: monthly
-    # https://github.com/dependabot/dependabot-core/issues/4009
-    versioning-strategy: "increase-if-necessary"
+    # TODO: https://github.com/dependabot/dependabot-core/issues/4009
+    # versioning-strategy: "increase-if-necessary"
