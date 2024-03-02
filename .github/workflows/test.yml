@@ -41,7 +41,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
       - name: cargo generate-lockfile
         # enable this ci template to run regardless of whether the lockfile is checked in or not
-        if: hashFiles('Cargo.lock') == ''
+        if: hashFiles('server/Cargo.lock') == ''
         run: cargo generate-lockfile
       # https://twitter.com/jonhoo/status/1571290371124260865
       - name: cargo test --locked
