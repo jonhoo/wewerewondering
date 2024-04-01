@@ -11,7 +11,7 @@ aws-smithy-runtime-api = "1.0.0"
 aws-smithy-http = "0.60"
 axum = "0.7.2"
 http = "1.0"
-http-body-util = "0.1.0"
+http-body-util = "0.1.1"
 hyper = { version = "1.0.1", features = ["server", "http1", "http2"] }
 lambda_http = { version = "0.10.0", default-features = false, features = ["apigw_http"] }
 lambda_runtime = "0.10.0"
