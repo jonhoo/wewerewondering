@@ -92,7 +92,7 @@ resource "aws_lambda_function" "www" {
   function_name = "wewerewondering-api"
   role          = aws_iam_role.www.arn
   handler       = "bootstrap"
-  runtime       = "provided.al2"
+  runtime       = "provided.al2023"
   architectures = ["arm64"]
   timeout       = 30
   layers = [
