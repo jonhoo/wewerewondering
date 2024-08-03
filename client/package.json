@@ -11,17 +11,17 @@
 		"format": "prettier --plugin=prettier-plugin-svelte --plugin=prettier-plugin-tailwindcss --write ."
 	},
 	"devDependencies": {
-		"@sveltejs/vite-plugin-svelte": "^3.0.0",
-		"autoprefixer": "^10.4.19",
-		"eslint": "^9.2.0",
+		"@sveltejs/vite-plugin-svelte": "^3.1.1",
+		"autoprefixer": "^10.4.20",
+		"eslint": "^9.8.0",
 		"eslint-config-prettier": "^9.1.0",
-		"eslint-plugin-svelte": "^2.39.3",
-		"postcss": "^8.4.33",
-		"prettier": "^3.3.0",
-		"prettier-plugin-svelte": "^3.2.2",
-		"prettier-plugin-tailwindcss": "^0.6.1",
+		"eslint-plugin-svelte": "^2.43.0",
+		"postcss": "^8.4.40",
+		"prettier": "^3.3.3",
+		"prettier-plugin-svelte": "^3.2.6",
+		"prettier-plugin-tailwindcss": "^0.6.5",
 		"svelte": "^4.2.18",
-		"tailwindcss": "^3.4.3",
-		"vite": "^5.3.0"
+		"tailwindcss": "^3.4.7",
+		"vite": "^5.3.5"
 	}
 }
