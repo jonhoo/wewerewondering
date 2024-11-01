@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aws-config = { version = "1.5.0", features = ["behavior-version-latest"] }
+aws-config = { version = "1.5.9", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.1.0"
 aws-smithy-types = "1.0.1"
 aws-smithy-runtime-api = "1.0.0"
