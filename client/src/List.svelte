@@ -205,9 +205,9 @@
 
 	let questions = $derived(adjustQuestions(rawQuestions, $localAdjustments, $votedFor));
 	let unanswered = $derived((questions || []).filter((q) => !q.answered && !q.hidden));
-	let answered = $derived((questions || [])
-		.filter((q) => q.answered && !q.hidden)
-		.sort((a, b) => a.answered - b.answered));
+	let answered = $derived(
+		(questions || []).filter((q) => q.answered && !q.hidden).sort((a, b) => a.answered - b.answered)
+	);
 	let hidden = $derived((questions || []).filter((q) => q.hidden));
 
 	async function ask() {
