@@ -104,7 +104,6 @@ export async function questionData(qid, qs) {
 		_reject = reject1;
 	});
 
-	/* eslint-disable no-constant-condition */
 	while (true) {
 		// make the current batch of qids (and their promises).
 		fetching = batch;

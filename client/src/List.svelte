@@ -212,7 +212,6 @@
 
 	async function ask() {
 		let q;
-		/* eslint-disable no-constant-condition */
 		while (true) {
 			q = prompt("Question:", q || "");
 			if (q === null) {
@@ -304,9 +303,9 @@
 	<section class="pt-4">
 		{#if unanswered.length > 0}
 			<div class="flex flex-col divide-y">
-				{#each unanswered as question (question.qid)}
+				{#each unanswered as question, i (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question bind:question />
+						<Question index={i} bind:question={unanswered[i]} />
 					</div>
 				{/each}
 			</div>
@@ -329,9 +328,9 @@
 				>
 			</h2>
 			<div class="flex flex-col divide-y">
-				{#each answered as question (question.qid)}
+				{#each answered as question, i (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question bind:question />
+						<Question index={i} bind:question={answered[i]} />
 					</div>
 				{/each}
 			</div>
@@ -341,9 +340,9 @@
 		<section>
 			<h2 class="mb-4 mt-8 text-center text-2xl text-slate-400 dark:text-slate-500">Hidden</h2>
 			<div class="flex flex-col divide-y">
-				{#each hidden as question (question.qid)}
+				{#each hidden as question, i (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question bind:question />
+						<Question index={i} bind:question={hidden[i]} />
 					</div>
 				{/each}
 			</div>
