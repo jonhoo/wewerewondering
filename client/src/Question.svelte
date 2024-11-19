@@ -2,9 +2,9 @@
 	import { onMount } from "svelte";
 	import { votedFor, questionCache, questionData, localAdjustments, event } from "./store.js";
 
-	export let question;
+	let { question } = $props();
 
-	let now = new Date();
+	let now = $state(new Date());
 	onMount(() => {
 		const interval = setInterval(() => {
 			now = new Date();
@@ -15,8 +15,8 @@
 		};
 	});
 
-	$: liked = question.qid in $votedFor;
-	$: q = questionData(question.qid, $questionCache);
+	let liked = $derived(question.qid in $votedFor);
+	let q = $derived(questionData(question.qid, $questionCache));
 
 	async function vote() {
 		let dir;
@@ -110,9 +110,9 @@
 	<div class="flex items-center">
 		<div class="mr-4 w-8 shrink-0 grow-0 text-center">
 			{#if liked}
-				<button class="hover:opacity-50" title="Retract vote" on:click={vote}>▲</button>
+				<button class="hover:opacity-50" title="Retract vote" onclick={vote}>▲</button>
 			{:else}
-				<button class="opacity-30 hover:opacity-100" title="Vote" on:click={vote}>△</button>
+				<button class="opacity-30 hover:opacity-100" title="Vote" onclick={vote}>△</button>
 			{/if}
 			<div class="font-bold text-black dark:text-slate-300">{question.votes}</div>
 		</div>
@@ -129,15 +129,15 @@
 					{#if $event.secret}
 						—
 						{#if question.answered}
-							<button on:click={answered}>Mark as not answered</button>
+							<button onclick={answered}>Mark as not answered</button>
 						{:else}
-							<button on:click={answered}>Mark as answered</button>
+							<button onclick={answered}>Mark as answered</button>
 						{/if}
 						|
 						{#if question.hidden}
-							<button on:click={hidden}>Unhide</button>
+							<button onclick={hidden}>Unhide</button>
 						{:else}
-							<button on:click={hidden}>Hide</button>
+							<button onclick={hidden}>Hide</button>
 						{/if}
 					{/if}
 				</div>

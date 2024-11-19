@@ -82,8 +82,8 @@
 		return await r.json();
 	}
 
-	let problum;
-	let rawQuestions;
+	let problum = $state();
+	let rawQuestions = $state();
 	event.subscribe((e) => {
 		loadQuestions(e)
 			.then((qs) => {
@@ -203,12 +203,12 @@
 		return qs;
 	}
 
-	$: questions = adjustQuestions(rawQuestions, $localAdjustments, $votedFor);
-	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden);
-	$: answered = (questions || [])
+	let questions = $derived(adjustQuestions(rawQuestions, $localAdjustments, $votedFor));
+	let unanswered = $derived((questions || []).filter((q) => !q.answered && !q.hidden));
+	let answered = $derived((questions || [])
 		.filter((q) => q.answered && !q.hidden)
-		.sort((a, b) => a.answered - b.answered);
-	$: hidden = (questions || []).filter((q) => q.hidden);
+		.sort((a, b) => a.answered - b.answered));
+	let hidden = $derived((questions || []).filter((q) => q.hidden));
 
 	async function ask() {
 		let q;
@@ -267,14 +267,14 @@
 	}
 </script>
 
-<svelte:window on:visibilitychange={visibilitychange} />
+<svelte:window onvisibilitychange={visibilitychange} />
 
 {#if questions}
 	<div class="text-center">
 		{#if $event.secret}
 			<button
 				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
-				on:click={share}>{share_text}</button
+				onclick={share}>{share_text}</button
 			>
 			<div class="pt-4 text-slate-400">
 				The URL in your address bar shares the host view.<br />
@@ -284,7 +284,7 @@
 		{:else}
 			<button
 				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
-				on:click={ask}>Ask another question</button
+				onclick={ask}>Ask another question</button
 			>
 		{/if}
 	</div>
