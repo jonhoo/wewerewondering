@@ -3,7 +3,7 @@
 	import { event } from "./store";
 	import List from "./List.svelte";
 
-	let problum;
+	let problum = $state();
 
 	async function popstate() {
 		const path = window.location.pathname;
@@ -60,7 +60,7 @@
 	onMount(popstate);
 </script>
 
-<svelte:window on:popstate={popstate} />
+<svelte:window onpopstate={popstate} />
 
 {#if problum}
 	<div class="fixed bottom-4 left-0 right-0">
@@ -93,7 +93,7 @@
 	<div class="flex h-screen items-center justify-center">
 		<button
 			class="border-2 border-red-500 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
-			on:click={create}>Open new Q&amp;A session</button
+			onclick={create}>Open new Q&amp;A session</button
 		>
 	</div>
 {/if}

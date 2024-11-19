@@ -82,8 +82,8 @@
 		return await r.json();
 	}
 
-	let problum;
-	let rawQuestions;
+	let problum = $state();
+	let rawQuestions = $state();
 	event.subscribe((e) => {
 		loadQuestions(e)
 			.then((qs) => {
@@ -203,16 +203,15 @@
 		return qs;
 	}
 
-	$: questions = adjustQuestions(rawQuestions, $localAdjustments, $votedFor);
-	$: unanswered = (questions || []).filter((q) => !q.answered && !q.hidden);
-	$: answered = (questions || [])
-		.filter((q) => q.answered && !q.hidden)
-		.sort((a, b) => a.answered - b.answered);
-	$: hidden = (questions || []).filter((q) => q.hidden);
+	let questions = $derived(adjustQuestions(rawQuestions, $localAdjustments, $votedFor));
+	let unanswered = $derived((questions || []).filter((q) => !q.answered && !q.hidden));
+	let answered = $derived(
+		(questions || []).filter((q) => q.answered && !q.hidden).sort((a, b) => a.answered - b.answered)
+	);
+	let hidden = $derived((questions || []).filter((q) => q.hidden));
 
 	async function ask() {
 		let q;
-		/* eslint-disable no-constant-condition */
 		while (true) {
 			q = prompt("Question:", q || "");
 			if (q === null) {
@@ -267,14 +266,14 @@
 	}
 </script>
 
-<svelte:window on:visibilitychange={visibilitychange} />
+<svelte:window onvisibilitychange={visibilitychange} />
 
 {#if questions}
 	<div class="text-center">
 		{#if $event.secret}
 			<button
 				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
-				on:click={share}>{share_text}</button
+				onclick={share}>{share_text}</button
 			>
 			<div class="pt-4 text-slate-400">
 				The URL in your address bar shares the host view.<br />
@@ -284,7 +283,7 @@
 		{:else}
 			<button
 				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
-				on:click={ask}>Ask another question</button
+				onclick={ask}>Ask another question</button
 			>
 		{/if}
 	</div>
@@ -304,9 +303,9 @@
 	<section class="pt-4">
 		{#if unanswered.length > 0}
 			<div class="flex flex-col divide-y">
-				{#each unanswered as question (question.qid)}
+				{#each unanswered as question, i (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question bind:question />
+						<Question index={i} bind:question={unanswered[i]} />
 					</div>
 				{/each}
 			</div>
@@ -329,9 +328,9 @@
 				>
 			</h2>
 			<div class="flex flex-col divide-y">
-				{#each answered as question (question.qid)}
+				{#each answered as question, i (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question bind:question />
+						<Question index={i} bind:question={answered[i]} />
 					</div>
 				{/each}
 			</div>
@@ -341,9 +340,9 @@
 		<section>
 			<h2 class="mb-4 mt-8 text-center text-2xl text-slate-400 dark:text-slate-500">Hidden</h2>
 			<div class="flex flex-col divide-y">
-				{#each hidden as question (question.qid)}
+				{#each hidden as question, i (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
-						<Question bind:question />
+						<Question index={i} bind:question={hidden[i]} />
 					</div>
 				{/each}
 			</div>
