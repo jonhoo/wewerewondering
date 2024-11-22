@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import { votedFor, questionCache, questionData, localAdjustments, event } from "./store.js";
 
-	let { question } = $props();
+	let { question = $bindable() } = $props();
 
 	let now = $state(new Date());
 	onMount(() => {
