@@ -1,4 +1,5 @@
 DYNAMODB_CONTAINER_NAME=dynamodb-local
+DYNAMODB_ADMIN_CONTAINER_NAME=dynamodb-admin
 ENDPOINT_URL=http://localhost:8000
 
 .PHONY: fmt
@@ -10,6 +11,10 @@ check:
 	cargo fmt --check
 	cargo clippy --all-features
 	cargo d --no-deps --all-features
+
+.PHONY: run
+run:
+	USE_DYNAMODB=1 AWS_ENDPOINT_URL=${ENDPOINT_URL} cargo run
 
 .PHONY: test/e2e
 test/e2e:
@@ -68,6 +73,23 @@ dynamodb:
 
 	echo "✅ Done!"
 	echo "💡To get details on a table, run 'make dynamodb/describe/<table_name>'"
+
+.PHONY: dynamodb/admin
+dynamodb/admin:
+	@docker ps | grep ${DYNAMODB_ADMIN_CONTAINER_NAME} > /dev/null && \
+	echo "Already running. Use 'make dynamodb/admin/kill' first." && \
+	exit 0
+
+	echo "🚀 Spinning up a container with DynamoDB Admin..."
+	@(docker run -d --rm --net host --name ${DYNAMODB_ADMIN_CONTAINER_NAME} aaronshaf/dynamodb-admin) > /dev/null
+	echo "🔎 DynamoDB Admin is available at http://localhost:8001"
+
+.PHONY: dynamodb/admin/kill
+dynamodb/admin/kill:
+	@docker ps | grep ${DYNAMODB_ADMIN_CONTAINER_NAME} > /dev/null && \
+	docker stop ${DYNAMODB_ADMIN_CONTAINER_NAME} > /dev/null && \
+	echo "🧹 Done!" && exit 0
+	echo "Container '${DYNAMODB_ADMIN_CONTAINER_NAME}' not found.
 
 .PHONY: dynamodb/list
 dynamodb/list:

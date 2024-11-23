@@ -31,7 +31,7 @@ It will also auto-generate user votes over time for the questions there.
 If you're curious about the technologies used in the server and client,
 see their respective `README.md` files.
 
-To run tests against a DynamoDB instance running locally, make sure
+To run tests against a DynamoDB instance running [locally](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html), make sure
 you got [`docker`](https://docs.docker.com/engine/install/) and
 [`AWS CLI`](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) installed, then hit:
 
@@ -39,4 +39,17 @@ you got [`docker`](https://docs.docker.com/engine/install/) and
 $ cd server
 $ make dynamodb
 $ make test/e2e
+```
+
+Now, to develop against a local instance of DynamoDB, hit:
+
+```console
+$ make run
+```
+
+You can also spin a [Web UI](https://github.com/aaronshaf/dynamodb-admin?tab=readme-ov-file)
+for your local Dynamodb with:
+
+```console
+$ make dynamodb/admin
 ```
