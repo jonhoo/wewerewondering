@@ -194,7 +194,7 @@
 			}
 			if (changed) {
 				console.log("local adjustments changed");
-				localAdjustments.set(la);
+				localStorage.setItem("localAdjustments", JSON.stringify(la));
 			}
 		}
 		qs.sort((a, b) => {
