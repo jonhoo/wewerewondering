@@ -134,85 +134,75 @@ async fn main() -> Result<(), Error> {
         .with_env_filter(EnvFilter::from_default_env())
         .without_time(/* cloudwatch does that */).init();
 
-    #[cfg(debug_assertions)]
-    let backend = {
-        // To be able to develop and test against a local DynamoDB instance
-        // USE_DYNAMODB=1 AWS_ENDPOINT_URL=http://localhost:8000 cargo run
-        if std::env::var_os("USE_DYNAMODB").is_some() {
-            let config = aws_config::load_from_env().await;
-            Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
-        } else {
-            use rand::prelude::SliceRandom;
-            use serde::Deserialize;
-            use std::time::Duration;
-
-            #[cfg(debug_assertions)]
-            #[derive(Deserialize)]
-            struct LiveAskQuestion {
-                likes: usize,
-                text: String,
-                hidden: bool,
-                answered: bool,
-                #[serde(rename = "createTimeUnix")]
-                created: usize,
-            }
-
-            let mut state = Local::default();
-            let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
-            let seed_e = "00000000000000000000000000";
-            let seed_e = Ulid::from_string(seed_e).unwrap();
-            state.events.insert(seed_e, String::from("secret"));
-            state.questions_by_eid.insert(seed_e, Vec::new());
-            let mut state = Backend::Local(Arc::new(Mutex::new(state)));
-            let mut qs = Vec::new();
-            for q in seed {
-                let qid = ulid::Ulid::new();
-                state
-                    .ask(
-                        &seed_e,
-                        &qid,
-                        ask::Question {
-                            body: q.text,
-                            asker: None,
-                        },
-                    )
-                    .await
-                    .unwrap();
-                qs.push((qid, q.created, q.likes, q.hidden, q.answered));
-            }
-            let mut qids = Vec::new();
-            {
-                let Backend::Local(ref mut state): Backend = state else {
-                    unreachable!();
-                };
-                let state = Arc::get_mut(state).unwrap();
-                let state = Mutex::get_mut(state).unwrap();
-                for (qid, created, votes, hidden, answered) in qs {
-                    let q = state.questions.get_mut(&qid).unwrap();
-                    q.insert("votes", AttributeValue::N(votes.to_string()));
-                    if answered {
-                        q.insert("answered", to_dynamo_timestamp(SystemTime::now()));
-                    }
-                    q.insert("hidden", AttributeValue::Bool(hidden));
-                    q.insert("when", AttributeValue::N(created.to_string()));
-                    qids.push(qid);
-                }
-            }
-            let cheat = state.clone();
-            tokio::spawn(async move {
-                loop {
-                    tokio::time::sleep(Duration::from_secs(1)).await;
-                    let qid = qids.choose(&mut rand::thread_rng()).unwrap();
-                    let _ = cheat.vote(qid, vote::UpDown::Up).await;
-                }
-            });
-            state
-        }
-    };
-    #[cfg(not(debug_assertions))]
-    let backend = {
+    let backend = if !cfg!(debug_assertions) || std::env::var_os("USE_DYNAMODB").is_some() {
         let config = aws_config::load_from_env().await;
         Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
+    } else {
+        use rand::prelude::SliceRandom;
+        use serde::Deserialize;
+        use std::time::Duration;
+
+        #[cfg(debug_assertions)]
+        #[derive(Deserialize)]
+        struct LiveAskQuestion {
+            likes: usize,
+            text: String,
+            hidden: bool,
+            answered: bool,
+            #[serde(rename = "createTimeUnix")]
+            created: usize,
+        }
+
+        let mut state = Local::default();
+        let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
+        let seed_e = "00000000000000000000000000";
+        let seed_e = Ulid::from_string(seed_e).unwrap();
+        state.events.insert(seed_e, String::from("secret"));
+        state.questions_by_eid.insert(seed_e, Vec::new());
+        let mut state = Backend::Local(Arc::new(Mutex::new(state)));
+        let mut qs = Vec::new();
+        for q in seed {
+            let qid = ulid::Ulid::new();
+            state
+                .ask(
+                    &seed_e,
+                    &qid,
+                    ask::Question {
+                        body: q.text,
+                        asker: None,
+                    },
+                )
+                .await
+                .unwrap();
+            qs.push((qid, q.created, q.likes, q.hidden, q.answered));
+        }
+        let mut qids = Vec::new();
+        {
+            let Backend::Local(ref mut state): Backend = state else {
+                unreachable!();
+            };
+            let state = Arc::get_mut(state).unwrap();
+            let state = Mutex::get_mut(state).unwrap();
+            for (qid, created, votes, hidden, answered) in qs {
+                let q = state.questions.get_mut(&qid).unwrap();
+                q.insert("votes", AttributeValue::N(votes.to_string()));
+                if answered {
+                    q.insert("answered", to_dynamo_timestamp(SystemTime::now()));
+                }
+                q.insert("hidden", AttributeValue::Bool(hidden));
+                q.insert("when", AttributeValue::N(created.to_string()));
+                qids.push(qid);
+            }
+        }
+        let cheat = state.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                let qid = qids.choose(&mut rand::thread_rng()).unwrap();
+                let _ = cheat.vote(qid, vote::UpDown::Up).await;
+            }
+        });
+        state
     };
 
     let app = Router::new()
