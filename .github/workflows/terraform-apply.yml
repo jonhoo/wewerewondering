@@ -71,19 +71,19 @@ jobs:
       - run: cargo lambda build --release --arm64
         working-directory: ./server
 
-      - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.3.1
+      - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.3.2
         id: upload
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           # directory: ${{ env.CONFIG_DIRECTORY }}
 
-      - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.3.1
+      - uses: hashicorp/tfc-workflows-github/actions/create-run@v1.3.2
         id: create-run
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
 
-      - uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.3.1
+      - uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.3.2
         id: apply
         if: ${{ fromJSON(steps.create-run.outputs.payload).data.attributes.actions.IsConfirmable }}
         with:
