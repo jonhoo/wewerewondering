@@ -1,11 +1,32 @@
 #!/usr/bin/env bash
 
-DYNAMODB_CONTAINER_NAME=$1
-ENDPOINT_URL=$2
+if ! [ -x "$(command -v docker)" ]; then
+    echo '❌ Error: please make sure docker is installed and is in the PATH' >&2
+    exit 1
+fi
+
+if ! [ -x "$(command -v aws)" ]; then
+    echo '❌ Error: please make sure AWS CLI is installed and is in the PATH' >&2
+    exit 1
+fi
+
+# AWS CLI wants us to either run `aws configure` or provide the three essential variables
+# from the environment. Most of us will have aws profile(s) configured on the workstation,
+# but this should not be a requirement to be able to spin up and query a DynamoDB Local
+# instance. This is why we are setting those variables in the current shell. Note that
+# the  credential values themselves do not matter, it is rather the fact that they _are_ set.
+#
+# see: https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-envvars.html#envvars-set
+export AWS_ACCESS_KEY_ID=lorem
+export AWS_SECRET_ACCESS_KEY=ipsum
+export AWS_DEFAULT_REGION=us-east-1
+
+DYNAMODB_CONTAINER_NAME=dynamodb-local
+DYNAMODB_ADMIN_CONTAINER_NAME=dynamodb-admin
+ENDPOINT_URL=http://localhost:8000
 
 docker ps | grep ${DYNAMODB_CONTAINER_NAME} >/dev/null &&
-    echo "Already running. Use 'make dynamodb/kill' first." &&
-    exit 0
+    echo "🚫 Container \"${DYNAMODB_CONTAINER_NAME}\" with DynamoDB Local service is already running." && exit 0
 
 echo "🖴 Preparing volumes for DynamoDB..."
 rm -rf dynamodb-data
@@ -18,7 +39,7 @@ echo "🚀 Spinning up a container with DynamoDB..."
         -jar DynamoDBLocal.jar -sharedDb -dbPath ./data
 ) >/dev/null
 
-while ! (aws dynamodb list-tables --endpoint-url ${ENDPOINT_URL} >/dev/null 2>&1); do
+while ! (AWS_ACCESS_KEY_ID=lorem AWS_SECRET_ACCESS_KEY=ipsum aws dynamodb list-tables --endpoint-url ${ENDPOINT_URL} --region us-east-1 >/dev/null); do
     echo "⏳ Waiting for the database to start accepting connections..."
 done
 
@@ -29,6 +50,7 @@ aws dynamodb create-table \
     --key-schema AttributeName=id,KeyType=HASH \
     --billing-mode PAY_PER_REQUEST \
     --endpoint-url ${ENDPOINT_URL} >/dev/null
+
 aws dynamodb update-time-to-live \
     --table-name events \
     --time-to-live-specification Enabled=true,AttributeName=expire \
@@ -44,12 +66,20 @@ aws dynamodb create-table \
     --global-secondary-indexes 'IndexName=top,KeySchema=[{AttributeName=eid,KeyType=HASH},{AttributeName=votes,KeyType=RANGE}],Projection={ProjectionType=INCLUDE,NonKeyAttributes=[answered,hidden]}' \
     --billing-mode PAY_PER_REQUEST \
     --endpoint-url ${ENDPOINT_URL} >/dev/null
+
 aws dynamodb update-time-to-live \
     --table-name questions \
     --time-to-live-specification Enabled=true,AttributeName=expire \
     --endpoint-url ${ENDPOINT_URL} >/dev/null
 
+echo "✅ Container \"${DYNAMODB_CONTAINER_NAME}\" with DynamoDB Local is ready!"
+
+docker ps | grep ${DYNAMODB_ADMIN_CONTAINER_NAME} >/dev/null &&
+    echo "🚫 Container "${DYNAMODB_ADMIN_CONTAINER_NAME}" with DynamoDB Admin service is already running." &&
+    exit 0
+
+echo "🚀 Spinning up a container with DynamoDB Admin..."
+(docker run -d --rm --net host --name ${DYNAMODB_ADMIN_CONTAINER_NAME} aaronshaf/dynamodb-admin) >/dev/null
+echo "🔎 DynamoDB Admin is available at http://localhost:8001"
+
 echo "✅ Done!"
-echo
-echo "💡To get details on a table, run 'make dynamodb/describe/<table_name>'"
-echo "💡To spin up a Web UI for your local DynamoDB instance, hit 'make dynamodb/admin'"

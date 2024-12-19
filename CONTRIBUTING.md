@@ -37,19 +37,32 @@ you got [`docker`](https://docs.docker.com/engine/install/) and
 
 ```console
 $ cd server
-$ make dynamodb
-$ make test/e2e
+$ ./run-dynamodb-local.sh
 ```
 
-Now, to develop against a local instance of DynamoDB, hit:
+This will also spin a [Web UI](https://github.com/aaronshaf/dynamodb-admin?tab=readme-ov-file)
+for your local DynamoDB instance.
 
-```console
-$ make run
+You can now run tests with:
+
+```sh
+AWS_DEFAULT_REGION=us-east-1 \
+   AWS_ACCESS_KEY_ID=lorem \
+   AWS_SECRET_ACCESS_KEY=ipsum \
+   AWS_ENDPOINT_URL=http://localhost:8000 \
+   cargo t -- --ignored
 ```
 
-You can also spin a [Web UI](https://github.com/aaronshaf/dynamodb-admin?tab=readme-ov-file)
-for your local Dynamodb with:
+Assuming you are staying in the `server` directory, to run the back-end application against
+your local DynamoDB instance, hit:
 
-```console
-$ make dynamodb/admin
+```sh
+AWS_DEFAULT_REGION=us-east-1 \
+   AWS_ACCESS_KEY_ID=lorem \
+   AWS_SECRET_ACCESS_KEY=ipsum \
+   USE_DYNAMODB=1 \
+   AWS_ENDPOINT_URL=http://localhost:8000 \
+   cargo run
 ```
+
+Note that you can omit setting those dummy values for `AWS_DEFAULT_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` in case you've got AWS profile(s) [configured](https://docs.aws.amazon.com/cli/latest/reference/configure/) on your workstation.
