@@ -30,3 +30,39 @@ It will also auto-generate user votes over time for the questions there.
 
 If you're curious about the technologies used in the server and client,
 see their respective `README.md` files.
+
+To run tests against a DynamoDB instance running [locally](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html), make sure
+you got [`docker`](https://docs.docker.com/engine/install/) and
+[`AWS CLI`](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) installed, then hit:
+
+```console
+$ cd server
+$ ./run-dynamodb-local.sh
+```
+
+This will also spin a [Web UI](https://github.com/aaronshaf/dynamodb-admin?tab=readme-ov-file)
+for your local DynamoDB instance.
+
+You can now run tests with:
+
+```sh
+AWS_DEFAULT_REGION=us-east-1 \
+   AWS_ACCESS_KEY_ID=lorem \
+   AWS_SECRET_ACCESS_KEY=ipsum \
+   AWS_ENDPOINT_URL=http://localhost:8000 \
+   cargo t -- --ignored
+```
+
+Assuming you are staying in the `server` directory, to run the back-end application against
+your local DynamoDB instance, hit:
+
+```sh
+AWS_DEFAULT_REGION=us-east-1 \
+   AWS_ACCESS_KEY_ID=lorem \
+   AWS_SECRET_ACCESS_KEY=ipsum \
+   USE_DYNAMODB=1 \
+   AWS_ENDPOINT_URL=http://localhost:8000 \
+   cargo run
+```
+
+Note that you can omit setting those dummy values for `AWS_DEFAULT_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` in case you've got AWS profile(s) [configured](https://docs.aws.amazon.com/cli/latest/reference/configure/) on your workstation.

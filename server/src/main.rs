@@ -134,8 +134,10 @@ async fn main() -> Result<(), Error> {
         .with_env_filter(EnvFilter::from_default_env())
         .without_time(/* cloudwatch does that */).init();
 
-    #[cfg(debug_assertions)]
-    let backend = {
+    let backend = if !cfg!(debug_assertions) || std::env::var_os("USE_DYNAMODB").is_some() {
+        let config = aws_config::load_from_env().await;
+        Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
+    } else {
         use rand::prelude::SliceRandom;
         use serde::Deserialize;
         use std::time::Duration;
@@ -201,11 +203,6 @@ async fn main() -> Result<(), Error> {
             }
         });
         state
-    };
-    #[cfg(not(debug_assertions))]
-    let backend = {
-        let config = aws_config::load_from_env().await;
-        Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
     };
 
     let app = Router::new()
