@@ -126,7 +126,6 @@
 		}
 		if (la.newQuestions.length > 0 || Object.keys(la.remap).length > 0) {
 			console.log("question list needs local adjustments");
-			let changed = Object.keys(nowPresent).length > 0;
 			la.newQuestions = la.newQuestions.filter((qid) => !(qid in nowPresent));
 			for (const newQ of la.newQuestions) {
 				console.info("add in", newQ);
@@ -148,7 +147,6 @@
 					if (q.hidden === adj.hidden) {
 						console.debug("no longer need to adjust hidden");
 						delete la.remap[qid]["hidden"];
-						changed = true;
 					} else {
 						console.info("adjust hidden to", adj.hidden);
 						qs[i].hidden = adj.hidden;
@@ -166,7 +164,6 @@
 					} else {
 						console.debug("no longer need to adjust answered");
 						delete la.remap[qid]["answered"];
-						changed = true;
 					}
 				}
 				if ("voted_when" in adj) {
@@ -183,18 +180,12 @@
 					} else {
 						console.debug("vote count has been updated from", adj.voted_when, "to", q.votes);
 						delete la.remap[qid]["voted_when"];
-						changed = true;
 					}
 				}
 				if (Object.keys(la.remap[qid]).length === 0) {
 					console.debug("no more adjustments");
 					delete la.remap[qid];
-					changed = true;
 				}
-			}
-			if (changed) {
-				console.log("local adjustments changed");
-				localAdjustments.set(la);
 			}
 		}
 		qs.sort((a, b) => {
