@@ -46,7 +46,7 @@ for your local DynamoDB instance.
 You can now run tests with:
 
 ```sh
-USE_DYNAMODB=local cargo t -- --ignored
+USE_DYNAMODB=local cargo t -- --include-ignored
 ```
 
 Assuming you are staying in the `server` directory, to run the back-end application against

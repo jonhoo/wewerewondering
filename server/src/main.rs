@@ -43,22 +43,22 @@ impl Backend {
     /// If `USE_DYNAMODB` is set to "local", the `AWS_ENDPOINT_URL` will be set
     /// to "http://localhost:8000", the `AWS_DEFAULT_REGION` will be "us-east-1",
     /// and the [test credentials](https://docs.rs/aws-config/latest/aws_config/struct.ConfigLoader.html#method.test_credentials)
-    /// will be used.
+    /// will be used to sign requests.
     ///
-    /// This spares setting those environment variables (as well as `AWS_ACCESS_KEY_ID`
+    /// This spares setting those environment variables (including `AWS_ACCESS_KEY_ID`
     /// and `AWS_SECRET_ACCESS_KEY`) via the command line or configuration files,
     /// and allows to run the application against a local dynamodb instance with just:
     /// ```sh
     /// USE_DYNAMODB=local cargo run
     /// ```
-    /// While the end-to-end test suite can be run with:
+    /// While the entire test suite can be run with:
     /// ```sh
-    /// USE_DYNAMODB=local cargo t -- --ignored
+    /// USE_DYNAMODB=local cargo t -- --include-ignored
     /// ```
     ///
-    /// If customization is needed, set `USE_DYNAMODB` to, say, "custom", and
+    /// If customization is needed, set `USE_DYNAMODB` to e.g. "custom", and
     /// set the evironment variables to whatever values you need or let them be
-    /// picked up from your `~/.aws` configs (see [`aws_config::load_from_env`](https://docs.rs/aws-config/latest/aws_config/fn.load_from_env.html))
+    /// picked up from your `~/.aws` files (see [`aws_config::load_from_env`](https://docs.rs/aws-config/latest/aws_config/fn.load_from_env.html))
     async fn dynamo() -> Self {
         let config = if std::env::var("USE_DYNAMODB")
             .ok()
