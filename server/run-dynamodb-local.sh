@@ -23,7 +23,9 @@ export AWS_DEFAULT_REGION=us-east-1
 
 DYNAMODB_CONTAINER_NAME=dynamodb-local
 DYNAMODB_ADMIN_CONTAINER_NAME=dynamodb-admin
-ENDPOINT_URL=http://localhost:8000
+DYNAMODB_HOST=127.0.0.1
+DYNAMODB_PORT=8000
+ENDPOINT_URL=http://${DYNAMODB_HOST}:${DYNAMODB_PORT}
 
 docker ps | grep ${DYNAMODB_CONTAINER_NAME} >/dev/null &&
     echo "🚫 Container \"${DYNAMODB_CONTAINER_NAME}\" with DynamoDB Local service is already running." && exit 0
@@ -34,12 +36,12 @@ mkdir dynamodb-data
 
 echo "🚀 Spinning up a container with DynamoDB..."
 (
-    docker run --rm -d -v ./dynamodb-data:/home/dynamodblocal/data -p 127.0.0.1:8000:8000 \
+    docker run --rm -d -v ./dynamodb-data:/home/dynamodblocal/data -p ${DYNAMODB_HOST}:${DYNAMODB_PORT}:8000 \
         -w /home/dynamodblocal --name ${DYNAMODB_CONTAINER_NAME} amazon/dynamodb-local:latest \
         -jar DynamoDBLocal.jar -sharedDb -dbPath ./data
 ) >/dev/null
 
-while ! (AWS_ACCESS_KEY_ID=lorem AWS_SECRET_ACCESS_KEY=ipsum aws dynamodb list-tables --endpoint-url ${ENDPOINT_URL} --region us-east-1 >/dev/null); do
+while ! (aws dynamodb list-tables --endpoint-url ${ENDPOINT_URL} >/dev/null); do
     echo "⏳ Waiting for the database to start accepting connections..."
 done
 
