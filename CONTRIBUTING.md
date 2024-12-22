@@ -46,23 +46,12 @@ for your local DynamoDB instance.
 You can now run tests with:
 
 ```sh
-AWS_DEFAULT_REGION=us-east-1 \
-   AWS_ACCESS_KEY_ID=lorem \
-   AWS_SECRET_ACCESS_KEY=ipsum \
-   AWS_ENDPOINT_URL=http://localhost:8000 \
-   cargo t -- --ignored
+USE_DYNAMODB=local cargo t -- --ignored
 ```
 
 Assuming you are staying in the `server` directory, to run the back-end application against
 your local DynamoDB instance, hit:
 
 ```sh
-AWS_DEFAULT_REGION=us-east-1 \
-   AWS_ACCESS_KEY_ID=lorem \
-   AWS_SECRET_ACCESS_KEY=ipsum \
-   USE_DYNAMODB=1 \
-   AWS_ENDPOINT_URL=http://localhost:8000 \
-   cargo run
+USE_DYNAMODB=local cargo run
 ```
-
-Note that you can omit setting those dummy values for `AWS_DEFAULT_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` in case you've got AWS profile(s) [configured](https://docs.aws.amazon.com/cli/latest/reference/configure/) on your workstation.

@@ -32,14 +32,47 @@ enum Backend {
     Local(Arc<Mutex<Local>>),
 }
 
-#[cfg(test)]
 impl Backend {
+    #[cfg(test)]
     async fn local() -> Self {
         Backend::Local(Arc::new(Mutex::new(Local::default())))
     }
 
+    /// Instantiate a DynamoDB backend.
+    ///  
+    /// If `USE_DYNAMODB` is set to "local", the `AWS_ENDPOINT_URL` will be set
+    /// to "http://localhost:8000", the `AWS_DEFAULT_REGION` will be "us-east-1",
+    /// and the [test credentials](https://docs.rs/aws-config/latest/aws_config/struct.ConfigLoader.html#method.test_credentials)
+    /// will be used.
+    ///
+    /// This spares setting those environment variables (as well as `AWS_ACCESS_KEY_ID`
+    /// and `AWS_SECRET_ACCESS_KEY`) via the command line or configuration files,
+    /// and allows to run the application against a local dynamodb instance with just:
+    /// ```sh
+    /// USE_DYNAMODB=local cargo run
+    /// ```
+    /// While the end-to-end test suite can be run with:
+    /// ```sh
+    /// USE_DYNAMODB=local cargo t -- --ignored
+    /// ```
+    ///
+    /// If customization is needed, set `USE_DYNAMODB` to, say, "custom", and
+    /// set the evironment variables to whatever values you need or let them be
+    /// picked up from your `~/.aws` configs (see [`aws_config::load_from_env`](https://docs.rs/aws-config/latest/aws_config/fn.load_from_env.html))
     async fn dynamo() -> Self {
-        let config = aws_config::load_from_env().await;
+        let config = if std::env::var("USE_DYNAMODB")
+            .ok()
+            .is_some_and(|v| v == "local")
+        {
+            aws_config::from_env()
+                .endpoint_url("http://localhost:8000")
+                .region("us-east-1")
+                .test_credentials()
+                .load()
+                .await
+        } else {
+            aws_config::load_from_env().await
+        };
         Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
     }
 }
@@ -135,8 +168,7 @@ async fn main() -> Result<(), Error> {
         .without_time(/* cloudwatch does that */).init();
 
     let backend = if !cfg!(debug_assertions) || std::env::var_os("USE_DYNAMODB").is_some() {
-        let config = aws_config::load_from_env().await;
-        Backend::Dynamo(aws_sdk_dynamodb::Client::new(&config))
+        Backend::dynamo().await
     } else {
         use rand::prelude::SliceRandom;
         use serde::Deserialize;
