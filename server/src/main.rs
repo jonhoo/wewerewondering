@@ -261,14 +261,14 @@ async fn main() -> Result<(), Error> {
         // To run with AWS Lambda runtime, wrap in our `LambdaLayer`
         let app = tower::ServiceBuilder::new()
             .layer(TraceLayer::new_for_http())
-            .layer(LambdaLayer::default())
+            .layer(LambdaLayer)
             .service(app);
 
         Ok(lambda_http::run(app).await?)
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct LambdaLayer;
 
 impl<S> Layer<S> for LambdaLayer {
