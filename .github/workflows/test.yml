@@ -43,6 +43,31 @@ jobs:
         # enable this ci template to run regardless of whether the lockfile is checked in or not
         if: hashFiles('server/Cargo.lock') == ''
         run: cargo generate-lockfile
+      - name: Download DynamoDB Local
+        run: |
+          wget https://d1ni2b6xgvw0s0.cloudfront.net/v2.x/dynamodb_local_latest.tar.gz
+          wget https://d1ni2b6xgvw0s0.cloudfront.net/v2.x/dynamodb_local_latest.tar.gz.sha256
+          sha256sum --check dynamodb_local_latest.tar.gz.sha256
+          mkdir dynamodb-local
+          tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
+          ls -lah dynamodb-local
+      - name: Install Java SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'oracle'
+          java-version: '21'
+      - name: Launch DynamoDB Local
+        run: |
+          cd dynamodb-local
+          java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
+      - name: Create tables and indexes in DynamoDb Local
+        run: ./run-migrations.sh http://localhost:8000
+        env:
+          AWS_ACCESS_KEY_ID: carpe
+          AWS_SECRET_ACCESS_KEY: diem
+          AWS_DEFAULT_REGION: dead-poets-society-eu-east-1
       # https://twitter.com/jonhoo/status/1571290371124260865
       - name: cargo test --locked
-        run: cargo test --locked --all-features --all-targets
+        run: cargo test --locked --all-features --all-targets -- --include-ignored
+        env:
+          USE_DYNAMODB: local
