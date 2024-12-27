@@ -50,7 +50,7 @@ impl Backend {
                     .get_mut(qid)
                     .expect("voting for non-existing question");
                 if let Some(AttributeValue::N(n)) = q.get_mut("votes") {
-                    let real_n = n.parse::<usize>().expect("votes values are numbers");
+                    let real_n = n.parse::<isize>().expect("votes values are numbers");
                     let new_n = match direction {
                         UpDown::Up => real_n + 1,
                         UpDown::Down => real_n - 1,
