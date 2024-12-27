@@ -11,8 +11,6 @@ permissions:
 # the new branch. Restricting the push trigger to the main branch ensures that the PR only gets
 # built once.
 on:
-  push:
-    branches: [main]
   pull_request:
     paths:
       - 'server/**'
