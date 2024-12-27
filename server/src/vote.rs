@@ -35,7 +35,10 @@ impl Backend {
 
                 let upd = match direction {
                     UpDown::Up => upd.update_expression("SET votes = votes + :one"),
-                    UpDown::Down => upd.update_expression("SET votes = votes - :one"),
+                    UpDown::Down => upd
+                        .update_expression("SET votes = votes - :one")
+                        .condition_expression("votes > :zero")
+                        .expression_attribute_values(":zero", AttributeValue::N(0.to_string())),
                 };
                 let upd = upd.expression_attribute_values(":one", AttributeValue::N(1.to_string()));
 
@@ -51,11 +54,16 @@ impl Backend {
                     .expect("voting for non-existing question");
                 if let Some(AttributeValue::N(n)) = q.get_mut("votes") {
                     let real_n = n.parse::<usize>().expect("votes values are numbers");
-                    let new_n = match direction {
-                        UpDown::Up => real_n + 1,
-                        UpDown::Down => real_n - 1,
+                    match direction {
+                        UpDown::Up => {
+                            *n = (real_n + 1).to_string();
+                        }
+                        UpDown::Down => {
+                            if real_n > 0 {
+                                *n = (real_n - 1).to_string();
+                            }
+                        }
                     };
-                    *n = new_n.to_string();
                 } else {
                     unreachable!("no votes for question");
                 }
@@ -79,8 +87,16 @@ pub(super) async fn vote(
                 .attributes()
                 .and_then(|a| a.get("votes"))
                 .and_then(|v| v.as_n().ok())
-                .and_then(|v| v.parse::<isize>().ok());
+                .and_then(|v| v.parse::<usize>().ok());
             Ok(Json(serde_json::json!({ "votes": new_count })))
+        }
+        Err(ref error @ SdkError::ServiceError(ref e)) => {
+            if e.err().is_conditional_check_failed_exception() {
+                Ok(Json(serde_json::json!({"votes": 0})))
+            } else {
+                error!(%qid, error = %error, "dynamodb request to vote for question failed");
+                Err(http::StatusCode::INTERNAL_SERVER_ERROR)
+            }
         }
         Err(e) => {
             error!(%qid, error = %e, "dynamodb request to vote for question failed");
