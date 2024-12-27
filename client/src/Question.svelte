@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import { votedFor, questionCache, questionData, localAdjustments, event } from "./store.js";
 
-	let { question } = $props();
+	let { question = $bindable() } = $props();
 
 	let now = $state(new Date());
 	onMount(() => {
@@ -93,15 +93,15 @@
 		let when = new Date(q.when * 1000);
 		let dur = (now - when) / 1000;
 		if (dur > 24 * 60 * 60) {
-			return parseInt(dur / (24 * 60 * 60)) + "d ago";
+			return Math.trunc(dur / (24 * 60 * 60)) + "d ago";
 		} else if (dur > 60 * 60) {
-			return parseInt(dur / (60 * 60)) + "h ago";
+			return Math.trunc(dur / (60 * 60)) + "h ago";
 		} else if (dur > 60) {
-			return parseInt(dur / 60) + "m ago";
+			return Math.trunc(dur / 60) + "m ago";
 		} else if (dur < 10) {
 			return "just now";
 		} else {
-			return parseInt(dur) + "s ago";
+			return Math.trunc(dur) + "s ago";
 		}
 	}
 </script>
