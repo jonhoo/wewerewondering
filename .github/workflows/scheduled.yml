@@ -42,8 +42,37 @@ jobs:
       - name: cargo update
         if: hashFiles('server/Cargo.lock') != ''
         run: cargo update
+      - name: Download DynamoDB Local
+        if: hashFiles('server/Cargo.lock') != ''
+        run: |
+          wget https://d1ni2b6xgvw0s0.cloudfront.net/v2.x/dynamodb_local_latest.tar.gz
+          wget https://d1ni2b6xgvw0s0.cloudfront.net/v2.x/dynamodb_local_latest.tar.gz.sha256
+          sha256sum --check dynamodb_local_latest.tar.gz.sha256
+          mkdir dynamodb-local
+          tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
+          ls -lah dynamodb-local
+      - name: Install Java SDK
+        if: hashFiles('server/Cargo.lock') != ''
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'oracle'
+          java-version: '21'
+      - name: Launch DynamoDB Local
+        if: hashFiles('server/Cargo.lock') != ''
+        run: |
+          cd dynamodb-local
+          java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
+      - name: Create tables and indexes in DynamoDb Local
+        if: hashFiles('server/Cargo.lock') != ''
+        run: ./run-migrations.sh http://localhost:8000
+        env:
+          AWS_ACCESS_KEY_ID: carpe
+          AWS_SECRET_ACCESS_KEY: diem
+          AWS_DEFAULT_REGION: dead-poets-society-eu-east-1
+      # https://twitter.com/jonhoo/status/1571290371124260865
       - name: cargo test
         if: hashFiles('server/Cargo.lock') != ''
-        run: cargo test --locked --all-features --all-targets
+        run: cargo test --locked --all-features --all-targets -- --include-ignored
         env:
           RUSTFLAGS: -D deprecated
+          USE_DYNAMODB: local

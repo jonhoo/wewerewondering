@@ -1,3 +1,5 @@
 /target
 /dynamodb-data
+/dynamodb-local
+dynamodb_local_latest.tar.gz*
 Makefile

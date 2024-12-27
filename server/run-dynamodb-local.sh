@@ -45,34 +45,7 @@ while ! (aws dynamodb list-tables --endpoint-url ${ENDPOINT_URL} >/dev/null); do
     echo "⏳ Waiting for the database to start accepting connections..."
 done
 
-echo "🗒️ Creating 'events' table..."
-aws dynamodb create-table \
-    --table-name events \
-    --attribute-definitions AttributeName=id,AttributeType=S \
-    --key-schema AttributeName=id,KeyType=HASH \
-    --billing-mode PAY_PER_REQUEST \
-    --endpoint-url ${ENDPOINT_URL} >/dev/null
-
-aws dynamodb update-time-to-live \
-    --table-name events \
-    --time-to-live-specification Enabled=true,AttributeName=expire \
-    --endpoint-url ${ENDPOINT_URL} >/dev/null
-
-echo "🗒️ Creating 'questions' table and 🚄 GSI..."
-aws dynamodb create-table \
-    --table-name questions \
-    --attribute-definitions AttributeName=id,AttributeType=S \
-    AttributeName=eid,AttributeType=S \
-    AttributeName=votes,AttributeType=N \
-    --key-schema AttributeName=id,KeyType=HASH \
-    --global-secondary-indexes 'IndexName=top,KeySchema=[{AttributeName=eid,KeyType=HASH},{AttributeName=votes,KeyType=RANGE}],Projection={ProjectionType=INCLUDE,NonKeyAttributes=[answered,hidden]}' \
-    --billing-mode PAY_PER_REQUEST \
-    --endpoint-url ${ENDPOINT_URL} >/dev/null
-
-aws dynamodb update-time-to-live \
-    --table-name questions \
-    --time-to-live-specification Enabled=true,AttributeName=expire \
-    --endpoint-url ${ENDPOINT_URL} >/dev/null
+./run-migrations.sh "${ENDPOINT_URL}"
 
 echo "✅ Container \"${DYNAMODB_CONTAINER_NAME}\" with DynamoDB Local is ready!"
 
