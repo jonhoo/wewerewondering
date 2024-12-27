@@ -39,8 +39,25 @@ jobs:
         with:
           components: rustfmt
       - name: cargo fmt --check
-        run: cargo fmt --check --manifest-path server/Cargo.toml
         run: cargo fmt --check
+  in_release_mode_on_arm:
+    runs-on: ubuntu-latest
+    name: stable / release-arm
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: rustup target add aarch64-unknown-linux-gnu
+        run: rustup target add aarch64-unknown-linux-gnu
+      - name: Install aarch64-gcc
+        run: sudo apt-get install gcc-aarch64-linux-gnu
+      - name: cargo check --release --target aarch64-unknown-linux-gnu
+        run: cargo check --release --target aarch64-unknown-linux-gnu
   clippy:
     runs-on: ubuntu-latest
     name: ${{ matrix.toolchain }} / clippy

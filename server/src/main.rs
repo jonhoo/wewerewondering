@@ -167,7 +167,10 @@ async fn main() -> Result<(), Error> {
         .with_env_filter(EnvFilter::from_default_env())
         .without_time(/* cloudwatch does that */).init();
 
-    let backend = if !cfg!(debug_assertions) || std::env::var_os("USE_DYNAMODB").is_some() {
+    #[cfg(not(debug_assertions))]
+    let backend = Backend::dynamo().await;
+    #[cfg(debug_assertions)]
+    let backend = if std::env::var_os("USE_DYNAMODB").is_some() {
         Backend::dynamo().await
     } else {
         use rand::prelude::SliceRandom;
