@@ -39,7 +39,6 @@ jobs:
         with:
           components: rustfmt
       - name: cargo fmt --check
-        run: cargo fmt --check --manifest-path server/Cargo.toml
         run: cargo fmt --check
   in_release_mode_on_arm:
     runs-on: ubuntu-latest
