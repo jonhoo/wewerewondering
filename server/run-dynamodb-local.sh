@@ -45,7 +45,7 @@ while ! (aws dynamodb list-tables --endpoint-url ${ENDPOINT_URL} >/dev/null); do
     echo "⏳ Waiting for the database to start accepting connections..."
 done
 
-./run-migrations.sh ${ENDPOINT_URL}
+./run-migrations.sh "${ENDPOINT_URL}"
 
 echo "✅ Container \"${DYNAMODB_CONTAINER_NAME}\" with DynamoDB Local is ready!"
 
