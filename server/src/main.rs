@@ -375,8 +375,10 @@ async fn main() -> Result<(), Error> {
         use rand::prelude::SliceRandom;
         let backend = backend.clone();
         tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.tick().await;
             loop {
-                tokio::time::sleep(Duration::from_secs(1)).await;
+                interval.tick().await;
                 let qid = qids.choose(&mut rand::thread_rng()).unwrap();
                 let _ = backend.vote(qid, vote::UpDown::Up).await;
             }
