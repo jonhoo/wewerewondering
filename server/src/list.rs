@@ -230,7 +230,7 @@ async fn list_inner(
                 let exp = (-1. * dt as f64).exp();
                 Score(exp * votes / (1. - exp))
             };
-            questions.sort_by_cached_key(|q| score(q));
+            questions.sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
 
             let max_age = if has_secret {
                 // hosts should be allowed to see more up-to-date views
