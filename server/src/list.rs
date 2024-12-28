@@ -224,10 +224,19 @@ async fn list_inner(
                     )
                     .unwrap_or(Duration::ZERO)
                     .as_secs()
+                    // in minutes so questions don't jump around quite as much
                     / 60;
+                // +1 so that first minute questions don't get inf scores (for the ln)
                 let dt = dt_in_minutes_rounded_down + 1;
+                // +1 again to avoid NaN scores for first-minute questions (for / (1 - e^0)).
+                let dt = dt + 1;
+                // ln so that stories get less penalized for age over time
+                // after all, this is Q&A, not minute-to-minute hot news
+                let dt = (dt as f64).ln();
                 let votes = q["votes"].as_u64().expect("votes is a number") as f64;
-                let exp = (-1. * dt as f64).exp();
+                // max so that even if vote count somehow got to 0, count it as 1
+                let votes = votes.max(1.);
+                let exp = (-1. * dt as f64).exp_m1() + 1.;
                 Score(exp * votes / (1. - exp))
             };
             questions.sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
