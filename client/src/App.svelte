@@ -82,6 +82,9 @@
 	<main class="mx-auto my-4 max-w-4xl px-4">
 		<List />
 		<div class="mt-4 text-center text-slate-400">
+			Questions are ordered by <a class="hover:text-black" href="https://www.evanmiller.org/ranking-news-items-with-upvotes.html">votes over time</a>.
+		</div>
+		<div class="mt-4 text-center text-slate-400">
 			( made on <a class="hover:text-black" href="https://github.com/jonhoo/wewerewondering"
 				>github</a
 			>
