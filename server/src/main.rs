@@ -190,9 +190,8 @@ async fn main() -> Result<(), Error> {
     #[cfg(not(debug_assertions))]
     let backend = Backend::dynamo().await;
     #[cfg(debug_assertions)]
-    let backend = if std::env::var_os("USE_DYNAMODB").is_some() {
+    let (backend, qids) = if std::env::var_os("USE_DYNAMODB").is_some() {
         use aws_sdk_dynamodb::types::{PutRequest, WriteRequest};
-        use rand::prelude::SliceRandom;
 
         let mut backend = Backend::dynamo().await;
         let qids: Vec<Ulid> = if let Backend::Dynamo(ref mut client) = backend {
@@ -299,7 +298,8 @@ async fn main() -> Result<(), Error> {
                     info!("successfully registered questions");
                 }
             }
-
+            // let's collect ids of the questions related to the test event,
+            // we can then use them to auto-generate user votes over time
             client
                 .query()
                 .table_name("questions")
@@ -323,19 +323,8 @@ async fn main() -> Result<(), Error> {
         } else {
             unreachable!()
         };
-        let cheat = backend.clone();
-        tokio::spawn(async move {
-            loop {
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                let qid = qids.choose(&mut rand::thread_rng()).unwrap();
-                let _ = cheat.vote(qid, vote::UpDown::Up).await;
-            }
-        });
-        backend
+        (backend, qids)
     } else {
-        use rand::prelude::SliceRandom;
-        use std::time::Duration;
-
         let mut state = Local::default();
         let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
         let seed_e = "00000000000000000000000000";
@@ -377,16 +366,22 @@ async fn main() -> Result<(), Error> {
                 qids.push(qid);
             }
         }
-        let cheat = state.clone();
+        (state, qids)
+    };
+
+    // to aid in development, auto-generate user votes over time
+    #[cfg(debug_assertions)]
+    {
+        use rand::prelude::SliceRandom;
+        let backend = backend.clone();
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(Duration::from_secs(1)).await;
                 let qid = qids.choose(&mut rand::thread_rng()).unwrap();
-                let _ = cheat.vote(qid, vote::UpDown::Up).await;
+                let _ = backend.vote(qid, vote::UpDown::Up).await;
             }
         });
-        state
-    };
+    }
 
     let app = Router::new()
         .route("/api/event", post(new::new))
