@@ -125,10 +125,10 @@ export async function questionData(qid, qs) {
 		// that's small-ish.
 		//
 		// ref https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchGetItem.html
+		qids.sort();
 		if (qids.length > 25) {
 			qids = qids.slice(0, 25);
 		}
-		qids.sort();
 		let arg = qids.join(",");
 		// and go!
 		// TODO: handle failure

@@ -29,11 +29,6 @@ resource "aws_dynamodb_table" "questions" {
     type = "S"
   }
 
-  attribute {
-    name = "votes"
-    type = "N"
-  }
-
   ttl {
     attribute_name = "expire"
     enabled        = true
@@ -42,8 +37,7 @@ resource "aws_dynamodb_table" "questions" {
   global_secondary_index {
     name               = "top"
     hash_key           = "eid"
-    range_key          = "votes"
     projection_type    = "INCLUDE"
-    non_key_attributes = ["answered", "hidden"]
+    non_key_attributes = ["answered", "hidden", "votes"]
   }
 }

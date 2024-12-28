@@ -222,13 +222,15 @@ This is why the API to look up event info and question texts/authors is
 separated from looking up vote counts -- the former can have much longer
 cache time.
 
-To allow querying questions for a given event and receive them in sorted
-order, `questions` also has a [global secondary index] called `top`
-whose partition key is the event ULID and sort key `votes`. That index
-also projects out the "answered" and "hidden" fields so that a single
-query to that index gives all the mutable state for an event's question
-list (and can thus be queried with a single DynamoDB call by the
-Lambda).
+To allow querying questions for a given event, `questions` also has a
+[global secondary index] called `top` whose partition key is the event
+ULID. We don't use a sort key, since we want to sort by a [more complex
+function]. That index also projects out the "answered" and "hidden"
+fields so that a single query to that index gives all the mutable state
+for an event's question list (and can thus be queried with a single
+DynamoDB call by the Lambda).
+
+[more complex function]: https://www.evanmiller.org/ranking-news-items-with-upvotes.html
 
 **Metrics and Logging.**
 

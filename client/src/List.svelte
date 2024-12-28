@@ -129,6 +129,7 @@
 			la.newQuestions = la.newQuestions.filter((qid) => !(qid in nowPresent));
 			for (const newQ of la.newQuestions) {
 				console.info("add in", newQ);
+				// new questions always go at the bottom
 				qs.push({
 					qid: newQ,
 					hidden: false,
@@ -188,9 +189,6 @@
 				}
 			}
 		}
-		qs.sort((a, b) => {
-			return b.votes - a.votes;
-		});
 		return qs;
 	}
 
