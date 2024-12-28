@@ -84,7 +84,8 @@
 		<div class="mt-4 text-center text-slate-400">
 			Questions are ordered by <a
 				class="hover:text-black"
-				href="https://www.evanmiller.org/ranking-news-items-with-upvotes.html">votes over time</a
+				href="https://github.com/jonhoo/wewerewondering/blob/b87f660669d9323b7c2825d28b22c83792cd509e/server/src/list.rs#L192-L242"
+				>votes over time</a
 			>.
 		</div>
 		<div class="mt-4 text-center text-slate-400">
