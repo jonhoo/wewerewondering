@@ -1,4 +1,4 @@
-use crate::to_dynamo_timestamp;
+use crate::{to_dynamo_timestamp, EVENTS_TTL};
 
 use super::{Backend, Local};
 use aws_sdk_dynamodb::{
@@ -11,13 +11,11 @@ use axum::response::Json;
 use http::StatusCode;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
-
-const EVENTS_EXPIRE_AFTER_DAYS: u64 = 60;
 
 impl Backend {
     #[allow(clippy::wrong_self_convention)]
@@ -37,10 +35,7 @@ impl Backend {
                     .item("when", to_dynamo_timestamp(SystemTime::now()))
                     .item(
                         "expire",
-                        to_dynamo_timestamp(
-                            SystemTime::now()
-                                + Duration::from_secs(EVENTS_EXPIRE_AFTER_DAYS * 24 * 60 * 60),
-                        ),
+                        to_dynamo_timestamp(SystemTime::now() + EVENTS_TTL),
                     )
                     .send()
                     .await

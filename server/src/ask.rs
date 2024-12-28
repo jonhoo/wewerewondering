@@ -1,5 +1,5 @@
 use super::{Backend, Local};
-use crate::to_dynamo_timestamp;
+use crate::{to_dynamo_timestamp, QUESTIONS_TTL};
 use aws_sdk_dynamodb::{
     error::SdkError,
     operation::put_item::{PutItemError, PutItemOutput},
@@ -9,16 +9,11 @@ use axum::extract::{Path, State};
 use axum::response::Json;
 use http::StatusCode;
 use serde::Deserialize;
-use std::{
-    collections::HashMap,
-    time::{Duration, SystemTime},
-};
+use std::{collections::HashMap, time::SystemTime};
 use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
-
-const QUESTIONS_EXPIRE_AFTER_DAYS: u64 = 30;
 
 impl Backend {
     pub(super) async fn ask(
@@ -35,10 +30,7 @@ impl Backend {
             ("when", to_dynamo_timestamp(SystemTime::now())),
             (
                 "expire",
-                to_dynamo_timestamp(
-                    SystemTime::now()
-                        + Duration::from_secs(QUESTIONS_EXPIRE_AFTER_DAYS * 24 * 60 * 60),
-                ),
+                to_dynamo_timestamp(SystemTime::now() + QUESTIONS_TTL),
             ),
             ("hidden", AttributeValue::Bool(false)),
         ];
