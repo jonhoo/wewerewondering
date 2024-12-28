@@ -38,9 +38,8 @@ aws dynamodb create-table \
     --table-name questions \
     --attribute-definitions AttributeName=id,AttributeType=S \
     AttributeName=eid,AttributeType=S \
-    AttributeName=votes,AttributeType=N \
     --key-schema AttributeName=id,KeyType=HASH \
-    --global-secondary-indexes 'IndexName=top,KeySchema=[{AttributeName=eid,KeyType=HASH},{AttributeName=votes,KeyType=RANGE}],Projection={ProjectionType=INCLUDE,NonKeyAttributes=[answered,hidden]}' \
+    --global-secondary-indexes 'IndexName=top,KeySchema=[{AttributeName=eid,KeyType=HASH}],Projection={ProjectionType=INCLUDE,NonKeyAttributes=[answered,hidden,votes]}' \
     --billing-mode PAY_PER_REQUEST \
     --endpoint-url ${ENDPOINT_URL} >/dev/null
 

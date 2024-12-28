@@ -13,7 +13,10 @@ use http::{
     header::{self, HeaderName},
     StatusCode,
 };
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    time::{Duration, SystemTime},
+};
 use ulid::Ulid;
 
 #[allow(unused_imports)]
@@ -66,15 +69,6 @@ impl Backend {
                 let qs = questions_by_eid
                     .get_mut(eid)
                     .expect("list for non-existing event");
-                qs.sort_unstable_by_key(|qid| {
-                    std::cmp::Reverse(
-                        questions[qid]["votes"]
-                            .as_n()
-                            .expect("votes is always set")
-                            .parse::<usize>()
-                            .expect("votes are always numbers"),
-                    )
-                });
 
                 Ok(QueryOutput::builder()
                     .set_count(Some(qs.len() as i32))
@@ -193,7 +187,50 @@ async fn list_inner(
     match dynamo.list(&eid, has_secret).await {
         Ok(qs) => {
             trace!(%eid, n = %qs.count(), "listed questions");
-            let questions: Vec<_> = qs.items().iter().filter_map(serialize_question).collect();
+            let mut questions: Vec<_> = qs.items().iter().filter_map(serialize_question).collect();
+
+            // sort based on "hotness" of the question over time:
+            // https://www.evanmiller.org/ranking-news-items-with-upvotes.html
+            // the wrapper struct is needed because f64 doesn't impl Ord
+            #[derive(Debug)]
+            #[repr(transparent)]
+            struct Score(f64);
+            impl PartialEq for Score {
+                fn eq(&self, other: &Self) -> bool {
+                    self.cmp(other).is_eq()
+                }
+            }
+            impl Eq for Score {}
+            impl PartialOrd for Score {
+                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                    Some(self.cmp(other))
+                }
+            }
+            impl Ord for Score {
+                fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                    self.0.total_cmp(&other.0)
+                }
+            }
+            let now = SystemTime::now();
+            let score = |q: &serde_json::Value| {
+                let dt_in_minutes_rounded_down = now
+                    .duration_since(
+                        q["qid"]
+                            .as_str()
+                            .expect("it's a ULID")
+                            .parse::<Ulid>()
+                            .expect("produced as ULID by us")
+                            .datetime(),
+                    )
+                    .unwrap_or(Duration::ZERO)
+                    .as_secs()
+                    / 60;
+                let dt = dt_in_minutes_rounded_down + 1;
+                let votes = q["votes"].as_u64().expect("votes is a number") as f64;
+                let exp = (-1. * dt as f64).exp();
+                Score(exp * votes / (1. - exp))
+            };
+            questions.sort_by_cached_key(|q| score(q));
 
             let max_age = if has_secret {
                 // hosts should be allowed to see more up-to-date views
