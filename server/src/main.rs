@@ -31,20 +31,6 @@ use tracing::{debug, error, info, trace, warn};
 #[cfg(debug_assertions)]
 const SEED: &str = include_str!("test.json");
 
-#[cfg(debug_assertions)]
-use serde::Deserialize;
-
-#[cfg(debug_assertions)]
-#[derive(Deserialize)]
-struct LiveAskQuestion {
-    likes: usize,
-    text: String,
-    hidden: bool,
-    answered: bool,
-    #[serde(rename = "createTimeUnix")]
-    created: usize,
-}
-
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 enum Backend {
@@ -53,7 +39,7 @@ enum Backend {
 }
 
 impl Backend {
-    #[cfg(test)]
+    #[cfg(debug_assertions)]
     async fn local() -> Self {
         Backend::Local(Arc::new(Mutex::new(Local::default())))
     }
@@ -181,6 +167,203 @@ fn mint_service_error<E>(e: E) -> SdkError<E> {
     )
 }
 
+/// Seed the database.
+///
+/// This will register a test event (with id `00000000000000000000000000`) and
+/// a number of questions for it in the database, whether it's an in-memory [`Local`]
+/// database or a local instance of DynamoDB). Note that in the latter case
+/// we are checking if the test event is already there, and - if so - we are _not_ seeding
+/// the questions. This is to avoid creating duplicated questions when re-running the app.
+/// And this is not an issue of course when running against our in-memory [`Local`] database.
+///
+/// The returned vector contains IDs of the questions related to the test event.
+#[cfg(debug_assertions)]
+async fn seed(backend: &mut Backend) -> Vec<Ulid> {
+    #[derive(serde::Deserialize)]
+    struct LiveAskQuestion {
+        likes: usize,
+        text: String,
+        hidden: bool,
+        answered: bool,
+        #[serde(rename = "createTimeUnix")]
+        created: usize,
+    }
+
+    let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
+    let seed_e = Ulid::from_string("00000000000000000000000000").unwrap();
+
+    match backend {
+        Backend::Dynamo(ref mut client) => {
+            use aws_sdk_dynamodb::types::{PutRequest, WriteRequest};
+
+            info!("going to seed test event");
+            match client
+                .put_item()
+                .table_name("events")
+                .condition_expression("attribute_not_exists(id)")
+                .item("id", AttributeValue::S(seed_e.to_string()))
+                .item("secret", AttributeValue::S("secret".into()))
+                .item("when", to_dynamo_timestamp(SystemTime::now()))
+                .item(
+                    "expire",
+                    to_dynamo_timestamp(SystemTime::now() + EVENTS_TTL),
+                )
+                .send()
+                .await
+            {
+                Err(ref error @ SdkError::ServiceError(ref e)) => {
+                    if e.err().is_conditional_check_failed_exception() {
+                        warn!("test event is already there, skipping seeding questions");
+                    } else {
+                        panic!("failed to seed test event {:?}", error)
+                    }
+                }
+                Err(e) => panic!("failed to seed test event {:?}", e),
+                Ok(_) => {
+                    info!("successfully registered test event, going to seed questions now");
+                    // DynamoDB supports batch write operations with `25` as max batch size
+                    // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
+                    for chunk in seed.chunks(25) {
+                        client
+                            .batch_write_item()
+                            .request_items(
+                                "questions",
+                                chunk
+                                    .iter()
+                                    .map(
+                                        |LiveAskQuestion {
+                                             likes,
+                                             text,
+                                             hidden,
+                                             answered,
+                                             created,
+                                         }| {
+                                            let mut item = HashMap::from([
+                                                (
+                                                    "id".to_string(),
+                                                    AttributeValue::S(
+                                                        ulid::Ulid::new().to_string(),
+                                                    ),
+                                                ),
+                                                (
+                                                    "eid".to_string(),
+                                                    AttributeValue::S(seed_e.to_string()),
+                                                ),
+                                                (
+                                                    "votes".to_string(),
+                                                    AttributeValue::N(likes.to_string()),
+                                                ),
+                                                (
+                                                    "text".to_string(),
+                                                    AttributeValue::S(text.clone()),
+                                                ),
+                                                (
+                                                    "when".to_string(),
+                                                    AttributeValue::N(created.to_string()),
+                                                ),
+                                                (
+                                                    "expire".to_string(),
+                                                    to_dynamo_timestamp(
+                                                        SystemTime::now() + QUESTIONS_TTL,
+                                                    ),
+                                                ),
+                                                (
+                                                    "hidden".to_string(),
+                                                    AttributeValue::Bool(*hidden),
+                                                ),
+                                            ]);
+                                            if *answered {
+                                                item.insert(
+                                                    "answered".to_string(),
+                                                    to_dynamo_timestamp(SystemTime::now()),
+                                                );
+                                            }
+                                            WriteRequest::builder()
+                                                .put_request(
+                                                    PutRequest::builder()
+                                                        .set_item(Some(item))
+                                                        .build()
+                                                        .expect("request to have been built ok"),
+                                                )
+                                                .build()
+                                        },
+                                    )
+                                    .collect::<Vec<_>>(),
+                            )
+                            .send()
+                            .await
+                            .expect("batch to have been written ok");
+                    }
+                    info!("successfully registered questions");
+                }
+            }
+            // let's collect ids of the questions related to the test event,
+            // we can then use them to auto-generate user votes over time
+            let qids = client
+                .query()
+                .table_name("questions")
+                .index_name("top")
+                .key_condition_expression("eid = :eid")
+                .expression_attribute_values(":eid", AttributeValue::S(seed_e.to_string()))
+                .send()
+                .await
+                .expect("scanned index ok")
+                .items()
+                .iter()
+                .filter_map(|item| {
+                    let id = item
+                        .get("id")
+                        .expect("id is in projection")
+                        .as_s()
+                        .expect("id is of type string");
+                    ulid::Ulid::from_string(id).ok()
+                })
+                .collect();
+
+            qids
+        }
+        Backend::Local(ref mut local) => {
+            let mut state = local.lock().unwrap();
+            info!("going to seed test event");
+            state.events.insert(seed_e, String::from("secret"));
+
+            info!("successfully registered test event, going to seed questions now");
+            let mut qids = Vec::new();
+            for LiveAskQuestion {
+                likes,
+                text,
+                created,
+                hidden,
+                answered,
+            } in seed
+            {
+                let qid = ulid::Ulid::new();
+                let mut item = HashMap::from([
+                    ("id", AttributeValue::S(qid.to_string())),
+                    ("eid", AttributeValue::S(seed_e.to_string())),
+                    ("votes", AttributeValue::N(likes.to_string())),
+                    ("text", AttributeValue::S(text.clone())),
+                    ("when", AttributeValue::N(created.to_string())),
+                    (
+                        "expire",
+                        to_dynamo_timestamp(SystemTime::now() + QUESTIONS_TTL),
+                    ),
+                    ("hidden", AttributeValue::Bool(hidden)),
+                ]);
+                if answered {
+                    item.insert("answered", to_dynamo_timestamp(SystemTime::now()));
+                };
+                state.questions.insert(qid, item);
+                qids.push(qid);
+            }
+            state.questions_by_eid.insert(seed_e, qids.clone());
+            info!("successfully registered questions");
+
+            qids
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
@@ -189,193 +372,33 @@ async fn main() -> Result<(), Error> {
 
     #[cfg(not(debug_assertions))]
     let backend = Backend::dynamo().await;
+
     #[cfg(debug_assertions)]
-    let (backend, qids) = if std::env::var_os("USE_DYNAMODB").is_some() {
-        use aws_sdk_dynamodb::types::{PutRequest, WriteRequest};
-
-        let mut backend = Backend::dynamo().await;
-        let Backend::Dynamo(ref mut client) = backend else {
-            unreachable!()
-        };
-        info!("going to seed test event");
-        let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
-        let seed_e = Ulid::from_string("00000000000000000000000000").unwrap();
-        match client
-            .put_item()
-            .table_name("events")
-            .condition_expression("attribute_not_exists(id)")
-            .item("id", AttributeValue::S(seed_e.to_string()))
-            .item("secret", AttributeValue::S("secret".into()))
-            .item("when", to_dynamo_timestamp(SystemTime::now()))
-            .item(
-                "expire",
-                to_dynamo_timestamp(SystemTime::now() + EVENTS_TTL),
-            )
-            .send()
-            .await
-        {
-            Err(ref error @ SdkError::ServiceError(ref e)) => {
-                if e.err().is_conditional_check_failed_exception() {
-                    warn!("test event is already there, skipping seeding questions");
-                } else {
-                    panic!("failed to seed test event {:?}", error)
-                }
-            }
-            Err(e) => panic!("failed to seed test event {:?}", e),
-            Ok(_) => {
-                info!("successfully registered test event, going to seed questions now");
-                // DynamoDB supports batch write operations with `25` as max batch size
-                // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
-                for chunk in seed.chunks(25) {
-                    client
-                        .batch_write_item()
-                        .request_items(
-                            "questions",
-                            chunk
-                                .iter()
-                                .map(
-                                    |LiveAskQuestion {
-                                         likes,
-                                         text,
-                                         hidden,
-                                         answered,
-                                         created,
-                                     }| {
-                                        let mut item = HashMap::from([
-                                            (
-                                                "id".to_string(),
-                                                AttributeValue::S(ulid::Ulid::new().to_string()),
-                                            ),
-                                            (
-                                                "eid".to_string(),
-                                                AttributeValue::S(seed_e.to_string()),
-                                            ),
-                                            (
-                                                "votes".to_string(),
-                                                AttributeValue::N(likes.to_string()),
-                                            ),
-                                            ("text".to_string(), AttributeValue::S(text.clone())),
-                                            (
-                                                "when".to_string(),
-                                                AttributeValue::N(created.to_string()),
-                                            ),
-                                            (
-                                                "expire".to_string(),
-                                                to_dynamo_timestamp(
-                                                    SystemTime::now() + QUESTIONS_TTL,
-                                                ),
-                                            ),
-                                            ("hidden".to_string(), AttributeValue::Bool(*hidden)),
-                                        ]);
-                                        if *answered {
-                                            item.insert(
-                                                "answered".to_string(),
-                                                to_dynamo_timestamp(SystemTime::now()),
-                                            );
-                                        }
-                                        WriteRequest::builder()
-                                            .put_request(
-                                                PutRequest::builder()
-                                                    .set_item(Some(item))
-                                                    .build()
-                                                    .expect("request to have been built ok"),
-                                            )
-                                            .build()
-                                    },
-                                )
-                                .collect::<Vec<_>>(),
-                        )
-                        .send()
-                        .await
-                        .expect("batch to have been written ok");
-                }
-                info!("successfully registered questions");
-            }
-        }
-        // let's collect ids of the questions related to the test event,
-        // we can then use them to auto-generate user votes over time
-        let qids = client
-            .query()
-            .table_name("questions")
-            .index_name("top")
-            .key_condition_expression("eid = :eid")
-            .expression_attribute_values(":eid", AttributeValue::S(seed_e.to_string()))
-            .send()
-            .await
-            .expect("scanned index ok")
-            .items()
-            .iter()
-            .filter_map(|item| {
-                let id = item
-                    .get("id")
-                    .expect("id is in projection")
-                    .as_s()
-                    .expect("id is of type string");
-                ulid::Ulid::from_string(id).ok()
-            })
-            .collect();
-
-        (backend, qids)
-    } else {
-        let mut state = Local::default();
-        let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
-        let seed_e = "00000000000000000000000000";
-        let seed_e = Ulid::from_string(seed_e).unwrap();
-        state.events.insert(seed_e, String::from("secret"));
-        state.questions_by_eid.insert(seed_e, Vec::new());
-        let mut state = Backend::Local(Arc::new(Mutex::new(state)));
-        let mut qs = Vec::new();
-        for q in seed {
-            let qid = ulid::Ulid::new();
-            state
-                .ask(
-                    &seed_e,
-                    &qid,
-                    ask::Question {
-                        body: q.text,
-                        asker: None,
-                    },
-                )
-                .await
-                .unwrap();
-            qs.push((qid, q.created, q.likes, q.hidden, q.answered));
-        }
-        let mut qids = Vec::new();
-        {
-            let Backend::Local(ref mut state): Backend = state else {
-                unreachable!();
-            };
-            let state = Arc::get_mut(state).unwrap();
-            let state = Mutex::get_mut(state).unwrap();
-            for (qid, created, votes, hidden, answered) in qs {
-                let q = state.questions.get_mut(&qid).unwrap();
-                q.insert("votes", AttributeValue::N(votes.to_string()));
-                if answered {
-                    q.insert("answered", to_dynamo_timestamp(SystemTime::now()));
-                }
-                q.insert("hidden", AttributeValue::Bool(hidden));
-                q.insert("when", AttributeValue::N(created.to_string()));
-                qids.push(qid);
-            }
-        }
-        (state, qids)
-    };
-
-    // to aid in development, auto-generate user votes over time
-    #[cfg(debug_assertions)]
-    {
+    let backend = {
         use rand::prelude::SliceRandom;
-        let backend = backend.clone();
+
+        let backend = if std::env::var_os("USE_DYNAMODB").is_some() {
+            Backend::dynamo().await
+        } else {
+            Backend::local().await
+        };
+
+        // to aid in development, seed the backend with a test event and related
+        // questions, and auto-generate user votes over time
+        let mut cheat = backend.clone();
+        let qids = seed(&mut cheat).await;
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(1));
             interval.tick().await;
             loop {
                 interval.tick().await;
                 let qid = qids.choose(&mut rand::thread_rng()).unwrap();
-                let _ = backend.vote(qid, vote::UpDown::Up).await;
+                let _ = cheat.vote(qid, vote::UpDown::Up).await;
             }
         });
-    }
+
+        backend
+    };
 
     let app = Router::new()
         .route("/api/event", post(new::new))
