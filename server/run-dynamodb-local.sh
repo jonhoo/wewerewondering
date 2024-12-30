@@ -21,10 +21,13 @@ export AWS_ACCESS_KEY_ID=lorem
 export AWS_SECRET_ACCESS_KEY=ipsum
 export AWS_DEFAULT_REGION=us-east-1
 
+DYNAMODB_NETWORK_NAME=wewerewondering
 DYNAMODB_CONTAINER_NAME=dynamodb-local
 DYNAMODB_ADMIN_CONTAINER_NAME=dynamodb-admin
 DYNAMODB_HOST=127.0.0.1
 DYNAMODB_PORT=8000
+DYNAMODB_ADMIN_HOST=127.0.0.1
+DYNAMODB_ADMIN_PORT=8001
 ENDPOINT_URL=http://${DYNAMODB_HOST}:${DYNAMODB_PORT}
 
 docker ps | grep ${DYNAMODB_CONTAINER_NAME} >/dev/null &&
@@ -34,11 +37,17 @@ echo "🖴 Preparing volumes for DynamoDB..."
 rm -rf dynamodb-data
 mkdir dynamodb-data
 
+if docker network inspect ${DYNAMODB_NETWORK_NAME} 2>&1 >/dev/null; then
+    echo "🚫 Network ${DYNAMODB_NETWORK_NAME} already exists, re-using..."
+else
+    docker network create ${DYNAMODB_NETWORK_NAME}
+fi
+
 echo "🚀 Spinning up a container with DynamoDB..."
 (
     docker run --rm -d -v ./dynamodb-data:/home/dynamodblocal/data -p ${DYNAMODB_HOST}:${DYNAMODB_PORT}:8000 \
-        -w /home/dynamodblocal --name ${DYNAMODB_CONTAINER_NAME} amazon/dynamodb-local:latest \
-        -jar DynamoDBLocal.jar -sharedDb -dbPath ./data
+        -w /home/dynamodblocal --name ${DYNAMODB_CONTAINER_NAME} --network ${DYNAMODB_NETWORK_NAME} \
+        amazon/dynamodb-local:latest -jar DynamoDBLocal.jar -sharedDb -dbPath ./data
 ) >/dev/null
 
 while ! (aws dynamodb list-tables --endpoint-url ${ENDPOINT_URL} >/dev/null); do
@@ -54,7 +63,13 @@ docker ps | grep ${DYNAMODB_ADMIN_CONTAINER_NAME} >/dev/null &&
     exit 0
 
 echo "🚀 Spinning up a container with DynamoDB Admin..."
-(docker run -d --rm --net host --name ${DYNAMODB_ADMIN_CONTAINER_NAME} aaronshaf/dynamodb-admin) >/dev/null
-echo "🔎 DynamoDB Admin is available at http://localhost:8001"
+(
+    docker run -d --rm -p ${DYNAMODB_ADMIN_HOST}:${DYNAMODB_ADMIN_PORT}:8001 \
+        --name ${DYNAMODB_ADMIN_CONTAINER_NAME} \
+        --network ${DYNAMODB_NETWORK_NAME} \
+        -e DYNAMO_ENDPOINT=http://${DYNAMODB_CONTAINER_NAME}:8000 \
+        aaronshaf/dynamodb-admin
+) >/dev/null
+echo "🔎 DynamoDB Admin is available at http://${DYNAMODB_ADMIN_HOST}:${DYNAMODB_ADMIN_PORT}"
 
 echo "✅ Done!"

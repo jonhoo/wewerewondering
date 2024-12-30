@@ -1,0 +1,40 @@
+# NB! We are only using SAM to run the application as a Lambda function behind
+# the API Gateway locally. We are actually using Terraform to describe and deploy
+# the infrastructure (see `infra` directory in the project's root with IaC files).
+
+# More information about the configuration file can be found here:
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
+version = 0.1
+stack_name = "wewerewondering"
+
+[default.build.parameters]
+# Cargo Lambda is supported as a beta feature in SAM:
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/building-rust.html
+beta_features = true
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+
+[default.package.parameters]
+resolve_s3 = true
+
+[default.sync.parameters]
+beta_features = true
+watch = true
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+# The command `sam local start-api` will be launch Lambda Runtime in a docker
+# container and so we need to make sure the DynamoDB Local is in the same network
+# (see `DYNAMODB_NETWORK_NAME` in `./run-dynamodb-local.sh`)
+docker_network = "wewerewondering"
+
+[default.local_start_lambda.parameters]
+warm_containers = "EAGER"

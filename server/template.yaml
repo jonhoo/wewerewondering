@@ -1,0 +1,67 @@
+# NB! We are only using SAM to run the application as a Lambda function behind
+# the API Gateway locally. We are actually using Terraform to describe and deploy
+# the infrastructure (see `infra` directory in the project's root with IaC files, 
+# specifically `infra/apigw.tf` and `infra/lambda.tf`).
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sample SAM Template for running and tesing WeWereWondering locally
+Resources:
+  WeWereWonderingApi:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: rust-cargolambda 
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Runtime: provided.al2
+      Architectures:
+      - x86_64
+      Timeout: 29
+      MemorySize: 512
+      Events:
+        FetchEvent:
+          Type: HttpApi
+          Properties:
+            Path: /api/event/{eid}
+            Method: get
+        CreateEvent:
+          Type: HttpApi
+          Properties:
+            Path: /api/event
+            Method: post
+        AskQuestion:
+          Type: HttpApi
+          Properties:
+            Path: /api/event/{eid}
+            Method: post
+        FetchAllUnhiddenQuestionsForEvent:
+          Type: HttpApi
+          Properties:
+            Path: /api/event/{eid}/questions
+            Method: get
+        FetchFetchAllQuestionsForEventAllQuestionsForEvent:
+          Type: HttpApi
+          Properties:
+            Path: /api/event/{eid}/questions/{secret}
+            Method: get
+        ToggleQuestionProperty:
+          Type: HttpApi
+          Properties:
+            Path: /api/event/{eid}/questions/{secret}/{qid}/toggle/{property}
+            Method: post
+        UpvoteDownvoteQuestion:
+          Type: HttpApi
+          Properties:
+            Path: /api/vote/{qid}/{updown}
+            Method: post
+        FetchQuestions:
+          Type: HttpApi
+          Properties:
+            Path: /api/questions/{qids}
+            Method: get
+      Environment:
+        Variables:
+          RUST_LOG: debug
+          USE_DYNAMODB: local
+          AWS_ENDPOINT_URL: http://dynamodb-local:8000

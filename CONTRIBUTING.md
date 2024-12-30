@@ -2,6 +2,8 @@ Hello there!
 
 So, you want to help improve the site — great!
 
+### Setup
+
 Local setup is fairly straightforward:
 
 1. Run the server (you'll need [Rust](https://www.rust-lang.org/)):
@@ -31,6 +33,8 @@ It will also auto-generate user votes over time for the questions there.
 If you're curious about the technologies used in the server and client,
 see their respective `README.md` files.
 
+### DynamoDB Local
+
 To run tests against a DynamoDB instance running [locally](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html), make sure
 you got [`docker`](https://docs.docker.com/engine/install/) and
 [`AWS CLI`](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) installed, then hit:
@@ -54,4 +58,47 @@ your local DynamoDB instance, hit:
 
 ```sh
 USE_DYNAMODB=local cargo run
+```
+
+### API Gateway Local
+
+Prerequisites:
+
+- [Cargo Lambda](https://www.cargo-lambda.info/guide/installation.html#binary-releases)
+- [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- DynamoDB Local [container](#backend-with-dynamodb-local)
+
+To build and launch the application as a `Lambda` function behind `API Gateway` locally, `cd` to the server
+directory, and hit:
+
+```sh
+sam build
+sam local start-api
+```
+
+Once you make changes to the back-end code, open a separate terminal window and rebuild the app with:
+
+```sh
+sam build
+```
+
+The `sam local` process we've lauched previously will then pick up the new binary from `./server/.aws-sam` directory.
+
+Here is how our `API Gateway Local` plus `DynamoDB Local` setup look like:
+
+```sh
+ ______________________________                                  _______________________________________________
+|           Browser            |                                |       Docker Network: wewerewondering         |
+|   _______________________    |     _______________________    |     __________________________________        |
+|  |                       |   |    | API Gateway Proxy     |   |    | WeWereWondering Server Container |       |
+|  | WeWereWodering Client |-- |--> | http://localhost:3000 | --|--> | ports: SAM assigns dynamically   | --|   |
+|  | http://localhost:5173 |   |    |_______________________|   |    |__________________________________|   |   |
+|  |_______________________|   |                                |                                           |   |
+|   _______________________    |                                |                                           |   |
+|  |                       |   |                                |     _____________________________         |   |
+|  | DynamoDB Admin Client |---|--------------------------------|--> | DynamoDB Local Container    |        |   |
+|  | http://localhost:8001 |   |                                |    | ports: 127.0.0.1:8000:8000  |        |   |
+|  |_______________________|   |                                |    | host: dynamodb-local        | <------|   |
+|                              |                                |    |_____________________________|            |
+|______________________________|                                |_______________________________________________|
 ```
