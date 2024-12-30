@@ -56,7 +56,7 @@ impl Backend {
     /// ```sh
     /// USE_DYNAMODB=local cargo t -- --include-ignored
     /// ```
-    /// 
+    ///
     /// This also allows us to use the local instance of DynamoDB which is running
     /// in a container on the same network, in which case the database will be accessible
     /// under `http://<dynamodb_container_name>:<port>`. This facilitates the setup of
