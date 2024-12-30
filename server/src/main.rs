@@ -171,7 +171,7 @@ fn mint_service_error<E>(e: E) -> SdkError<E> {
 ///
 /// This will register a test event (with id `00000000000000000000000000`) and
 /// a number of questions for it in the database, whether it's an in-memory [`Local`]
-/// database or a local instance of DynamoDB). Note that in the latter case
+/// database or a local instance of DynamoDB. Note that in the latter case
 /// we are checking if the test event is already there, and - if so - we are _not_ seeding
 /// the questions. This is to avoid creating duplicated questions when re-running the app.
 /// And this is not an issue of course when running against our in-memory [`Local`] database.
