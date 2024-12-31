@@ -68,6 +68,9 @@ Prerequisites:
 - [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 - DynamoDB Local [container](#backend-with-dynamodb-local)
 
+NB! `API Gateway Local` will only work when the binary is built in release mode (`sam build` will do this for us).
+See how we are wrapping the `axum` app in the `LambdaLayer` in release mode in [main](./server/src/main.rs).
+
 To build and launch the application as a `Lambda` function behind `API Gateway` locally, `cd` to the server
 directory, and hit:
 
