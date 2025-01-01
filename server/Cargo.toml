@@ -13,7 +13,7 @@ axum = "0.7.5"
 http = "1.0"
 http-body-util = "0.1.1"
 hyper = { version = "1.0.1", features = ["server", "http1", "http2"] }
-lambda_http = { version = "0.13.0", default-features = false, features = ["apigw_http"] }
+lambda_http = { version = "0.14.0", default-features = false, features = ["apigw_http"] }
 lambda_runtime = "0.13.0"
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
