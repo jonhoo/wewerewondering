@@ -190,126 +190,85 @@ async fn seed(backend: &mut Backend) -> Vec<Ulid> {
 
     let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
     let seed_e = Ulid::from_string("00000000000000000000000000").unwrap();
+    let seed_e_secret = "secret";
 
     match backend {
         backend_dynamo @ Backend::Dynamo(_) => {
-            use aws_sdk_dynamodb::types::{PutRequest, WriteRequest};
+            use aws_sdk_dynamodb::types::BatchStatementRequest;
 
             info!("going to seed test event");
-            let Backend::Dynamo(ref mut client) = backend_dynamo else {
-                unreachable!()
-            };
-            match client
-                .put_item()
-                .table_name("events")
-                .condition_expression("attribute_not_exists(id)")
-                .item("id", AttributeValue::S(seed_e.to_string()))
-                .item("secret", AttributeValue::S("secret".into()))
-                .item("when", to_dynamo_timestamp(SystemTime::now()))
-                .item(
-                    "expire",
-                    to_dynamo_timestamp(SystemTime::now() + EVENTS_TTL),
-                )
-                .send()
-                .await
-            {
-                Err(ref error @ SdkError::ServiceError(ref e)) => {
-                    if e.err().is_conditional_check_failed_exception() {
-                        warn!("test event is already there, skipping seeding questions");
-                    } else {
-                        panic!("failed to seed test event {:?}", error)
-                    }
+            match backend_dynamo.event(&seed_e).await.unwrap() {
+                output if output.item().is_some() => {
+                    warn!("test event is already there, skipping seeding questions");
                 }
-                Err(e) => panic!("failed to seed test event {:?}", e),
-                Ok(_) => {
+                _ => {
+                    backend_dynamo.new(&seed_e, seed_e_secret).await.unwrap();
                     info!("successfully registered test event, going to seed questions now");
-                    // DynamoDB supports batch write operations with `25` as max batch size
-                    // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
-                    for chunk in seed.chunks(25) {
-                        client
-                            .batch_write_item()
-                            .request_items(
-                                "questions",
-                                chunk
-                                    .iter()
-                                    .map(
-                                        |LiveAskQuestion {
-                                             likes,
-                                             text,
-                                             hidden,
-                                             answered,
-                                             created,
-                                         }| {
-                                            let mut item = HashMap::from([
-                                                (
-                                                    "id".to_string(),
-                                                    AttributeValue::S(
-                                                        ulid::Ulid::new().to_string(),
-                                                    ),
-                                                ),
-                                                (
-                                                    "eid".to_string(),
-                                                    AttributeValue::S(seed_e.to_string()),
-                                                ),
-                                                (
-                                                    "votes".to_string(),
-                                                    AttributeValue::N(likes.to_string()),
-                                                ),
-                                                (
-                                                    "text".to_string(),
-                                                    AttributeValue::S(text.clone()),
-                                                ),
-                                                (
-                                                    "when".to_string(),
-                                                    AttributeValue::N(created.to_string()),
-                                                ),
-                                                (
-                                                    "expire".to_string(),
-                                                    to_dynamo_timestamp(
-                                                        SystemTime::now() + QUESTIONS_TTL,
-                                                    ),
-                                                ),
-                                                (
-                                                    "hidden".to_string(),
-                                                    AttributeValue::Bool(*hidden),
-                                                ),
-                                            ]);
-                                            if *answered {
-                                                item.insert(
-                                                    "answered".to_string(),
-                                                    to_dynamo_timestamp(SystemTime::now()),
-                                                );
-                                            }
-                                            WriteRequest::builder()
-                                                .put_request(
-                                                    PutRequest::builder()
-                                                        .set_item(Some(item))
-                                                        .build()
-                                                        .expect("request to have been built ok"),
-                                                )
-                                                .build()
-                                        },
-                                    )
-                                    .collect::<Vec<_>>(),
+
+                    let mut qs = Vec::new();
+                    for q in seed {
+                        let qid = ulid::Ulid::new();
+                        backend_dynamo
+                            .ask(
+                                &seed_e,
+                                &qid,
+                                ask::Question {
+                                    body: q.text,
+                                    asker: None,
+                                },
                             )
+                            .await
+                            .unwrap();
+                        qs.push((qid, q.created, q.likes, q.hidden, q.answered));
+                    }
+
+                    let Backend::Dynamo(ref mut client) = backend_dynamo else {
+                        unreachable!();
+                    };
+                    // DynamoDB supports batch operations using PartiQL syntax with `25` as max batch size
+                    // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchExecuteStatement.html
+                    for chunk in qs.chunks(25) {
+                        let batch_update = chunk
+                            .iter()
+                            .map(|(qid, created, votes, hidden, answered)| {
+                                let builder =  BatchStatementRequest::builder();
+                                let builder = if *answered {
+                                    builder.statement(
+                                       // numerous words are reserved in the DynamoDB engine (e.g. Key, Id, When) and
+                                       // should be qouted; we are quoting all of our attrs to avoid possible collisions
+                                       r#"UPDATE "questions" SET "answered"=? SET "votes"=? SET "when"=? SET "hidden"=? WHERE "id"=?"#,
+                                    )
+                                    .parameters(to_dynamo_timestamp(SystemTime::now())) // answered
+                                } else {
+                                    builder.statement(
+                                       r#"UPDATE "questions" SET "votes"=? SET "when"=? SET "hidden"=? WHERE "id"=?"#,
+                                    )
+                                };
+                                builder
+                                .parameters(AttributeValue::N(votes.to_string())) // votes
+                                .parameters(AttributeValue::N(created.to_string())) // when
+                                .parameters(AttributeValue::Bool(*hidden)) // hidden
+                                .parameters(AttributeValue::S(qid.to_string())) // id
+                                .build()
+                                .unwrap()
+                            })
+                            .collect::<Vec<_>>();
+                        client
+                            .batch_execute_statement()
+                            .set_statements(Some(batch_update))
                             .send()
                             .await
                             .expect("batch to have been written ok");
                     }
-                    info!("successfully registered questions");
                 }
             }
+            info!("successfully registered questions");
             // let's collect ids of the questions related to the test event,
             // we can then use them to auto-generate user votes over time
-            let qids = client
-                .query()
-                .table_name("questions")
-                .index_name("top")
-                .key_condition_expression("eid = :eid")
-                .expression_attribute_values(":eid", AttributeValue::S(seed_e.to_string()))
-                .send()
+            let qids = backend_dynamo
+                .list(&seed_e, true)
                 .await
-                .expect("scanned index ok")
+                .expect("scenned index ok")
                 .items()
                 .iter()
                 .filter_map(|item| {
@@ -326,7 +285,7 @@ async fn seed(backend: &mut Backend) -> Vec<Ulid> {
         }
         backend_local @ Backend::Local(_) => {
             info!("going to seed test event");
-            backend_local.new(&seed_e, "secret").await.unwrap();
+            backend_local.new(&seed_e, seed_e_secret).await.unwrap();
 
             info!("successfully registered test event, going to seed questions now");
             let mut qs = Vec::new();
@@ -399,7 +358,9 @@ async fn main() -> Result<(), Error> {
             interval.tick().await;
             loop {
                 interval.tick().await;
-                let qid = qids.choose(&mut rand::thread_rng()).unwrap();
+                let qid = qids
+                    .choose(&mut rand::thread_rng())
+                    .expect("there _are_ some questions for our test event");
                 let _ = cheat.vote(qid, vote::UpDown::Up).await;
             }
         });
