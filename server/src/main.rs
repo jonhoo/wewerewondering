@@ -6,7 +6,7 @@ use axum::Router;
 use http::StatusCode;
 use http_body_util::BodyExt;
 use lambda_http::Error;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 use std::{
     collections::HashMap,
     future::Future,
@@ -18,6 +18,12 @@ use tower_http::{limit::RequestBodyLimitLayer, trace::TraceLayer};
 use tower_service::Service;
 use tracing_subscriber::EnvFilter;
 use ulid::Ulid;
+
+const QUESTIONS_EXPIRE_AFTER_DAYS: u64 = 30;
+const QUESTIONS_TTL: Duration = Duration::from_secs(QUESTIONS_EXPIRE_AFTER_DAYS * 24 * 60 * 60);
+
+const EVENTS_EXPIRE_AFTER_DAYS: u64 = 60;
+const EVENTS_TTL: Duration = Duration::from_secs(EVENTS_EXPIRE_AFTER_DAYS * 24 * 60 * 60);
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
@@ -33,7 +39,6 @@ enum Backend {
 }
 
 impl Backend {
-    #[cfg(test)]
     async fn local() -> Self {
         Backend::Local(Arc::new(Mutex::new(Local::default())))
     }
@@ -178,59 +183,146 @@ fn mint_service_error<E>(e: E) -> SdkError<E> {
     )
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .without_time(/* cloudwatch does that */).init();
+/// Seed the database.
+///
+/// This will register a test event (with id `00000000000000000000000000`) and
+/// a number of questions for it in the database, whether it's an in-memory [`Local`]
+/// database or a local instance of DynamoDB. Note that in the latter case
+/// we are checking if the test event is already there, and - if so - we are _not_ seeding
+/// the questions. This is to avoid creating duplicated questions when re-running the app.
+/// And this is not an issue of course when running against our in-memory [`Local`] database.
+///
+/// The returned vector contains IDs of the questions related to the test event.
+#[cfg(debug_assertions)]
+async fn seed(backend: &mut Backend) -> Vec<Ulid> {
+    #[derive(serde::Deserialize)]
+    struct LiveAskQuestion {
+        likes: usize,
+        text: String,
+        hidden: bool,
+        answered: bool,
+        #[serde(rename = "createTimeUnix")]
+        created: usize,
+    }
 
-    #[cfg(not(debug_assertions))]
-    let backend = Backend::dynamo().await;
-    #[cfg(debug_assertions)]
-    let backend = if std::env::var_os("USE_DYNAMODB").is_some() {
-        Backend::dynamo().await
-    } else {
-        use rand::prelude::SliceRandom;
-        use serde::Deserialize;
-        use std::time::Duration;
+    let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
+    let seed_e = Ulid::from_string("00000000000000000000000000").unwrap();
+    let seed_e_secret = "secret";
 
-        #[cfg(debug_assertions)]
-        #[derive(Deserialize)]
-        struct LiveAskQuestion {
-            likes: usize,
-            text: String,
-            hidden: bool,
-            answered: bool,
-            #[serde(rename = "createTimeUnix")]
-            created: usize,
-        }
+    match backend {
+        backend_dynamo @ Backend::Dynamo(_) => {
+            use aws_sdk_dynamodb::types::BatchStatementRequest;
 
-        let mut state = Local::default();
-        let seed: Vec<LiveAskQuestion> = serde_json::from_str(SEED).unwrap();
-        let seed_e = "00000000000000000000000000";
-        let seed_e = Ulid::from_string(seed_e).unwrap();
-        state.events.insert(seed_e, String::from("secret"));
-        state.questions_by_eid.insert(seed_e, Vec::new());
-        let mut state = Backend::Local(Arc::new(Mutex::new(state)));
-        let mut qs = Vec::new();
-        for q in seed {
-            let qid = ulid::Ulid::new();
-            state
-                .ask(
-                    &seed_e,
-                    &qid,
-                    ask::Question {
-                        body: q.text,
-                        asker: None,
-                    },
-                )
+            info!("going to seed test event");
+            match backend_dynamo.event(&seed_e).await.unwrap() {
+                output if output.item().is_some() => {
+                    warn!("test event is already there, skipping seeding questions");
+                }
+                _ => {
+                    backend_dynamo.new(&seed_e, seed_e_secret).await.unwrap();
+                    info!("successfully registered test event, going to seed questions now");
+
+                    let mut qs = Vec::new();
+                    for q in seed {
+                        let qid = ulid::Ulid::new();
+                        backend_dynamo
+                            .ask(
+                                &seed_e,
+                                &qid,
+                                ask::Question {
+                                    body: q.text,
+                                    asker: None,
+                                },
+                            )
+                            .await
+                            .unwrap();
+                        qs.push((qid, q.created, q.likes, q.hidden, q.answered));
+                    }
+
+                    let Backend::Dynamo(ref mut client) = backend_dynamo else {
+                        unreachable!();
+                    };
+                    // DynamoDB supports batch operations using PartiQL syntax with `25` as max batch size
+                    // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchExecuteStatement.html
+                    for chunk in qs.chunks(25) {
+                        let batch_update = chunk
+                            .iter()
+                            .map(|(qid, created, votes, hidden, answered)| {
+                                let builder =  BatchStatementRequest::builder();
+                                let builder = if *answered {
+                                    builder.statement(
+                                       // numerous words are reserved in the DynamoDB engine (e.g. Key, Id, When) and
+                                       // should be qouted; we are quoting all of our attrs to avoid possible collisions
+                                       r#"UPDATE "questions" SET "answered"=? SET "votes"=? SET "when"=? SET "hidden"=? WHERE "id"=?"#,
+                                    )
+                                    .parameters(to_dynamo_timestamp(SystemTime::now())) // answered
+                                } else {
+                                    builder.statement(
+                                       r#"UPDATE "questions" SET "votes"=? SET "when"=? SET "hidden"=? WHERE "id"=?"#,
+                                    )
+                                };
+                                builder
+                                .parameters(AttributeValue::N(votes.to_string())) // votes
+                                .parameters(AttributeValue::N(created.to_string())) // when
+                                .parameters(AttributeValue::Bool(*hidden)) // hidden
+                                .parameters(AttributeValue::S(qid.to_string())) // id
+                                .build()
+                                .unwrap()
+                            })
+                            .collect::<Vec<_>>();
+                        client
+                            .batch_execute_statement()
+                            .set_statements(Some(batch_update))
+                            .send()
+                            .await
+                            .expect("batch to have been written ok");
+                    }
+                }
+            }
+            info!("successfully registered questions");
+            // let's collect ids of the questions related to the test event,
+            // we can then use them to auto-generate user votes over time
+            let qids = backend_dynamo
+                .list(&seed_e, true)
                 .await
-                .unwrap();
-            qs.push((qid, q.created, q.likes, q.hidden, q.answered));
+                .expect("scenned index ok")
+                .items()
+                .iter()
+                .filter_map(|item| {
+                    let id = item
+                        .get("id")
+                        .expect("id is in projection")
+                        .as_s()
+                        .expect("id is of type string");
+                    ulid::Ulid::from_string(id).ok()
+                })
+                .collect();
+
+            qids
         }
-        let mut qids = Vec::new();
-        {
-            let Backend::Local(ref mut state): Backend = state else {
+        backend_local @ Backend::Local(_) => {
+            info!("going to seed test event");
+            backend_local.new(&seed_e, seed_e_secret).await.unwrap();
+
+            info!("successfully registered test event, going to seed questions now");
+            let mut qs = Vec::new();
+            for q in seed {
+                let qid = ulid::Ulid::new();
+                backend_local
+                    .ask(
+                        &seed_e,
+                        &qid,
+                        ask::Question {
+                            body: q.text,
+                            asker: None,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                qs.push((qid, q.created, q.likes, q.hidden, q.answered));
+            }
+            let mut qids = Vec::new();
+            let Backend::Local(ref mut state) = backend_local else {
                 unreachable!();
             };
             let state = Arc::get_mut(state).unwrap();
@@ -245,16 +337,52 @@ async fn main() -> Result<(), Error> {
                 q.insert("when", AttributeValue::N(created.to_string()));
                 qids.push(qid);
             }
+            info!("successfully registered questions");
+
+            qids
         }
-        let cheat = state.clone();
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        // TODO: we may _not_ want `without_time` when deploying
+        // TODO: on non-Lambda runtimes; this can be addressed as
+        // TODO: part of https://github.com/jonhoo/wewerewondering/issues/202
+        .without_time(/* cloudwatch does that */).init();
+
+    #[cfg(not(debug_assertions))]
+    let backend = Backend::dynamo().await;
+
+    #[cfg(debug_assertions)]
+    let backend = {
+        use rand::prelude::SliceRandom;
+
+        let mut backend = if std::env::var_os("USE_DYNAMODB").is_some() {
+            Backend::dynamo().await
+        } else {
+            Backend::local().await
+        };
+
+        // to aid in development, seed the backend with a test event and related
+        // questions, and auto-generate user votes over time
+        let qids = seed(&mut backend).await;
+        let cheat = backend.clone();
         tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.tick().await;
             loop {
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                let qid = qids.choose(&mut rand::thread_rng()).unwrap();
+                interval.tick().await;
+                let qid = qids
+                    .choose(&mut rand::thread_rng())
+                    .expect("there _are_ some questions for our test event");
                 let _ = cheat.vote(qid, vote::UpDown::Up).await;
             }
         });
-        state
+
+        backend
     };
 
     let app = Router::new()
