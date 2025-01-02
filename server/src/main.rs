@@ -372,6 +372,9 @@ async fn seed(backend: &mut Backend) -> Vec<Ulid> {
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
+        // TODO: we may _not_ want `without_time` when deploying
+        // TODO: on non-Lambda runtimes; this can be addressed as
+        // TODO: part of https://github.com/jonhoo/wewerewondering/issues/202
         .without_time(/* cloudwatch does that */).init();
 
     #[cfg(not(debug_assertions))]
