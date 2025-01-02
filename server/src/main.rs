@@ -39,7 +39,6 @@ enum Backend {
 }
 
 impl Backend {
-    #[cfg(debug_assertions)]
     async fn local() -> Self {
         Backend::Local(Arc::new(Mutex::new(Local::default())))
     }
@@ -193,10 +192,13 @@ async fn seed(backend: &mut Backend) -> Vec<Ulid> {
     let seed_e = Ulid::from_string("00000000000000000000000000").unwrap();
 
     match backend {
-        Backend::Dynamo(ref mut client) => {
+        backend_dynamo @ Backend::Dynamo(_) => {
             use aws_sdk_dynamodb::types::{PutRequest, WriteRequest};
 
             info!("going to seed test event");
+            let Backend::Dynamo(ref mut client) = backend_dynamo else {
+                unreachable!()
+            };
             match client
                 .put_item()
                 .table_name("events")
@@ -322,41 +324,43 @@ async fn seed(backend: &mut Backend) -> Vec<Ulid> {
 
             qids
         }
-        Backend::Local(ref mut local) => {
-            let mut state = local.lock().unwrap();
+        backend_local @ Backend::Local(_) => {
             info!("going to seed test event");
-            state.events.insert(seed_e, String::from("secret"));
+            backend_local.new(&seed_e, "secret").await.unwrap();
 
             info!("successfully registered test event, going to seed questions now");
-            let mut qids = Vec::new();
-            for LiveAskQuestion {
-                likes,
-                text,
-                created,
-                hidden,
-                answered,
-            } in seed
-            {
+            let mut qs = Vec::new();
+            for q in seed {
                 let qid = ulid::Ulid::new();
-                let mut item = HashMap::from([
-                    ("id", AttributeValue::S(qid.to_string())),
-                    ("eid", AttributeValue::S(seed_e.to_string())),
-                    ("votes", AttributeValue::N(likes.to_string())),
-                    ("text", AttributeValue::S(text.clone())),
-                    ("when", AttributeValue::N(created.to_string())),
-                    (
-                        "expire",
-                        to_dynamo_timestamp(SystemTime::now() + QUESTIONS_TTL),
-                    ),
-                    ("hidden", AttributeValue::Bool(hidden)),
-                ]);
+                backend_local
+                    .ask(
+                        &seed_e,
+                        &qid,
+                        ask::Question {
+                            body: q.text,
+                            asker: None,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                qs.push((qid, q.created, q.likes, q.hidden, q.answered));
+            }
+            let mut qids = Vec::new();
+            let Backend::Local(ref mut state) = backend_local else {
+                unreachable!();
+            };
+            let state = Arc::get_mut(state).unwrap();
+            let state = Mutex::get_mut(state).unwrap();
+            for (qid, created, votes, hidden, answered) in qs {
+                let q = state.questions.get_mut(&qid).unwrap();
+                q.insert("votes", AttributeValue::N(votes.to_string()));
                 if answered {
-                    item.insert("answered", to_dynamo_timestamp(SystemTime::now()));
-                };
-                state.questions.insert(qid, item);
+                    q.insert("answered", to_dynamo_timestamp(SystemTime::now()));
+                }
+                q.insert("hidden", AttributeValue::Bool(hidden));
+                q.insert("when", AttributeValue::N(created.to_string()));
                 qids.push(qid);
             }
-            state.questions_by_eid.insert(seed_e, qids.clone());
             info!("successfully registered questions");
 
             qids
@@ -377,7 +381,7 @@ async fn main() -> Result<(), Error> {
     let backend = {
         use rand::prelude::SliceRandom;
 
-        let backend = if std::env::var_os("USE_DYNAMODB").is_some() {
+        let mut backend = if std::env::var_os("USE_DYNAMODB").is_some() {
             Backend::dynamo().await
         } else {
             Backend::local().await
@@ -385,8 +389,8 @@ async fn main() -> Result<(), Error> {
 
         // to aid in development, seed the backend with a test event and related
         // questions, and auto-generate user votes over time
-        let mut cheat = backend.clone();
-        let qids = seed(&mut cheat).await;
+        let qids = seed(&mut backend).await;
+        let cheat = backend.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(1));
             interval.tick().await;
