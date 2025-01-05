@@ -192,39 +192,35 @@ async fn seed(backend: &mut Backend) -> Vec<Ulid> {
     let seed_e = Ulid::from_string("00000000000000000000000000").unwrap();
     let seed_e_secret = "secret";
 
-    match backend {
-        backend_dynamo @ Backend::Dynamo(_) => {
-            use aws_sdk_dynamodb::types::BatchStatementRequest;
-
-            info!("going to seed test event");
-            match backend_dynamo.event(&seed_e).await.unwrap() {
-                output if output.item().is_some() => {
-                    warn!("test event is already there, skipping seeding questions");
-                }
-                _ => {
-                    backend_dynamo.new(&seed_e, seed_e_secret).await.unwrap();
-                    info!("successfully registered test event, going to seed questions now");
-
-                    let mut qs = Vec::new();
-                    for q in seed {
-                        let qid = ulid::Ulid::new();
-                        backend_dynamo
-                            .ask(
-                                &seed_e,
-                                &qid,
-                                ask::Question {
-                                    body: q.text,
-                                    asker: None,
-                                },
-                            )
-                            .await
-                            .unwrap();
-                        qs.push((qid, q.created, q.likes, q.hidden, q.answered));
-                    }
-
-                    let Backend::Dynamo(ref mut client) = backend_dynamo else {
-                        unreachable!();
-                    };
+    info!("going to seed test event");
+    match backend.event(&seed_e).await.unwrap() {
+        output if output.item().is_some() => {
+            warn!("test event is already there, skipping seeding questions");
+        }
+        _ => {
+            backend.new(&seed_e, seed_e_secret).await.unwrap();
+            info!("successfully registered test event, going to seed questions now");
+            // first create questions ...
+            let mut qs = Vec::new();
+            for q in seed {
+                let qid = ulid::Ulid::new();
+                backend
+                    .ask(
+                        &seed_e,
+                        &qid,
+                        ask::Question {
+                            body: q.text,
+                            asker: None,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                qs.push((qid, q.created, q.likes, q.hidden, q.answered));
+            }
+            // ... then set the vote count + answered/hidden flags
+            match backend {
+                Backend::Dynamo(ref mut client) => {
+                    use aws_sdk_dynamodb::types::BatchStatementRequest;
                     // DynamoDB supports batch operations using PartiQL syntax with `25` as max batch size
                     // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchExecuteStatement.html
                     for chunk in qs.chunks(25) {
@@ -261,70 +257,40 @@ async fn seed(backend: &mut Backend) -> Vec<Ulid> {
                             .expect("batch to have been written ok");
                     }
                 }
-            }
-            info!("successfully registered questions");
-            // let's collect ids of the questions related to the test event,
-            // we can then use them to auto-generate user votes over time
-            let qids = backend_dynamo
-                .list(&seed_e, true)
-                .await
-                .expect("scenned index ok")
-                .items()
-                .iter()
-                .filter_map(|item| {
-                    let id = item
-                        .get("id")
-                        .expect("id is in projection")
-                        .as_s()
-                        .expect("id is of type string");
-                    ulid::Ulid::from_string(id).ok()
-                })
-                .collect();
-
-            qids
-        }
-        backend_local @ Backend::Local(_) => {
-            info!("going to seed test event");
-            backend_local.new(&seed_e, seed_e_secret).await.unwrap();
-
-            info!("successfully registered test event, going to seed questions now");
-            let mut qs = Vec::new();
-            for q in seed {
-                let qid = ulid::Ulid::new();
-                backend_local
-                    .ask(
-                        &seed_e,
-                        &qid,
-                        ask::Question {
-                            body: q.text,
-                            asker: None,
-                        },
-                    )
-                    .await
-                    .unwrap();
-                qs.push((qid, q.created, q.likes, q.hidden, q.answered));
-            }
-            let mut qids = Vec::new();
-            let Backend::Local(ref mut state) = backend_local else {
-                unreachable!();
-            };
-            let state = Arc::get_mut(state).unwrap();
-            let state = Mutex::get_mut(state).unwrap();
-            for (qid, created, votes, hidden, answered) in qs {
-                let q = state.questions.get_mut(&qid).unwrap();
-                q.insert("votes", AttributeValue::N(votes.to_string()));
-                if answered {
-                    q.insert("answered", to_dynamo_timestamp(SystemTime::now()));
+                Backend::Local(ref mut state) => {
+                    let state = Arc::get_mut(state).unwrap();
+                    let state = Mutex::get_mut(state).unwrap();
+                    for (qid, created, votes, hidden, answered) in qs {
+                        let q = state.questions.get_mut(&qid).unwrap();
+                        q.insert("votes", AttributeValue::N(votes.to_string()));
+                        if answered {
+                            q.insert("answered", to_dynamo_timestamp(SystemTime::now()));
+                        }
+                        q.insert("hidden", AttributeValue::Bool(hidden));
+                        q.insert("when", AttributeValue::N(created.to_string()));
+                    }
                 }
-                q.insert("hidden", AttributeValue::Bool(hidden));
-                q.insert("when", AttributeValue::N(created.to_string()));
-                qids.push(qid);
             }
             info!("successfully registered questions");
-
-            qids
         }
     }
+    // let's collect ids of the questions related to the test event,
+    // we can then use them to auto-generate user votes over time
+    backend
+        .list(&seed_e, true)
+        .await
+        .expect("scenned index ok")
+        .items()
+        .iter()
+        .filter_map(|item| {
+            let id = item
+                .get("id")
+                .expect("id is in projection")
+                .as_s()
+                .expect("id is of type string");
+            ulid::Ulid::from_string(id).ok()
+        })
+        .collect()
 }
 
 #[tokio::main]
