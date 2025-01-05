@@ -12,8 +12,8 @@ updates:
       npm-bump:
         applies-to: version-updates
         update-types:
-          - "version-update:semver-patch"
-          - "version-update:semver-minor"
+          - "patch"
+          - "minor"
   - package-ecosystem: cargo
     directory: /server
     schedule:
@@ -22,7 +22,7 @@ updates:
       cargo-bump:
         applies-to: version-updates
         update-types:
-          - "version-update:semver-patch"
-          - "version-update:semver-minor"
+          - "patch"
+          - "minor"
     # TODO: https://github.com/dependabot/dependabot-core/issues/4009
     # versioning-strategy: "increase-if-necessary"
