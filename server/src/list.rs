@@ -22,6 +22,8 @@ use ulid::Ulid;
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
 
+const TOP_N: usize = 20; // TODO: how to make it configurable ?
+
 impl Backend {
     pub(super) async fn list(
         &self,
@@ -187,7 +189,51 @@ async fn list_inner(
     match dynamo.list(&eid, has_secret).await {
         Ok(qs) => {
             trace!(%eid, n = %qs.count(), "listed questions");
-            let mut questions: Vec<_> = qs.items().iter().filter_map(serialize_question).collect();
+            let questions: Vec<_> = qs.items().iter().filter_map(serialize_question).collect();
+
+            #[derive(Debug, Default)]
+            struct JQuestion(serde_json::Value);
+            impl PartialEq for JQuestion {
+                fn eq(&self, other: &Self) -> bool {
+                    self.cmp(other).is_eq()
+                }
+            }
+            impl Eq for JQuestion {}
+            impl PartialOrd for JQuestion {
+                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                    Some(self.cmp(other))
+                }
+            }
+            impl Ord for JQuestion {
+                fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                    // make answered and hidden always less than unanswered.
+                    let answered = self.0.get("answered");
+                    let hidden = self
+                        .0
+                        .get("hidden")
+                        .unwrap_or(&serde_json::Value::Bool(false))
+                        .as_bool()
+                        .unwrap();
+                    let answered_other = other.0.get("answered");
+                    let hidden_other = other
+                        .0
+                        .get("hidden")
+                        .unwrap_or(&serde_json::Value::Bool(false))
+                        .as_bool()
+                        .unwrap();
+                    match (answered, answered_other, hidden, hidden_other) {
+                        (Some(_), None, _, false) => return std::cmp::Ordering::Less,
+                        (None, Some(_), false, _) => return std::cmp::Ordering::Greater,
+                        (None, None, false, true) => return std::cmp::Ordering::Greater,
+                        (None, None, true, false) => return std::cmp::Ordering::Less,
+                        _ => {}
+                    }
+
+                    let votes = self.0["votes"].as_u64().expect("votes is a number") as f64;
+                    let other_votes = other.0["votes"].as_u64().expect("votes is a number") as f64;
+                    votes.total_cmp(&other_votes)
+                }
+            }
 
             // sort based on "hotness" of the question over time:
             // https://www.evanmiller.org/ranking-news-items-with-upvotes.html
@@ -239,8 +285,12 @@ async fn list_inner(
                 let exp = (-1. * dt as f64).exp_m1() + 1.;
                 Score(exp * votes / (1. - exp))
             };
-            questions.sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
 
+            let mut questions: Vec<JQuestion> = questions.into_iter().map(JQuestion).collect();
+            top_n_sort(&mut questions, TOP_N);
+            let mut questions: Vec<serde_json::Value> =
+                questions.into_iter().map(|e| e.0).collect();
+            questions[TOP_N..].sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
             let max_age = if has_secret {
                 // hosts should be allowed to see more up-to-date views
                 "max-age=3"
@@ -271,6 +321,23 @@ async fn list_inner(
                 Err(http::StatusCode::INTERNAL_SERVER_ERROR),
             )
         }
+    }
+}
+
+fn top_n_sort<T: std::cmp::Ord + std::cmp::Eq + Default>(vec: &mut Vec<T>, top: usize) {
+    for i in 1..vec.len() {
+        let high = top.min(i);
+        if vec[high - 1] > vec[i] {
+            continue;
+        }
+        let key = vec.remove(i);
+        let mut pos = vec[..high]
+            .binary_search_by(|e| key.cmp(e))
+            .unwrap_or_else(|pos| pos);
+        if pos == high {
+            pos -= 1;
+        }
+        vec.insert(pos, key);
     }
 }
 
@@ -380,5 +447,28 @@ mod tests {
     #[ignore]
     async fn dynamodb() {
         inner(Backend::dynamo().await).await;
+    }
+
+    #[test]
+    fn test_top_n_sort() {
+        let mut vec = vec![4, 5, 9, 8, 1, 3];
+        top_n_sort(&mut vec, 2);
+        assert_eq!(vec, vec![9, 8, 5, 4, 1, 3]);
+
+        let mut vec = vec![9, 8, 1, 3];
+        top_n_sort(&mut vec, 2);
+        assert_eq!(vec, vec![9, 8, 1, 3]);
+
+        let mut vec = vec![9];
+        top_n_sort(&mut vec, 2);
+        assert_eq!(vec, vec![9]);
+
+        let mut vec = vec![4, 5, 9, 8, 1, 3];
+        top_n_sort(&mut vec, 10);
+        assert_eq!(vec, vec![9, 8, 5, 4, 3, 1]);
+
+        let mut vec = vec![4, 5, 9, 8];
+        top_n_sort(&mut vec, 4);
+        assert_eq!(vec, vec![9, 8, 5, 4]);
     }
 }
