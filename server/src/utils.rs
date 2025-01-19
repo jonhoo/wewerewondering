@@ -195,7 +195,7 @@ pub(crate) async fn seed(backend: &mut Backend) -> Vec<Ulid> {
         .expect("scenned index ok")
         .items()
         .iter()
-        .filter_map(|item| {
+        .map(|item| {
             let id = item
                 .get("id")
                 .expect("id is in projection")
@@ -206,7 +206,7 @@ pub(crate) async fn seed(backend: &mut Backend) -> Vec<Ulid> {
             // since the db server will only check that `id` respects the `S` type, and so
             // will not error back to you when you are saving a question (say, via Web UI)
             // with `id="string-that-is-not-valid-ulid"`.
-            Some(ulid::Ulid::from_string(id).expect("all ids to be valid ulids in the table"))
+            ulid::Ulid::from_string(id).expect("all ids to be valid ulids in the table")
         })
         .collect()
 }
