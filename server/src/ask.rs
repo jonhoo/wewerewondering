@@ -1,5 +1,5 @@
 use super::{Backend, Local};
-use crate::{to_dynamo_timestamp, QUESTIONS_TTL};
+use crate::{utils, QUESTIONS_TTL};
 use aws_sdk_dynamodb::{
     error::SdkError,
     operation::put_item::{PutItemError, PutItemOutput},
@@ -16,7 +16,7 @@ use ulid::Ulid;
 use tracing::{debug, error, info, trace, warn};
 
 impl Backend {
-    pub(super) async fn ask(
+    pub async fn ask(
         &self,
         eid: &Ulid,
         qid: &Ulid,
@@ -27,10 +27,10 @@ impl Backend {
             ("eid", AttributeValue::S(eid.to_string())),
             ("votes", AttributeValue::N(1.to_string())),
             ("text", AttributeValue::S(q.body)),
-            ("when", to_dynamo_timestamp(SystemTime::now())),
+            ("when", utils::to_dynamo_timestamp(SystemTime::now())),
             (
                 "expire",
-                to_dynamo_timestamp(SystemTime::now() + QUESTIONS_TTL),
+                utils::to_dynamo_timestamp(SystemTime::now() + QUESTIONS_TTL),
             ),
             ("hidden", AttributeValue::Bool(false)),
         ];
@@ -70,12 +70,12 @@ impl Backend {
 }
 
 #[derive(Deserialize, Debug)]
-pub(super) struct Question {
-    pub(super) body: String,
-    pub(super) asker: Option<String>,
+pub struct Question {
+    pub body: String,
+    pub asker: Option<String>,
 }
 
-pub(super) async fn ask(
+pub async fn ask(
     Path(eid): Path<Ulid>,
     State(dynamo): State<Backend>,
     q: Json<Question>,
