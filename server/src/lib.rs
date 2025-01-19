@@ -43,6 +43,7 @@ pub enum Backend {
 }
 
 impl Backend {
+    #[allow(unused)]
     async fn local() -> Self {
         Backend::Local(Arc::new(Mutex::new(Local::default())))
     }
