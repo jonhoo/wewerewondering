@@ -299,8 +299,8 @@ To deploy server:
 
 ```console
 cd server
-cargo lambda build --release --arm64
-cargo lambda deploy --env-var RUST_LOG=info,tower_http=debug,wewerewondering_api=trace --profile qa
+cargo lambda build --release --arm64 --bin lambda
+cargo lambda deploy --env-var RUST_LOG=info,tower_http=debug,lambda=trace --profile qa --binary-name lambda
 ```
 
 To deploy client:

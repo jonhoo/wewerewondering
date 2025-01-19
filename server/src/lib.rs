@@ -138,16 +138,16 @@ pub async fn build_app() -> Router {
 
     Router::new()
         .route("/api/event", post(new::new))
-        .route("/api/event/:eid", post(ask::ask))
-        .route("/api/event/:eid", get(event::event))
-        .route("/api/event/:eid/questions", get(list::list))
-        .route("/api/event/:eid/questions/:secret", get(list::list_all))
+        .route("/api/event/{eid}", post(ask::ask))
+        .route("/api/event/{eid}", get(event::event))
+        .route("/api/event/{eid}/questions", get(list::list))
+        .route("/api/event/{eid}/questions/{secret}", get(list::list_all))
         .route(
-            "/api/event/:eid/questions/:secret/:qid/toggle/:property",
+            "/api/event/{eid}/questions/{secret}/{qid}/toggle/{property}",
             post(toggle::toggle),
         )
-        .route("/api/vote/:qid/:updown", post(vote::vote))
-        .route("/api/questions/:qids", get(questions::questions))
+        .route("/api/vote/{qid}/{updown}", post(vote::vote))
+        .route("/api/questions/{qids}", get(questions::questions))
         .layer(RequestBodyLimitLayer::new(1024))
         .with_state(backend)
 }
