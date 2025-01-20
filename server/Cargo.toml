@@ -2,6 +2,7 @@
 name = "wewerewondering-api"
 version = "0.1.0"
 edition = "2021"
+default-run = "wewerewondering-api"
 
 [dependencies]
 aws-config = { version = "1.5.0", features = ["behavior-version-latest"] }
