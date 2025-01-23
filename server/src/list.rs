@@ -294,23 +294,6 @@ async fn list_inner(
     }
 }
 
-fn top_n_sort<T: std::cmp::Ord + std::cmp::Eq + Default>(vec: &mut Vec<T>, top: usize) {
-    for i in 1..vec.len() {
-        let high = top.min(i);
-        if vec[high - 1] > vec[i] {
-            continue;
-        }
-        let key = vec.remove(i);
-        let mut pos = vec[..high]
-            .binary_search_by(|e| key.cmp(e))
-            .unwrap_or_else(|pos| pos);
-        if pos == high {
-            pos -= 1;
-        }
-        vec.insert(pos, key);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
