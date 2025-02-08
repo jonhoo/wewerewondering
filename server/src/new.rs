@@ -9,8 +9,8 @@ use aws_sdk_dynamodb::{
 use axum::extract::State;
 use axum::response::Json;
 use http::StatusCode;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::distr::Alphanumeric;
+use rand::{rng, Rng};
 use std::time::SystemTime;
 use ulid::Ulid;
 
@@ -106,7 +106,7 @@ pub(super) async fn new(
     State(dynamo): State<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let eid = ulid::Ulid::new();
-    let secret: String = thread_rng()
+    let secret: String = rng()
         .sample_iter(&Alphanumeric)
         .take(30)
         .map(char::from)
