@@ -11,7 +11,7 @@
 		"format": "prettier --plugin=prettier-plugin-svelte --plugin=prettier-plugin-tailwindcss --write ."
 	},
 	"devDependencies": {
-		"@sveltejs/vite-plugin-svelte": "^4.0.4",
+		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"autoprefixer": "^10.4.20",
 		"eslint": "^9.20.0",
 		"eslint-config-prettier": "^10.0.1",
@@ -22,6 +22,6 @@
 		"prettier-plugin-tailwindcss": "^0.6.11",
 		"svelte": "^5.19.9",
 		"tailwindcss": "^3.4.17",
-		"vite": "^5.4.11"
+		"vite": "^6.1.0"
 	}
 }
