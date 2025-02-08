@@ -278,7 +278,7 @@
 	</div>
 
 	{#if problum}
-		<div class="fixed bottom-4 left-0 right-0">
+		<div class="fixed right-0 bottom-4 left-0">
 			<p class="mx-auto max-w-4xl bg-red-500 px-4 py-2 font-bold text-white">
 				{#if problum.status}
 					Connection problems: {problum.status}
@@ -310,7 +310,7 @@
 	</section>
 	{#if answered.length > 0}
 		<section>
-			<h2 class="mb-4 mt-8 text-center text-2xl text-green-700 dark:text-lime-500">
+			<h2 class="mt-8 mb-4 text-center text-2xl text-green-700 dark:text-lime-500">
 				Answered
 				<span class="float-right text-lg"
 					>({answered.length} / {answered.length + unanswered.length})</span
@@ -327,7 +327,7 @@
 	{/if}
 	{#if $event.secret && hidden.length > 0}
 		<section>
-			<h2 class="mb-4 mt-8 text-center text-2xl text-slate-400 dark:text-slate-500">Hidden</h2>
+			<h2 class="mt-8 mb-4 text-center text-2xl text-slate-400 dark:text-slate-500">Hidden</h2>
 			<div class="flex flex-col divide-y">
 				{#each hidden as question, i (question.qid)}
 					<div animate:flip={{ duration: 500 }}>
@@ -338,7 +338,7 @@
 		</section>
 	{/if}
 {:else if problum}
-	<div class="fixed bottom-4 left-0 right-0">
+	<div class="fixed right-0 bottom-4 left-0">
 		<p class="mx-auto max-w-4xl bg-red-500 px-4 py-2 font-bold text-white">
 			{#if !problum.status}
 				Lost connection to the server&hellip; retrying.

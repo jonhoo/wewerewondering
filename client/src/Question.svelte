@@ -120,7 +120,7 @@
 			{#await q}
 				<p class="text-xl">loading...</p>
 			{:then q}
-				<p class="break-words text-xl" style="word-break:break-word">{q.text}</p>
+				<p class="text-xl break-words" style="word-break:break-word">{q.text}</p>
 				<div class="pt-1 text-right text-slate-400">
 					<span>{since(q, now)}</span>
 					{#if q.who}

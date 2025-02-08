@@ -63,7 +63,7 @@
 <svelte:window onpopstate={popstate} />
 
 {#if problum}
-	<div class="fixed bottom-4 left-0 right-0">
+	<div class="fixed right-0 bottom-4 left-0">
 		<p class="mx-auto max-w-4xl bg-red-500 px-4 py-2 font-bold text-white">
 			{#if problum.status}
 				{#if problum.status === 404}
