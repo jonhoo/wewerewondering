@@ -9,6 +9,16 @@ updates:
     schedule:
       interval: monthly
     groups:
+      vite-svelte:
+        applies-to: version-updates
+        update-types:
+          - "major"
+        patterns:
+          - "vite"
+          - "@sveltejs/vite-plugin-svelte"
+          - "svelte"
+          - "eslint-plugin-svelte"
+          - "prettier-plugin-svelte"
       npm-bump:
         applies-to: version-updates
         update-types:
