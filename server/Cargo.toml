@@ -4,6 +4,14 @@ version = "0.1.0"
 edition = "2021"
 default-run = "wewerewondering-api"
 
+[features]
+default = []
+# We've got several types of tests in the project: 
+#  - tests against an in-memory db, which we run with the usual `cargo t`
+#  - tests against a local instance of DynamoDB, which we enable with `--include-ignored`
+#  - end-to-end tests, which require extra setup, and which get enabled with the `e2e-test` flag
+e2e-test = []
+
 [dependencies]
 aws-config = { version = "1.5.0", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.1.0"
@@ -26,6 +34,11 @@ tower-service = "0.3"
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }
 ulid = { version = "1.0.0", features = ["serde"] }
+
+[dev-dependencies]
+fantoccini = "0.21.4"
+tower-http = { version = "0.6", features = ["limit", "trace", "fs"] }
+url = "2.5.4"
 
 [[bin]]
 name = "lambda"
