@@ -66,7 +66,7 @@ jobs:
       - name: Install zig for cargo-lambda
         run: sudo snap install zig --classic --beta
 
-      - run: cargo lambda build --release --arm64 --bin lambda
+      - run: cargo lambda build --release --arm64
         working-directory: ./server
 
       - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.3.2
