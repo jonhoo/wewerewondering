@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - 'client/**'
-      - '.github/workflows/lint-client.yml'
+      - '.github/workflows/client.yml'
 name: client
 env:
   NODE_VERSION: 18
@@ -24,3 +24,4 @@ jobs:
           cache-dependency-path: client/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm run build
