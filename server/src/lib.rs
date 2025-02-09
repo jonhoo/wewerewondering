@@ -110,7 +110,7 @@ pub async fn build_app() -> Router {
 
     #[cfg(debug_assertions)]
     let backend = {
-        use rand::prelude::SliceRandom;
+        use rand::prelude::IndexedRandom;
 
         let mut backend = if std::env::var_os("USE_DYNAMODB").is_some() {
             Backend::dynamo().await
@@ -128,7 +128,7 @@ pub async fn build_app() -> Router {
             loop {
                 interval.tick().await;
                 let qid = qids
-                    .choose(&mut rand::thread_rng())
+                    .choose(&mut rand::rng())
                     .expect("there _are_ some questions for our test event");
                 let _ = cheat.vote(qid, vote::UpDown::Up).await;
             }
