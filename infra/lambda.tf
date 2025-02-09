@@ -77,13 +77,13 @@ resource "aws_iam_role" "www" {
 
 // To build for AWS Lambda runtime, run:
 // ```console
-// $ cargo lambda build --release --arm64 --bin lambda
+// $ cargo lambda build --release --arm64
 // ```
 // The artifact will be located in <project_root>/server/target/lambda/lambda/bootstrap,
 check "lambda-built" {
   assert {
     condition     = fileexists("${path.module}/../server/target/lambda/lambda/bootstrap")
-    error_message = "Run `cargo lambda build --release --arm64 --bin lambda` in ../server"
+    error_message = "Run `cargo lambda build --release --arm64` in ../server"
   }
 }
 
