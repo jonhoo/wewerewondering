@@ -4,14 +4,14 @@ on:
   pull_request:
     paths:
       - 'client/**'
-      - '.github/workflows/lint-client.yml'
+      - '.github/workflows/client.yml'
 name: client
 env:
   NODE_VERSION: 18
 jobs: 
   lint:
     runs-on: ubuntu-latest
-    defaults: 
+    defaults:
       run:
         working-directory: ./client
     steps:
@@ -24,3 +24,18 @@ jobs:
           cache-dependency-path: client/package-lock.json
       - run: npm ci
       - run: npm run lint
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run build
