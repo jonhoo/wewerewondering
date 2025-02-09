@@ -73,6 +73,7 @@ jobs:
         id: upload
         with:
           workspace: ${{ env.TF_WORKSPACE }}
+          token: ${{ vars.TF_API_PLAN_TOKEN }}
           # directory: ${{ env.CONFIG_DIRECTORY }}
           speculative: true
 
@@ -83,6 +84,7 @@ jobs:
         continue-on-error: true
         with:
           workspace: ${{ env.TF_WORKSPACE }}
+          token: ${{ vars.TF_API_PLAN_TOKEN }}
           configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
           plan_only: true
           message: "Triggered From GitHub Actions CI ${{ github.sha }}"
@@ -90,6 +92,7 @@ jobs:
       - uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.3.2
         id: plan-output
         with:
+          token: ${{ vars.TF_API_PLAN_TOKEN }}
           plan: ${{ steps.run.outputs.plan_id }}
 
       - uses: actions/github-script@v7
