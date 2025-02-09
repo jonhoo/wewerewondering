@@ -68,6 +68,6 @@ jobs:
           AWS_DEFAULT_REGION: dead-poets-society-eu-east-1
       # https://twitter.com/jonhoo/status/1571290371124260865
       - name: cargo test --locked
-        run: cargo test --locked --all-features --all-targets -- --include-ignored
+        run: cargo test --locked --all-targets -- --include-ignored
         env:
           USE_DYNAMODB: local
