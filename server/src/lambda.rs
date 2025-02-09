@@ -6,7 +6,7 @@ use tower::Layer;
 use tower_http::trace::TraceLayer;
 use tower_service::Service;
 use tracing_subscriber::EnvFilter;
-use wewerewondering_api::build_app;
+use wewerewondering_api::new;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -15,7 +15,7 @@ async fn main() -> Result<(), Error> {
         .without_time(/* cloudwatch does that */)
         .init();
 
-    let app = build_app().await;
+    let app = new().await;
     // To run with AWS Lambda runtime, wrap in our `LambdaLayer`
     let app = tower::ServiceBuilder::new()
         .layer(TraceLayer::new_for_http())

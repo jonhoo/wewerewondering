@@ -104,7 +104,7 @@ impl Backend {
     }
 }
 
-pub async fn build_app() -> Router {
+pub async fn new() -> Router {
     #[cfg(not(debug_assertions))]
     let backend = Backend::dynamo().await;
 
