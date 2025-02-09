@@ -9,6 +9,7 @@ Description: Sample SAM Template for running and tesing WeWereWondering locally
 Resources:
   WeWereWonderingApi:
     Type: AWS::Serverless::Function
+    # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/building-rust.html
     Metadata:
       BuildMethod: rust-cargolambda 
     Properties:

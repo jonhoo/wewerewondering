@@ -2,6 +2,7 @@
 name = "wewerewondering-api"
 version = "0.1.0"
 edition = "2021"
+default-run = "wewerewondering-api"
 
 [dependencies]
 aws-config = { version = "1.5.0", features = ["behavior-version-latest"] }
@@ -25,3 +26,7 @@ tower-service = "0.3"
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }
 ulid = { version = "1.0.0", features = ["serde"] }
+
+[[bin]]
+name = "lambda"
+path = "./src/lambda.rs"

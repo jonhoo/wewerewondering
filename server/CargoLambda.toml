@@ -1,0 +1,20 @@
+# https://www.cargo-lambda.info/guide/configuration.html#global-configuration-files
+#
+# This allows us to offload the `cargo build` command, so we can run
+# `cargo lambda build --release --arm64` on CI only specifying profile and
+# architecture. If we decide to change the binary's name, we will be no need to
+# go and adjust configuration neither on the CI workflows, nor in the SAM's
+# `template.yaml` that we are using to run a local instance of API Gateway
+# for testing purposes.
+#
+# NB! IF we decide to add more build parameters here, let's not forget to check
+# that sam local is still building and running ok with:
+# ```console
+# $ sam build
+# S sam local start-api
+# ```
+[build]
+bin = ["lambda"]
+
+[deploy]
+binary_name = "lambda"

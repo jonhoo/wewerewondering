@@ -1,6 +1,5 @@
-use crate::{to_dynamo_timestamp, EVENTS_TTL};
-
 use super::{Backend, Local};
+use crate::{utils, EVENTS_TTL};
 use aws_sdk_dynamodb::{
     error::SdkError,
     operation::put_item::{PutItemError, PutItemOutput},
@@ -32,10 +31,10 @@ impl Backend {
                     .table_name("events")
                     .item("id", AttributeValue::S(eid.to_string()))
                     .item("secret", AttributeValue::S(secret.into()))
-                    .item("when", to_dynamo_timestamp(SystemTime::now()))
+                    .item("when", utils::to_dynamo_timestamp(SystemTime::now()))
                     .item(
                         "expire",
-                        to_dynamo_timestamp(SystemTime::now() + EVENTS_TTL),
+                        utils::to_dynamo_timestamp(SystemTime::now() + EVENTS_TTL),
                     )
                     .send()
                     .await

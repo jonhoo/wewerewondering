@@ -75,16 +75,21 @@ resource "aws_iam_role" "www" {
   }
 }
 
+// To build for AWS Lambda runtime, run:
+// ```console
+// $ cargo lambda build --release --arm64
+// ```
+// The artifact will be located in <project_root>/server/target/lambda/lambda/bootstrap,
 check "lambda-built" {
   assert {
-    condition     = fileexists("${path.module}/../server/target/lambda/wewerewondering-api/bootstrap")
+    condition     = fileexists("${path.module}/../server/target/lambda/lambda/bootstrap")
     error_message = "Run `cargo lambda build --release --arm64` in ../server"
   }
 }
 
 data "archive_file" "lambda" {
   type        = "zip"
-  source_file = "${path.module}/../server/target/lambda/wewerewondering-api/bootstrap"
+  source_file = "${path.module}/../server/target/lambda/lambda/bootstrap"
   output_path = "lambda_function_payload.zip"
 }
 

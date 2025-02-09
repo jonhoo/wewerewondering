@@ -1,4 +1,5 @@
 use super::{Backend, Local};
+use crate::utils;
 use aws_sdk_dynamodb::{
     error::SdkError,
     operation::query::{QueryError, QueryOutput},
@@ -59,7 +60,7 @@ impl Backend {
                 } = &mut *local;
 
                 if !events.contains_key(eid) {
-                    return Err(super::mint_service_error(
+                    return Err(utils::mint_service_error(
                         QueryError::ResourceNotFoundException(
                             ResourceNotFoundException::builder().build(),
                         ),
@@ -125,7 +126,7 @@ async fn list_inner(
 ) {
     let has_secret = if let Some(secret) = secret {
         debug!("list questions with admin access");
-        if let Err(e) = super::check_secret(&dynamo, &eid, &secret).await {
+        if let Err(e) = utils::check_secret(&dynamo, &eid, &secret).await {
             // a bad secret will not turn good and
             // events are unlikely to re-appear with the same Ulid
             return (
@@ -138,7 +139,7 @@ async fn list_inner(
         trace!("list questions with guest access");
         // ensure that the event exists:
         // this is _just_ so give 404s for old events so clients stop polling
-        if let Err(e) = super::get_secret(&dynamo, &eid).await {
+        if let Err(e) = utils::get_secret(&dynamo, &eid).await {
             // events are unlikely to re-appear with the same Ulid
             return (
                 AppendHeaders([(header::CACHE_CONTROL, "max-age=86400")]),
@@ -236,7 +237,7 @@ async fn list_inner(
                 let votes = q["votes"].as_u64().expect("votes is a number") as f64;
                 // max so that even if vote count somehow got to 0, count it as 1
                 let votes = votes.max(1.);
-                let exp = (-1. * dt as f64).exp_m1() + 1.;
+                let exp = (-1. * dt).exp_m1() + 1.;
                 Score(exp * votes / (1. - exp))
             };
             questions.sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
