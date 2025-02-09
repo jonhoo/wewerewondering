@@ -99,6 +99,7 @@
 {:else}
 	<div class="flex h-screen items-center justify-center">
 		<button
+			data-testid="create-event-button"
 			class="border-2 border-red-500 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
 			onclick={create}>Open new Q&amp;A session</button
 		>

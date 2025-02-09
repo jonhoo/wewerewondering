@@ -105,3 +105,44 @@ Here is how our `API Gateway Local` plus `DynamoDB Local` setup look like:
 |                              |                                |    |_____________________________|            |
 |______________________________|                                |_______________________________________________|
 ```
+
+### End-to-end Testing
+
+Prerequisites:
+
+- [google-chrome](https://www.google.com/chrome/)
+- [chromedriver](https://googlechromelabs.github.io/chrome-for-testing/#stable)
+- DynamoDB Local [container](#backend-with-dynamodb-local)
+- `wewerewondering` client [setup](#setup)
+
+Make sure chrome binaries are in your path and launch the driver process:
+
+```sh
+chromedriver --port=4444
+```
+
+Prepare the client distribution first:
+
+```sh
+cd client && npm run build
+```
+
+Now, to run the e2e test suite, go to the `server` directory and issue:
+
+```sh
+USE_DYNAMODB=local cargo t --release --test e2e --features e2e-test
+```
+
+To run the e2e tests in a headless mode, hit:
+
+```sh
+USE_DYNAMODB=local HEADLESS=1 cargo t --release --test e2e --features e2e-test
+```
+
+Note, that if you've launch a web driver on a diffrent port (which you may want to do in order
+to test with a different engine), you will want to provide `WEBDRIVER_PORT` to the test
+run command:
+
+```sh
+WEBDRIVER_PORT=<port_goes_here> USE_DYNAMODB=local cargo t --release --test e2e --features e2e-test
+```

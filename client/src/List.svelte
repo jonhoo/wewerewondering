@@ -261,6 +261,7 @@
 	<div class="text-center">
 		{#if $event.secret}
 			<button
+				data-testid="share-event-button"
 				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
 				onclick={share}>{share_text}</button
 			>
@@ -289,7 +290,7 @@
 		</div>
 	{/if}
 
-	<section class="pt-4">
+	<section data-testid="pending-questions" class="pt-4">
 		{#if unanswered.length > 0}
 			<div class="flex flex-col divide-y">
 				{#each unanswered as question, i (question.qid)}
@@ -309,7 +310,7 @@
 		{/if}
 	</section>
 	{#if answered.length > 0}
-		<section>
+		<section data-testid="answered-questions">
 			<h2 class="mt-8 mb-4 text-center text-2xl text-green-700 dark:text-lime-500">
 				Answered
 				<span class="float-right text-lg"
@@ -326,7 +327,7 @@
 		</section>
 	{/if}
 	{#if $event.secret && hidden.length > 0}
-		<section>
+		<section data-testid="hidden-questions">
 			<h2 class="mt-8 mb-4 text-center text-2xl text-slate-400 dark:text-slate-500">Hidden</h2>
 			<div class="flex flex-col divide-y">
 				{#each hidden as question, i (question.qid)}
