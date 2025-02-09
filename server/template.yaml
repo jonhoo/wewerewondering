@@ -12,8 +12,6 @@ Resources:
     # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/building-rust.html
     Metadata:
       BuildMethod: rust-cargolambda 
-      BuildProperties:
-        Binary: lambda
     Properties:
       CodeUri: .
       Handler: bootstrap
