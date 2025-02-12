@@ -13,6 +13,7 @@ use http::{
     header::{self, HeaderName},
     StatusCode,
 };
+use rand::seq::SliceRandom;
 use std::{
     collections::HashMap,
     time::{Duration, SystemTime},
@@ -22,7 +23,8 @@ use ulid::Ulid;
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
 
-const TOP_N: usize = 20; // TODO: how to make it configurable ?
+// It's enough for the most-popular questions to get above the fold to answer.
+const TOP_N: usize = 5;
 
 impl Backend {
     pub(super) async fn list(
@@ -242,20 +244,11 @@ async fn list_inner(
                 Score(exp * votes / (1. - exp))
             };
 
-            let mut answered_hidden = Vec::new();
-            questions.retain(|item| {
-                match (
-                    item.get("answered"),
-                    item.get("hidden")
-                        .unwrap_or(&serde_json::Value::Bool(false)),
-                ) {
-                    (None, serde_json::Value::Bool(false)) => true,
-                    (_, _) => {
-                        answered_hidden.push(item.clone());
-                        false
-                    }
-                }
-            });
+            let (mut questions, mut answered_hidden): (Vec<_>, Vec<_>) =
+                questions.into_iter().partition(|item| {
+                    item.get("answered").is_none()
+                        && !item.get("hidden").eq(&Some(&serde_json::Value::Bool(true)))
+                });
             questions.sort_by_key(|item| {
                 std::cmp::Reverse(item["votes"].as_u64().expect("votes is a number"))
             });
