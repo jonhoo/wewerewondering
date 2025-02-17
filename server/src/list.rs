@@ -252,7 +252,9 @@ async fn list_inner(
             questions.sort_by_key(|item| {
                 std::cmp::Reverse(item["votes"].as_u64().expect("votes is a number"))
             });
-            questions[TOP_N..].sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
+            if let Some(subslice) = questions.get_mut(TOP_N..) {
+                subslice.sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
+            }
             questions.append(&mut answered_hidden);
             let max_age = if has_secret {
                 // hosts should be allowed to see more up-to-date views
