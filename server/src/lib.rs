@@ -16,10 +16,6 @@ mod toggle;
 mod utils;
 mod vote;
 
-pub use ask::Question;
-pub use utils::to_dynamo_timestamp;
-pub use vote::UpDown;
-
 #[cfg(debug_assertions)]
 const SEED: &str = include_str!("test.json");
 
@@ -30,14 +26,14 @@ const EVENTS_EXPIRE_AFTER_DAYS: u64 = 60;
 const EVENTS_TTL: Duration = Duration::from_secs(EVENTS_EXPIRE_AFTER_DAYS * 24 * 60 * 60);
 
 #[derive(Clone, Debug, Default)]
-pub struct Local {
+pub(crate) struct Local {
     pub events: HashMap<Ulid, String>,
     pub questions: HashMap<Ulid, HashMap<&'static str, AttributeValue>>,
     pub questions_by_eid: HashMap<Ulid, Vec<Ulid>>,
 }
 
 #[derive(Clone, Debug)]
-pub enum Backend {
+pub(crate) enum Backend {
     Dynamo(aws_sdk_dynamodb::Client),
     Local(Arc<Mutex<Local>>),
 }
