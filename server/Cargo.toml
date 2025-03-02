@@ -5,8 +5,8 @@ edition = "2021"
 default-run = "wewerewondering-api"
 
 [dependencies]
-aws-config = { version = "1.5.17", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = "1.66.0"
+aws-config = { version = "1.5.0", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.1.0"
 aws-smithy-types = "1.0.1"
 aws-smithy-runtime-api = "1.0.0"
 aws-smithy-http = "0.60"
