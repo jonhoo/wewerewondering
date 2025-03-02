@@ -2,7 +2,7 @@
 # and static assets setup as well as launching a DynamoDB Local service process.
 #
 # We serve the `wewerewondering` client-side rendered application with our axum app
-# (which we only use for data API in production environment), then open the applcation
+# (which we only use for data API in production environment), then open the application
 # and perform certain actions impersonating both sides - a host and a guest - as befits
 # a decent puppet show.
 permissions:
