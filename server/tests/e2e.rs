@@ -111,7 +111,7 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
     let create_event_btn = c
         .wait()
         .at_most(DEFAULT_WAIT_TIMEOUT)
-        .for_element(Locator::Css("[data-testid=create-event-button]"))
+        .for_element(Locator::Id("create-event-button"))
         .await
         .unwrap();
 
@@ -122,7 +122,7 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
     let share_event_btn = c
         .wait()
         .at_most(DEFAULT_WAIT_TIMEOUT)
-        .for_element(Locator::Css("[data-testid=share-event-button]"))
+        .for_element(Locator::Id("share-event-button"))
         .await
         .unwrap();
     let event_url_for_host = c.current_url().await.unwrap();
@@ -159,7 +159,7 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
     // and there are currently no pending, answered, or hidden questions
     // related to the newly created event
     let pending_questions = c
-        .find(Locator::Css("section[data-testid=pending-questions]"))
+        .find(Locator::Id("pending-questions"))
         .await
         .unwrap()
         .find_all(Locator::Css("article"))
@@ -167,12 +167,12 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
         .unwrap();
     assert!(pending_questions.is_empty());
     assert!(c
-        .find(Locator::Css("section[data-testid=answered-questions]"))
+        .find(Locator::Id("answered-questions"))
         .await
         .unwrap_err()
         .is_no_such_element());
     assert!(c
-        .find(Locator::Css("section[data-testid=hidden-questions]"))
+        .find(Locator::Id("hidden-questions"))
         .await
         .unwrap_err()
         .is_no_such_element());
