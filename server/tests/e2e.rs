@@ -47,15 +47,7 @@ fn init() -> &'static (String, ServerTaskHandle) {
         let (tx, rx) = std::sync::mpsc::channel();
         let handle = tokio::spawn(async move {
             let app = wewerewondering_api::new().await;
-            let app = app.fallback_service(ServeDir::new(format!(
-                "{}/client/dist",
-                std::env::current_dir()
-                    .unwrap()
-                    .parent()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-            )));
+            let app = app.fallback_service(ServeDir::new(std::env::current_dir().unwrap().join("../client/dist")));
             let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 0));
             let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
             let assigned_addr = listener.local_addr().unwrap();
