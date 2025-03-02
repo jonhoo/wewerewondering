@@ -3,7 +3,7 @@
 use fantoccini::wd::WebDriverCompatibleCommand;
 use fantoccini::{Client, ClientBuilder, Locator};
 use std::io;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 use std::time::Duration;
 use tokio::task::JoinHandle;
 use tower_http::services::ServeDir;
@@ -20,8 +20,6 @@ static WEBDRIVER_ADDRESS: LazyLock<String> = LazyLock::new(|| {
         .unwrap_or("4444".into());
     format!("http://localhost:{}", port)
 });
-
-static SERVER_TASK_HANDLE: OnceLock<(String, ServerTaskHandle)> = OnceLock::new();
 
 async fn init_webdriver_client() -> Client {
     let mut chrome_args = Vec::new();
@@ -42,22 +40,22 @@ async fn init_webdriver_client() -> Client {
         .expect("web driver to be available")
 }
 
-fn init() -> &'static (String, ServerTaskHandle) {
-    SERVER_TASK_HANDLE.get_or_init(|| {
-        let (tx, rx) = std::sync::mpsc::channel();
-        let handle = tokio::spawn(async move {
-            let app = wewerewondering_api::new().await;
-            let app = app.fallback_service(ServeDir::new(std::env::current_dir().unwrap().join("../client/dist")));
-            let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 0));
-            let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-            let assigned_addr = listener.local_addr().unwrap();
-            tx.send(assigned_addr).unwrap();
-            axum::serve(listener, app.into_make_service()).await
-        });
-        let assigned_addr = rx.recv_timeout(TESTRUN_SETUP_TIMEOUT).unwrap();
-        let app_addr = format!("http://localhost:{}", assigned_addr.port());
-        (app_addr, handle)
-    })
+fn init() -> (String, ServerTaskHandle) {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let handle = tokio::spawn(async move {
+        let app = wewerewondering_api::new().await;
+        let app = app.fallback_service(ServeDir::new(
+            std::env::current_dir().unwrap().join("../client/dist"),
+        ));
+        let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 0));
+        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+        let assigned_addr = listener.local_addr().unwrap();
+        tx.send(assigned_addr).unwrap();
+        axum::serve(listener, app.into_make_service()).await
+    });
+    let assigned_addr = rx.recv_timeout(TESTRUN_SETUP_TIMEOUT).unwrap();
+    let app_addr = format!("http://localhost:{}", assigned_addr.port());
+    (app_addr, handle)
 }
 
 macro_rules! test {
@@ -98,9 +96,9 @@ impl WebDriverCompatibleCommand for GrantClipboardReadCmd {
 
 // ------------------------------- TESTS --------------------------------------
 
-async fn start_new_q_and_a_session(c: Client, url: &String) {
+async fn start_new_q_and_a_session(c: Client, url: String) {
     // the host novigates to the app's welcome page
-    c.goto(url).await.unwrap();
+    c.goto(&url).await.unwrap();
     assert_eq!(c.current_url().await.unwrap().as_ref(), format!("{}/", url));
     assert_eq!(c.title().await.unwrap(), "Q&A");
     let create_event_btn = c
@@ -134,8 +132,7 @@ async fn start_new_q_and_a_session(c: Client, url: &String) {
         .execute_async(
             r#"
                 const [callback] = arguments;
-                navigator.clipboard.readText().then((text) => callback(text))
-                
+                navigator.clipboard.readText().then((text) => callback(text));
             "#,
             vec![],
         )
@@ -147,7 +144,9 @@ async fn start_new_q_and_a_session(c: Client, url: &String) {
         .unwrap();
     let mut params = event_url_for_guest.path_segments().unwrap();
     assert_eq!(params.next().unwrap(), "event");
-    assert_eq!(params.next().unwrap(), event_id); // same event id
+    let event_id_for_guest = params.next().unwrap();
+
+    assert_eq!(event_id_for_guest, event_id); // same event id
     assert!(params.next().is_none()); // but no secret
 
     // and there are currently no pending, answered, or hidden questions
@@ -173,3 +172,13 @@ async fn start_new_q_and_a_session(c: Client, url: &String) {
 }
 
 test!(test_start_new_q_and_a_session, start_new_q_and_a_session);
+
+// XXX: REMOVE THIS
+// XXX: this is to demostrate the issue with tests running in parallel.
+// XXX: we indeed got isolated sessions, an app per test and unique-id-based
+// XXX: isolation in the dynamodb local, but what we do _not_ have now is 
+// XXX: clipboard isolation; so these tests are failing most of the time due
+// XXX: to writing and reading from the machines clipboard
+test!(test_start_new_q_and_a_session1, start_new_q_and_a_session);
+test!(test_start_new_q_and_a_session2, start_new_q_and_a_session);
+test!(test_start_new_q_and_a_session3, start_new_q_and_a_session);
