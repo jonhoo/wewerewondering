@@ -14,6 +14,7 @@ use http::{
     header::{self, HeaderName},
     StatusCode,
 };
+use rand::seq::SliceRandom;
 use std::{
     collections::HashMap,
     time::{Duration, SystemTime},
@@ -22,6 +23,9 @@ use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
+
+// It's enough for the most-popular questions to get above the fold to answer.
+const TOP_N: usize = 5;
 
 impl Backend {
     pub(super) async fn list(
@@ -240,8 +244,19 @@ async fn list_inner(
                 let exp = (-1. * dt).exp_m1() + 1.;
                 Score(exp * votes / (1. - exp))
             };
-            questions.sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
 
+            let (mut questions, mut answered_hidden): (Vec<_>, Vec<_>) =
+                questions.into_iter().partition(|item| {
+                    item.get("answered").is_none()
+                        && !item.get("hidden").eq(&Some(&serde_json::Value::Bool(true)))
+                });
+            questions.sort_by_key(|item| {
+                std::cmp::Reverse(item["votes"].as_u64().expect("votes is a number"))
+            });
+            if let Some(subslice) = questions.get_mut(TOP_N..) {
+                subslice.sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
+            }
+            questions.append(&mut answered_hidden);
             let max_age = if has_secret {
                 // hosts should be allowed to see more up-to-date views
                 "max-age=3"
