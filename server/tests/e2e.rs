@@ -1,5 +1,6 @@
 #![cfg(feature = "e2e-test")]
 
+use aws_sdk_dynamodb::types::AttributeValue;
 use fantoccini::wd::WebDriverCompatibleCommand;
 use fantoccini::{Client, ClientBuilder, Locator};
 use serial_test::serial;
@@ -73,8 +74,9 @@ macro_rules! serial_test {
         async fn $test_name() {
             let (app_addr, _) = init().await;
             let c = init_webdriver_client().await;
+            let dynamo = wewerewondering_api::init_dynamodb_client().await;
             // run the test as a task catching any errors
-            let res = tokio::spawn($test_fn(c.clone(), app_addr)).await;
+            let res = tokio::spawn($test_fn(c.clone(), dynamo, app_addr)).await;
             // clean up and ...
             c.close().await.unwrap();
             //  ... fail the test, if errors returned from the task
@@ -106,12 +108,19 @@ impl WebDriverCompatibleCommand for GrantClipboardReadCmd {
 
 // ------------------------------- TESTS --------------------------------------
 
-async fn start_new_q_and_a_session(c: Client, url: String) {
+async fn start_new_q_and_a_session(
+    fantoccini: Client,
+    dynamo: aws_sdk_dynamodb::Client,
+    url: String,
+) {
     // the host novigates to the app's welcome page
-    c.goto(&url).await.unwrap();
-    assert_eq!(c.current_url().await.unwrap().as_ref(), format!("{}/", url));
-    assert_eq!(c.title().await.unwrap(), "Q&A");
-    let create_event_btn = c
+    fantoccini.goto(&url).await.unwrap();
+    assert_eq!(
+        fantoccini.current_url().await.unwrap().as_ref(),
+        format!("{}/", url)
+    );
+    assert_eq!(fantoccini.title().await.unwrap(), "Q&A");
+    let create_event_btn = fantoccini
         .wait()
         .at_most(DEFAULT_WAIT_TIMEOUT)
         .for_element(Locator::Id("create-event-button"))
@@ -122,23 +131,23 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
     create_event_btn.click().await.unwrap();
 
     // ... gets redirected to the event's host view where they can ...
-    let share_event_btn = c
+    let share_event_btn = fantoccini
         .wait()
         .at_most(DEFAULT_WAIT_TIMEOUT)
         .for_element(Locator::Id("share-event-button"))
         .await
         .unwrap();
-    let event_url_for_host = c.current_url().await.unwrap();
+    let event_url_for_host = fantoccini.current_url().await.unwrap();
     let mut params = event_url_for_host.path_segments().unwrap();
     assert_eq!(params.next().unwrap(), "event");
     let event_id = params.next().unwrap();
-    let _host_secret = params.next().unwrap();
+    let event_secret = params.next().unwrap();
     assert!(params.next().is_none());
 
     // ... grab the event's guest url to share it later with folks
     share_event_btn.click().await.unwrap();
-    c.issue_cmd(GrantClipboardReadCmd).await.unwrap();
-    let event_url_for_guest: Url = c
+    fantoccini.issue_cmd(GrantClipboardReadCmd).await.unwrap();
+    let event_url_for_guest: Url = fantoccini
         .execute_async(
             r#"
                 const [callback] = arguments;
@@ -161,7 +170,7 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
 
     // and there are currently no pending, answered, or hidden questions
     // related to the newly created event
-    let pending_questions = c
+    let pending_questions = fantoccini
         .find(Locator::Id("pending-questions"))
         .await
         .unwrap()
@@ -169,21 +178,50 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
         .await
         .unwrap();
     assert!(pending_questions.is_empty());
-    assert!(c
+    assert!(fantoccini
         .find(Locator::Id("answered-questions"))
         .await
         .unwrap_err()
         .is_no_such_element());
-    assert!(c
+    assert!(fantoccini
         .find(Locator::Id("hidden-questions"))
         .await
         .unwrap_err()
         .is_no_such_element());
 
-    // let's make sure we are persisting the event
+    // let's make sure we are persisting the event...
+    let event = dynamo
+        .get_item()
+        .table_name("events")
+        .key("id", AttributeValue::S(event_id.into()))
+        .send()
+        .await
+        .unwrap()
+        .item
+        .unwrap();
+    assert_eq!(
+        event.get("id").unwrap(),
+        &AttributeValue::S(event_id.into())
+    );
+    assert_eq!(
+        event.get("secret").unwrap(),
+        &AttributeValue::S(event_secret.into())
+    );
+    // ... and there are actually no questions associated
+    // with that event
+    assert_eq!(
+        dynamo
+            .query()
+            .table_name("questions")
+            .index_name("top")
+            .key_condition_expression("eid = :eid")
+            .expression_attribute_values(":eid", AttributeValue::S(event_id.into()))
+            .send()
+            .await
+            .unwrap()
+            .count,
+        0
+    )
 }
 
 serial_test!(test_start_new_q_and_a_session, start_new_q_and_a_session);
-serial_test!(test_start_new_q_and_a_session1, start_new_q_and_a_session);
-serial_test!(test_start_new_q_and_a_session2, start_new_q_and_a_session);
-serial_test!(test_start_new_q_and_a_session3, start_new_q_and_a_session);
