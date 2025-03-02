@@ -37,6 +37,7 @@ ulid = { version = "1.0.0", features = ["serde"] }
 
 [dev-dependencies]
 fantoccini = "0.21.4"
+serial_test = "3.2.0"
 tower-http = { version = "0.6", features = ["limit", "trace", "fs"] }
 url = "2.5.4"
 

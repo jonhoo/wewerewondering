@@ -2,6 +2,7 @@
 
 use fantoccini::wd::WebDriverCompatibleCommand;
 use fantoccini::{Client, ClientBuilder, Locator};
+use serial_test::serial;
 use std::io;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -61,6 +62,7 @@ fn init() -> (String, ServerTaskHandle) {
 macro_rules! test {
     ($test_name:ident, $test_fn:expr) => {
         #[tokio::test(flavor = "multi_thread")]
+        #[serial]
         async fn $test_name() {
             let (app_addr, _) = init();
             let c = init_webdriver_client().await;
@@ -75,6 +77,7 @@ macro_rules! test {
         }
     };
 }
+
 #[derive(Debug, Clone)]
 struct GrantClipboardReadCmd;
 
@@ -169,16 +172,11 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
         .await
         .unwrap_err()
         .is_no_such_element());
+
+    // let's make sure we are persisting the event
 }
 
 test!(test_start_new_q_and_a_session, start_new_q_and_a_session);
-
-// XXX: REMOVE THIS
-// XXX: this is to demostrate the issue with tests running in parallel.
-// XXX: we indeed got isolated sessions, an app per test and unique-id-based
-// XXX: isolation in the dynamodb local, but what we do _not_ have now is 
-// XXX: clipboard isolation; so these tests are failing most of the time due
-// XXX: to writing and reading from the machines clipboard
 test!(test_start_new_q_and_a_session1, start_new_q_and_a_session);
 test!(test_start_new_q_and_a_session2, start_new_q_and_a_session);
 test!(test_start_new_q_and_a_session3, start_new_q_and_a_session);
