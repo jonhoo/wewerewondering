@@ -41,8 +41,8 @@ async fn init_webdriver_client() -> Client {
         .expect("web driver to be available")
 }
 
-fn init() -> (String, ServerTaskHandle) {
-    let (tx, rx) = std::sync::mpsc::channel();
+async fn init() -> (String, ServerTaskHandle) {
+    let (tx, rx) = tokio::sync::oneshot::channel();
     let handle = tokio::spawn(async move {
         let app = wewerewondering_api::new().await;
         let app = app.fallback_service(ServeDir::new(
@@ -54,7 +54,10 @@ fn init() -> (String, ServerTaskHandle) {
         tx.send(assigned_addr).unwrap();
         axum::serve(listener, app.into_make_service()).await
     });
-    let assigned_addr = rx.recv_timeout(TESTRUN_SETUP_TIMEOUT).unwrap();
+    let assigned_addr = tokio::time::timeout(TESTRUN_SETUP_TIMEOUT, rx)
+        .await
+        .expect("test setup to not have timed out")
+        .expect("socket address to have been received from the channel");
     let app_addr = format!("http://localhost:{}", assigned_addr.port());
     (app_addr, handle)
 }
@@ -68,7 +71,7 @@ macro_rules! serial_test {
         #[tokio::test(flavor = "multi_thread")]
         #[serial]
         async fn $test_name() {
-            let (app_addr, _) = init();
+            let (app_addr, _) = init().await;
             let c = init_webdriver_client().await;
             // run the test as a task catching any errors
             let res = tokio::spawn($test_fn(c.clone(), app_addr)).await;
