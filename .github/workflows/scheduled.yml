@@ -72,7 +72,7 @@ jobs:
       # https://twitter.com/jonhoo/status/1571290371124260865
       - name: cargo test
         if: hashFiles('server/Cargo.lock') != ''
-        run: cargo test --locked --all-features --all-targets -- --include-ignored
+        run: cargo test --locked --all-targets -- --include-ignored
         env:
           RUSTFLAGS: -D deprecated
           USE_DYNAMODB: local

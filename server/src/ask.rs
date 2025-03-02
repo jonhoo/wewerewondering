@@ -16,7 +16,7 @@ use ulid::Ulid;
 use tracing::{debug, error, info, trace, warn};
 
 impl Backend {
-    pub async fn ask(
+    pub(crate) async fn ask(
         &self,
         eid: &Ulid,
         qid: &Ulid,
@@ -70,7 +70,7 @@ impl Backend {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Question {
+pub(crate) struct Question {
     pub body: String,
     pub asker: Option<String>,
 }
