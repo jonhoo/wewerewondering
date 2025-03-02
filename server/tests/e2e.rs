@@ -63,6 +63,12 @@ async fn init() -> (String, ServerTaskHandle) {
     (app_addr, handle)
 }
 
+struct TestContext {
+    fantoccini: Client,
+    dynamo: aws_sdk_dynamodb::Client,
+    url: String,
+}
+
 // With out tests setup, we've got isolated sessions and a dedicated
 // app per test but we still cannot run certain tests in parallel, e.g.
 // we are currently missing clipboard isolation and need to run tests
@@ -74,9 +80,14 @@ macro_rules! serial_test {
         async fn $test_name() {
             let (app_addr, _) = init().await;
             let c = init_webdriver_client().await;
-            let dynamo = wewerewondering_api::init_dynamodb_client().await;
+            let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
+            let ctx = TestContext {
+                fantoccini: c.clone(),
+                dynamo: dynamodb_client,
+                url: app_addr,
+            };
             // run the test as a task catching any errors
-            let res = tokio::spawn($test_fn(c.clone(), dynamo, app_addr)).await;
+            let res = tokio::spawn($test_fn(ctx)).await;
             // clean up and ...
             c.close().await.unwrap();
             //  ... fail the test, if errors returned from the task
@@ -109,9 +120,11 @@ impl WebDriverCompatibleCommand for GrantClipboardReadCmd {
 // ------------------------------- TESTS --------------------------------------
 
 async fn start_new_q_and_a_session(
-    fantoccini: Client,
-    dynamo: aws_sdk_dynamodb::Client,
-    url: String,
+    TestContext {
+        fantoccini,
+        dynamo,
+        url,
+    }: TestContext,
 ) {
     // the host novigates to the app's welcome page
     fantoccini.goto(&url).await.unwrap();
