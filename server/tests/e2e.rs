@@ -59,7 +59,11 @@ fn init() -> (String, ServerTaskHandle) {
     (app_addr, handle)
 }
 
-macro_rules! test {
+// With out tests setup, we've got isolated sessions and a dedicated
+// app per test but we still cannot run certain tests in parallel, e.g.
+// we are currently missing clipboard isolation and need to run tests
+// that are accessing navigator.clipboard _sequentially_.
+macro_rules! serial_test {
     ($test_name:ident, $test_fn:expr) => {
         #[tokio::test(flavor = "multi_thread")]
         #[serial]
@@ -176,7 +180,7 @@ async fn start_new_q_and_a_session(c: Client, url: String) {
     // let's make sure we are persisting the event
 }
 
-test!(test_start_new_q_and_a_session, start_new_q_and_a_session);
-test!(test_start_new_q_and_a_session1, start_new_q_and_a_session);
-test!(test_start_new_q_and_a_session2, start_new_q_and_a_session);
-test!(test_start_new_q_and_a_session3, start_new_q_and_a_session);
+serial_test!(test_start_new_q_and_a_session, start_new_q_and_a_session);
+serial_test!(test_start_new_q_and_a_session1, start_new_q_and_a_session);
+serial_test!(test_start_new_q_and_a_session2, start_new_q_and_a_session);
+serial_test!(test_start_new_q_and_a_session3, start_new_q_and_a_session);
