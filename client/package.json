@@ -11,11 +11,14 @@
 		"format": "prettier --plugin=prettier-plugin-svelte --plugin=prettier-plugin-tailwindcss --write ."
 	},
 	"devDependencies": {
+		"@eslint/compat": "^1.2.7",
+		"@eslint/js": "^9.21.0",
 		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"autoprefixer": "^10.4.20",
 		"eslint": "^9.21.0",
 		"eslint-config-prettier": "^10.0.2",
 		"eslint-plugin-svelte": "^2.46.1",
+		"globals": "^16.0.0",
 		"postcss": "^8.5.3",
 		"prettier": "^3.5.2",
 		"prettier-plugin-svelte": "^3.3.3",
