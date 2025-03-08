@@ -69,25 +69,41 @@ struct TestContext {
     url: String,
 }
 
-// With out tests setup, we've got isolated sessions and a dedicated
-// app per test but we still cannot run certain tests in parallel, e.g.
-// we are currently missing clipboard isolation and need to run tests
-// that are accessing navigator.clipboard _sequentially_.
+/// With out tests setup, we've got isolated sessions and a dedicated
+/// app per test but we still cannot run certain tests in parallel, e.g.
+/// we are currently missing clipboard isolation and need to run tests
+/// that are accessing `navigator.clipboard` _sequentially_.
+///
+/// Usage:
+/// ```no_run
+/// async fn start_new_q_and_a_session(ctx: TestContext) {
+///     // test logic here
+/// }
+///
+/// async fn guest_asks_question(ctx: TestContext) {
+///     // test logic here
+/// }
+///
+/// mod tests {
+///     serial_test!(start_new_q_and_a_session);
+///     serial_test!(guest_asks_question);
+/// }
+/// ```
 macro_rules! serial_test {
-    ($test_name:ident, $test_fn:expr) => {
+    ($test_fn:ident) => {
         #[tokio::test(flavor = "multi_thread")]
-        #[serial]
-        async fn $test_name() {
-            let (app_addr, _) = init().await;
-            let c = init_webdriver_client().await;
+        #[super::serial]
+        async fn $test_fn() {
+            let (app_addr, _) = super::init().await;
+            let c = super::init_webdriver_client().await;
             let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
-            let ctx = TestContext {
+            let ctx = super::TestContext {
                 fantoccini: c.clone(),
                 dynamo: dynamodb_client,
                 url: app_addr,
             };
             // run the test as a task catching any errors
-            let res = tokio::spawn($test_fn(ctx)).await;
+            let res = tokio::spawn(super::$test_fn(ctx)).await;
             // clean up and ...
             c.close().await.unwrap();
             //  ... fail the test, if errors returned from the task
@@ -237,4 +253,6 @@ async fn start_new_q_and_a_session(
     )
 }
 
-serial_test!(test_start_new_q_and_a_session, start_new_q_and_a_session);
+mod tests {
+    serial_test!(start_new_q_and_a_session);
+}
