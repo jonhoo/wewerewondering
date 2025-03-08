@@ -104,8 +104,7 @@ impl Backend {
     /// This will instantiate a client (see [`init_dynamodb_client`])
     /// and put it inside [`Backend::Dynamo`].
     pub async fn dynamo() -> Self {
-        let c = init_dynamodb_client().await;
-        Backend::Dynamo(c)
+        Backend::Dynamo(init_dynamodb_client().await)
     }
 }
 
