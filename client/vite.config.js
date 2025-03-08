@@ -1,10 +1,10 @@
 import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import postcss from "./postcss.config.cjs";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-	plugins: [svelte()],
+	plugins: [tailwindcss(), svelte()],
 	server: {
 		https: false,
 		proxy: {
@@ -15,8 +15,5 @@ export default defineConfig({
 				secure: false
 			}
 		}
-	},
-	css: {
-		postcss
 	}
 });
