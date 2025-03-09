@@ -1,4 +1,5 @@
 <script>
+	import "./main.css";
 	import { onMount } from "svelte";
 	import { event } from "./store";
 	import List from "./List.svelte";
@@ -105,7 +106,3 @@
 		>
 	</div>
 {/if}
-
-<style global lang="postcss">
-	@import "tailwindcss";
-</style>
