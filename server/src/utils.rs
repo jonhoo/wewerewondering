@@ -6,7 +6,7 @@ use std::time::SystemTime;
 use tracing::{error, warn};
 use ulid::Ulid;
 
-pub fn to_dynamo_timestamp(time: SystemTime) -> AttributeValue {
+pub(crate) fn to_dynamo_timestamp(time: SystemTime) -> AttributeValue {
     AttributeValue::N(
         time.duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()

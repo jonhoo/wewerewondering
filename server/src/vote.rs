@@ -15,13 +15,13 @@ use tracing::{debug, error, info, trace, warn};
 
 #[derive(Deserialize, Debug, Copy, Clone)]
 #[serde(rename_all = "lowercase")]
-pub enum UpDown {
+pub(crate) enum UpDown {
     Up,
     Down,
 }
 
 impl Backend {
-    pub async fn vote(
+    pub(crate) async fn vote(
         &self,
         qid: &Ulid,
         direction: UpDown,
