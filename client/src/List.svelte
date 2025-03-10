@@ -44,11 +44,13 @@
 		}
 	}
 
+	let paused = $state(false);
 	let interval;
 	async function loadQuestions(e) {
 		if (interval) {
 			clearTimeout(interval);
 		}
+		if (paused) return;
 		let next = poll_time(e);
 		console.info("refresh; next in", next, "ms");
 		// set early so we'll retry even if request fails
@@ -238,6 +240,15 @@
 		});
 	}
 
+	function togglePaused() {
+		paused = !paused;
+		if (paused) {
+			if (interval) clearTimeout(interval);
+		} else {
+			event.set($event);
+		}
+	}
+
 	let original_share_text = "Share event";
 	let share_text = original_share_text;
 	let reset;
@@ -258,24 +269,37 @@
 <svelte:window onvisibilitychange={visibilitychange} />
 
 {#if questions}
-	<div class="text-center">
+	<div class="flex flex-row items-end justify-between text-center">
+		<div class="w-1/6"></div>
 		{#if $event.secret}
-			<button
-				id="share-event-button"
-				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
-				onclick={share}>{share_text}</button
-			>
-			<div class="pt-4 text-slate-400">
-				The URL in your address bar shares the host view.<br />
-				Use the button to get a shareable link to your clipboard.<br />
-				Questions disappear after 30 days.
+			<div class="flex-grow">
+				<button
+					id="share-event-button"
+					class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
+					onclick={share}>{share_text}</button
+				>
+				<div class="pt-4 text-slate-400">
+					The URL in your address bar shares the host view.<br />
+					Use the button to get a shareable link to your clipboard.<br />
+					Questions disappear after 30 days.
+				</div>
 			</div>
 		{:else}
 			<button
 				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
-				onclick={ask}>Ask another question</button
+				onclick={ask}
 			>
+				Ask another question
+			</button>
 		{/if}
+		<div class="w-1/6">
+			<button
+				class="cursor-pointer text-slate-300 underline hover:text-slate-400"
+				onclick={togglePaused}
+			>
+				{paused ? "Resume" : "Pause"} Updates
+			</button>
+		</div>
 	</div>
 
 	{#if problum}
