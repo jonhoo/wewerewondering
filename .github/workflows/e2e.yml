@@ -59,8 +59,12 @@ jobs:
       - name: Install browser engine and web driver
         uses: browser-actions/setup-chrome@v1
         with:
-          chrome-version: 132
+          chrome-version: 134
           install-chromedriver: true
+      # https://github.com/browser-actions/setup-chrome/issues/619#issuecomment-2601061935
+      - name: Update PATH
+        run: |
+          sudo ln -sf /opt/hostedtoolcache/setup-chrome/chromium/stable/x64/chrome /usr/bin/google-chrome
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
         ############################### FRONT-END ##############################
