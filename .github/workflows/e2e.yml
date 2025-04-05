@@ -59,7 +59,7 @@ jobs:
       - name: Install browser engine and web driver
         uses: browser-actions/setup-chrome@v1
         with:
-          chrome-version: stable
+          chrome-version: 134
           install-chromedriver: true
       # https://github.com/browser-actions/setup-chrome/issues/619#issuecomment-2601061935
       - name: Update PATH
