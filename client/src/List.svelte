@@ -272,6 +272,7 @@
 			</div>
 		{:else}
 			<button
+				id="ask-question-button"
 				class="border-2 border-red-100 bg-orange-700 p-4 px-8 font-bold text-white hover:border-red-400"
 				onclick={ask}>Ask another question</button
 			>
