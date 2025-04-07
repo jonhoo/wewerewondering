@@ -14,7 +14,6 @@ use http::{
     header::{self, HeaderName},
     StatusCode,
 };
-use rand::seq::SliceRandom;
 use std::{
     collections::HashMap,
     time::{Duration, SystemTime},
@@ -192,7 +191,7 @@ async fn list_inner(
     match dynamo.list(&eid, has_secret).await {
         Ok(qs) => {
             trace!(%eid, n = %qs.count(), "listed questions");
-            let mut questions: Vec<_> = qs.items().iter().filter_map(serialize_question).collect();
+            let questions: Vec<_> = qs.items().iter().filter_map(serialize_question).collect();
 
             // sort based on "hotness" of the question over time:
             // https://www.evanmiller.org/ranking-news-items-with-upvotes.html
