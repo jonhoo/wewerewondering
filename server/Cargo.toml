@@ -13,8 +13,8 @@ default = []
 e2e-test = []
 
 [dependencies]
-aws-config = { version = "1.5.18", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = "1.67.0"
+aws-config = { version = "1.8.1", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.82.0"
 aws-smithy-types = "1.0.1"
 aws-smithy-runtime-api = "1.8.0"
 aws-smithy-http = "0.62.1"
