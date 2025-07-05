@@ -15,7 +15,7 @@ updates:
           - "major"
         patterns:
           - "vite"
-          - "@sveltejs/vite-plugin-svelte"
+          - "@sveltejs/vite-plugin-svelte*"
           - "svelte"
           - "eslint-plugin-svelte"
           - "prettier-plugin-svelte"
