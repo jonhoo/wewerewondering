@@ -117,7 +117,12 @@ impl Client {
 async fn init_webdriver_client() -> fantoccini::Client {
     let mut chrome_args = Vec::new();
     if std::env::var("HEADLESS").ok().is_some() {
-        chrome_args.extend(["--headless", "--disable-gpu", "--disable-dev-shm-usage"]);
+        chrome_args.extend([
+            "--headless",
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--no-sandbox",
+        ]);
     }
     let mut caps = serde_json::map::Map::new();
     caps.insert(
