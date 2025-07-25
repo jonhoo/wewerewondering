@@ -1,3 +1,4 @@
+use aws_sdk_dynamodb::config::Credentials;
 use aws_sdk_dynamodb::types::AttributeValue;
 use axum::routing::{get, post};
 use axum::Router;
@@ -85,6 +86,16 @@ pub async fn init_dynamodb_client() -> aws_sdk_dynamodb::Client {
                     .unwrap_or("us-east-1".into()),
             ))
             .test_credentials()
+            .credentials_provider(
+                Credentials::builder()
+                    .provider_name("local")
+                    // these should be the same credentials that were used to create
+                    // the database in DynamoDB Local; there are the test creds we
+                    // are using in `run-dynamodb-local.sh` and also on CI
+                    .access_key_id("carpe")
+                    .secret_access_key("diem")
+                    .build(),
+            )
             .load()
             .await
     } else {

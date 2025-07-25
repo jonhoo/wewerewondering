@@ -17,8 +17,11 @@ fi
 # the  credential values themselves do not matter, it is rather the fact that they _are_ set.
 #
 # see: https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-envvars.html#envvars-set
-export AWS_ACCESS_KEY_ID=lorem
-export AWS_SECRET_ACCESS_KEY=ipsum
+#
+# NB. In order to work with the tables and indexes created under these credentials, 
+# applications (including DynamoDB Admin) should use these very credentials.
+export AWS_ACCESS_KEY_ID=carpe
+export AWS_SECRET_ACCESS_KEY=diem
 export AWS_DEFAULT_REGION=us-east-1
 
 DYNAMODB_NETWORK_NAME=wewerewondering
@@ -45,9 +48,9 @@ fi
 
 echo "🚀 Spinning up a container with DynamoDB..."
 (
-    docker run --rm -d -v ./dynamodb-data:/home/dynamodblocal/data -p ${DYNAMODB_HOST}:${DYNAMODB_PORT}:8000 \
+    docker run --rm -d -p ${DYNAMODB_HOST}:${DYNAMODB_PORT}:8000 \
         -w /home/dynamodblocal --name ${DYNAMODB_CONTAINER_NAME} --network ${DYNAMODB_NETWORK_NAME} \
-        amazon/dynamodb-local:latest -jar DynamoDBLocal.jar -sharedDb -dbPath ./data
+        amazon/dynamodb-local:latest
 ) >/dev/null
 
 while ! (aws dynamodb list-tables --endpoint-url ${ENDPOINT_URL} >/dev/null); do
@@ -67,6 +70,8 @@ echo "🚀 Spinning up a container with DynamoDB Admin..."
     docker run -d --rm -p ${DYNAMODB_ADMIN_HOST}:${DYNAMODB_ADMIN_PORT}:8001 \
         --name ${DYNAMODB_ADMIN_CONTAINER_NAME} \
         --network ${DYNAMODB_NETWORK_NAME} \
+        -e AWS_ACCESS_KEY_ID=carpe \
+        -e AWS_SECRET_ACCESS_KEY=diem \
         -e DYNAMO_ENDPOINT=http://${DYNAMODB_CONTAINER_NAME}:8000 \
         aaronshaf/dynamodb-admin
 ) >/dev/null
