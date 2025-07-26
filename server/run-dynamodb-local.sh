@@ -70,8 +70,8 @@ echo "🚀 Spinning up a container with DynamoDB Admin..."
     docker run -d --rm -p ${DYNAMODB_ADMIN_HOST}:${DYNAMODB_ADMIN_PORT}:8001 \
         --name ${DYNAMODB_ADMIN_CONTAINER_NAME} \
         --network ${DYNAMODB_NETWORK_NAME} \
-        -e AWS_ACCESS_KEY_ID=carpe \
-        -e AWS_SECRET_ACCESS_KEY=diem \
+        -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+        -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
         -e DYNAMO_ENDPOINT=http://${DYNAMODB_CONTAINER_NAME}:8000 \
         aaronshaf/dynamodb-admin
 ) >/dev/null
