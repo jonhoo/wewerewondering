@@ -129,7 +129,7 @@ jobs:
       - run: |
           wget https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
           unzip aws-sam-cli-linux-x86_64.zip -d sam-cli
-          ./sam-cli/install
+          ./sam-cli/install --update
       - name: cargo install cargo-lambda
         uses: taiki-e/install-action@v2
         with:
