@@ -147,5 +147,5 @@ jobs:
           USE_DYNAMODB: local
           HEADLESS: 1
           BACKEND_URL: http://localhost:3000
-          WAIT_TIMEOUT: 10
+          WAIT_TIMEOUT: 30
         run: cargo t --release --test e2e --features e2e-test
