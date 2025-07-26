@@ -58,7 +58,10 @@ impl Client {
     /// Internally, uses [`fantoccini::Client::wait_for`] with the timeout
     /// specified in the test module.
     pub(crate) async fn wait_for_element(&self, locator: Locator<'_>) -> Result<Element, CmdError> {
-        self.wait().at_most(self.wait_timeout).for_element(locator).await
+        self.wait()
+            .at_most(self.wait_timeout)
+            .for_element(locator)
+            .await
     }
 
     /// Wait for pending questions on the current page.
