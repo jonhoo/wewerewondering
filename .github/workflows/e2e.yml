@@ -126,10 +126,10 @@ jobs:
         ############################## BACK-END (SAM) ##########################
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
-      - run: |
-          wget https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
-          unzip aws-sam-cli-linux-x86_64.zip -d sam-cli
-          ./sam-cli/install --update
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: cargo install cargo-lambda
         uses: taiki-e/install-action@v2
         with:
