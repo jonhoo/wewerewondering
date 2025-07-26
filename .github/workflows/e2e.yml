@@ -137,7 +137,7 @@ jobs:
       - name: Install zig for cargo-lambda
         run: sudo snap install zig --classic --beta
       - run: sam build
-      - run: sam local start-api
+      - run: sam local start-api &
       - run: sleep 3
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
