@@ -83,6 +83,9 @@ jobs:
   awslike:
     runs-on: ubuntu-latest
     name: aws-sam
+    defaults:
+      run:
+        working-directory: ./server
     steps:
       - uses: actions/checkout@v4
       ############################### DATABASE ###############################
