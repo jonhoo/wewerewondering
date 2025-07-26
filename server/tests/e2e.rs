@@ -34,6 +34,7 @@ static WEBDRIVER_ADDRESS: LazyLock<String> = LazyLock::new(|| {
 pub(crate) struct Client {
     homepage: Url,
     fantoccini: fantoccini::Client,
+    wait_timeout: Duration,
 }
 
 impl Deref for Client {
@@ -57,12 +58,7 @@ impl Client {
     /// Internally, uses [`fantoccini::Client::wait_for`] with the timeout
     /// specified in the test module.
     pub(crate) async fn wait_for_element(&self, locator: Locator<'_>) -> Result<Element, CmdError> {
-        let timeout = std::env::var("WAIT_TIMEOUT")
-            .ok()
-            .and_then(|value| value.parse::<u64>().ok())
-            .and_then(|v| Some(Duration::from_secs(v)))
-            .unwrap_or(DEFAULT_WAIT_TIMEOUT);
-        self.wait().at_most(timeout).for_element(locator).await
+        self.wait().at_most(self.wait_timeout).for_element(locator).await
     }
 
     /// Wait for pending questions on the current page.
@@ -208,9 +204,15 @@ macro_rules! serial_test {
         async fn $test_fn() {
             let (app_addr, handle) = super::init().await;
             let fantoccini = super::init_webdriver_client().await;
+            let timeout = std::env::var("WAIT_TIMEOUT")
+                .ok()
+                .and_then(|value| value.parse::<u64>().ok())
+                .and_then(|v| Some(std::time::Duration::from_secs(v)))
+                .unwrap_or(super::DEFAULT_WAIT_TIMEOUT);
             let client = super::Client {
                 homepage: app_addr.parse().unwrap(),
                 fantoccini: fantoccini.clone(),
+                wait_timeout: timeout,
             };
             let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
             let ctx = super::TestContext {
