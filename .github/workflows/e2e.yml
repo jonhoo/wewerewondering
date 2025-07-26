@@ -20,13 +20,16 @@ name: e2e
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: ubuntu-latest / stable / tls
+    name: ubuntu-latest / stable
     defaults:
       run:
         working-directory: ./server
     env:
       WEBDRIVER_PORT: 4444
       NODE_VERSION: 22
+      AWS_ACCESS_KEY_ID: carpe
+      AWS_SECRET_ACCESS_KEY: diem
+      AWS_DEFAULT_REGION: dead-poets-society-eu-east-1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,8 +37,8 @@ jobs:
         ############################### DATABASE ###############################
       - name: Download DynamoDB Local
         run: |
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v2.x/dynamodb_local_latest.tar.gz
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v2.x/dynamodb_local_latest.tar.gz.sha256
+          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz
+          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz.sha256
           sha256sum --check dynamodb_local_latest.tar.gz.sha256
           mkdir dynamodb-local
           tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
@@ -51,10 +54,6 @@ jobs:
           java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
       - name: Create tables and indexes in DynamoDb Local
         run: ./run-migrations.sh http://localhost:8000
-        env:
-          AWS_ACCESS_KEY_ID: carpe
-          AWS_SECRET_ACCESS_KEY: diem
-          AWS_DEFAULT_REGION: dead-poets-society-eu-east-1
         ############################### BROWSER ################################
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
