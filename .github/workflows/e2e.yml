@@ -26,7 +26,7 @@ jobs:
         working-directory: ./server
     env:
       WEBDRIVER_PORT: 4444
-      NODE_VERSION: 18
+      NODE_VERSION: 22
     steps:
       - uses: actions/checkout@v4
         with:
