@@ -26,7 +26,7 @@ jobs:
         working-directory: ./server
     env:
       WEBDRIVER_PORT: 4444
-      NODE_VERSION: 18
+      NODE_VERSION: 22
       AWS_ACCESS_KEY_ID: carpe
       AWS_SECRET_ACCESS_KEY: diem
       AWS_DEFAULT_REGION: dead-poets-society-eu-east-1

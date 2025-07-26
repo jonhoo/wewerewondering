@@ -23,7 +23,7 @@ on:
 
 ## Add shared Environment Variables across jobs here ##
 env:
-  NODE_VERSION: 18
+  NODE_VERSION: 22
   TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
   TF_API_TOKEN: ${{ vars.TF_API_PLAN_TOKEN }}
   TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
