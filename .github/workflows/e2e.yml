@@ -34,42 +34,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-        ############################### DATABASE ###############################
-      - name: Download DynamoDB Local
-        run: |
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz.sha256
-          sha256sum --check dynamodb_local_latest.tar.gz.sha256
-          mkdir dynamodb-local
-          tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
-          ls -lah dynamodb-local
-      - name: Install Java SDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: "oracle"
-          java-version: "21"
-      - name: Launch DynamoDB Local
-        run: |
-          cd dynamodb-local
-          java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
-      - name: Create tables and indexes in DynamoDb Local
-        run: ./run-migrations.sh http://localhost:8000
-        ############################### BROWSER ################################
+      - uses: ./.github/actions/local-dynamo
+      - uses: ./.github/actions/client
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
-        ############################### FRONT-END ##############################
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: client/package-lock.json
-      - name: Prepare front-end distribution
-        run: |
-          cd ../client
-          npm ci
-          npm run build
-        ############################### BACK-END ###############################
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
       - name: cargo generate-lockfile
@@ -88,42 +56,10 @@ jobs:
         working-directory: ./server
     steps:
       - uses: actions/checkout@v4
-      ############################### DATABASE ###############################
-      - name: Download DynamoDB Local
-        run: |
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz.sha256
-          sha256sum --check dynamodb_local_latest.tar.gz.sha256
-          mkdir dynamodb-local
-          tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
-          ls -lah dynamodb-local
-      - name: Install Java SDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: "oracle"
-          java-version: "21"
-      - name: Launch DynamoDB Local
-        run: |
-          cd dynamodb-local
-          java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
-      - name: Create tables and indexes in DynamoDb Local
-        run: ./run-migrations.sh http://localhost:8000
-        ############################### BROWSER ################################
+      - uses: ./.github/actions/local-dynamo
+      - uses: ./.github/actions/client
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
-        ############################### FRONT-END ##############################
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: client/package-lock.json
-      - name: Prepare front-end distribution
-        run: |
-          cd ../client
-          npm ci
-          npm run build
-        ############################## BACK-END (SAM) ##########################
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
       - uses: aws-actions/setup-sam@v2

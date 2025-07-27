@@ -1,0 +1,28 @@
+name: "DynamoDb Local"
+description: "Launch and migrate a local instance of DynamoDB"
+runs:
+  using: "composite"
+  steps:
+    - name: Download DynamoDB Local
+      shell: bash
+      run: |
+        wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz
+        wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz.sha256
+        sha256sum --check dynamodb_local_latest.tar.gz.sha256
+        mkdir dynamodb-local
+        tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
+        ls -lah dynamodb-local
+    - name: Install Java SDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: "oracle"
+        java-version: "21"
+    - name: Launch DynamoDB Local
+      shell: bash
+      run: |
+        cd dynamodb-local
+        java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
+    - name: Create tables and indexes in DynamoDb Local
+      working-directory: ./server
+      shell: bash
+      run: ./run-migrations.sh http://localhost:8000

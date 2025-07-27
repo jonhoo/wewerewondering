@@ -8,34 +8,16 @@ on:
 name: client
 env:
   NODE_VERSION: 22
-jobs: 
+jobs:
   lint:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
     steps:
       - uses: actions/checkout@v4
-      - name: Install Node
-        uses: actions/setup-node@v4
+      - uses: ./.github/actions/client
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
-      - run: npm ci
-      - run: npm run lint
+          script: "lint"
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
     steps:
       - uses: actions/checkout@v4
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
-      - run: npm ci
-      - run: npm run build
+      - uses: ./.github/actions/client
