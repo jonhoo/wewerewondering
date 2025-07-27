@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: ./.github/actions/database
+      - uses: ./.github/actions/local-dynamo
       - uses: ./.github/actions/client
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
@@ -56,7 +56,7 @@ jobs:
         working-directory: ./server
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/database
+      - uses: ./.github/actions/local-dynamo
       - uses: ./.github/actions/client
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
