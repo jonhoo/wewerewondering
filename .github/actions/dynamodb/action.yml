@@ -23,5 +23,6 @@ runs:
         cd dynamodb-local
         java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
     - name: Create tables and indexes in DynamoDb Local
+      working-directory: ./server
       shell: bash
       run: ./run-migrations.sh http://localhost:8000
