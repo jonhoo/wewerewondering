@@ -14,7 +14,6 @@ runs:
         ls -lah dynamodb-local
     - name: Install Java SDK
       uses: actions/setup-java@v4
-      shell: bash
       with:
         distribution: "oracle"
         java-version: "21"
