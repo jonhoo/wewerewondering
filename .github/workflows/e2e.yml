@@ -34,26 +34,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-        ############################### DATABASE ###############################
-      - name: Download DynamoDB Local
-        run: |
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz.sha256
-          sha256sum --check dynamodb_local_latest.tar.gz.sha256
-          mkdir dynamodb-local
-          tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
-          ls -lah dynamodb-local
-      - name: Install Java SDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: "oracle"
-          java-version: "21"
-      - name: Launch DynamoDB Local
-        run: |
-          cd dynamodb-local
-          java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
-      - name: Create tables and indexes in DynamoDb Local
-        run: ./run-migrations.sh http://localhost:8000
+      - uses: ./.github/actions/dynamodb
         ############################### BROWSER ################################
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
@@ -88,26 +69,7 @@ jobs:
         working-directory: ./server
     steps:
       - uses: actions/checkout@v4
-      ############################### DATABASE ###############################
-      - name: Download DynamoDB Local
-        run: |
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz
-          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz.sha256
-          sha256sum --check dynamodb_local_latest.tar.gz.sha256
-          mkdir dynamodb-local
-          tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
-          ls -lah dynamodb-local
-      - name: Install Java SDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: "oracle"
-          java-version: "21"
-      - name: Launch DynamoDB Local
-        run: |
-          cd dynamodb-local
-          java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
-      - name: Create tables and indexes in DynamoDb Local
-        run: ./run-migrations.sh http://localhost:8000
+      - uses: ./.github/actions/dynamodb
         ############################### BROWSER ################################
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
