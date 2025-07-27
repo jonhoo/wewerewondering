@@ -35,22 +35,9 @@ jobs:
         with:
           submodules: true
       - uses: ./.github/actions/dynamodb
-        ############################### BROWSER ################################
+      - uses: ./.github/actions/distro
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
-        ############################### FRONT-END ##############################
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: client/package-lock.json
-      - name: Prepare front-end distribution
-        run: |
-          cd ../client
-          npm ci
-          npm run build
-        ############################### BACK-END ###############################
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
       - name: cargo generate-lockfile
@@ -70,22 +57,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/dynamodb
-        ############################### BROWSER ################################
+      - uses: ./.github/actions/distro
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
-        ############################### FRONT-END ##############################
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: client/package-lock.json
-      - name: Prepare front-end distribution
-        run: |
-          cd ../client
-          npm ci
-          npm run build
-        ############################## BACK-END (SAM) ##########################
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
       - uses: aws-actions/setup-sam@v2

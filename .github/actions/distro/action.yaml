@@ -1,0 +1,17 @@
+name: "Frontend Distribution"
+description: "Build frontend application"
+runs:
+  using: "composite"
+  steps:
+    - name: Install Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: "npm"
+        cache-dependency-path: client/package-lock.json
+    - name: Prepare front-end distribution
+      working-directory: ./client
+      shell: bash
+      run: |
+        npm ci
+        npm run build
