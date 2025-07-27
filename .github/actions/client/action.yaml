@@ -1,5 +1,10 @@
 name: "Frontend Distribution"
 description: "Build frontend application"
+inputs:
+  script:
+    description: "Name of the script that should be executed upon dependencies installation"
+    required: false
+    default: "build"
 runs:
   using: "composite"
   steps:
@@ -14,4 +19,4 @@ runs:
       shell: bash
       run: |
         npm ci
-        npm run build
+        npm run ${{ inputs.script }}
