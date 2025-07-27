@@ -17,6 +17,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 name: e2e
+env:
+  WEBDRIVER_PORT: 4444
+  NODE_VERSION: 22
+  AWS_ACCESS_KEY_ID: carpe
+  AWS_SECRET_ACCESS_KEY: diem
+  AWS_DEFAULT_REGION: dead-poets-society-eu-east-1
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -24,12 +30,6 @@ jobs:
     defaults:
       run:
         working-directory: ./server
-    env:
-      WEBDRIVER_PORT: 4444
-      NODE_VERSION: 22
-      AWS_ACCESS_KEY_ID: carpe
-      AWS_SECRET_ACCESS_KEY: diem
-      AWS_DEFAULT_REGION: dead-poets-society-eu-east-1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,4 +79,73 @@ jobs:
         env:
           USE_DYNAMODB: local
           HEADLESS: 1
+        run: cargo t --release --test e2e --features e2e-test
+  awslike:
+    runs-on: ubuntu-latest
+    name: aws-sam
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - uses: actions/checkout@v4
+      ############################### DATABASE ###############################
+      - name: Download DynamoDB Local
+        run: |
+          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz
+          wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz.sha256
+          sha256sum --check dynamodb_local_latest.tar.gz.sha256
+          mkdir dynamodb-local
+          tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
+          ls -lah dynamodb-local
+      - name: Install Java SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: "oracle"
+          java-version: "21"
+      - name: Launch DynamoDB Local
+        run: |
+          cd dynamodb-local
+          java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
+      - name: Create tables and indexes in DynamoDb Local
+        run: ./run-migrations.sh http://localhost:8000
+        ############################### BROWSER ################################
+      - name: Launch web driver in background
+        run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
+        ############################### FRONT-END ##############################
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+      - name: Prepare front-end distribution
+        run: |
+          cd ../client
+          npm ci
+          npm run build
+        ############################## BACK-END (SAM) ##########################
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: cargo install cargo-lambda
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-lambda@1
+      - name: Install zig for cargo-lambda
+        run: sudo snap install zig --classic --beta
+      - run: sam build
+      - run: sam local start-api &
+      - run: sleep 3
+      - name: cargo generate-lockfile
+        if: hashFiles('Cargo.lock') == ''
+        run: cargo generate-lockfile
+      - name: Run end-to-end tests
+        env:
+          USE_DYNAMODB: local
+          HEADLESS: 1
+          BACKEND_URL: http://localhost:3000
+          WAIT_TIMEOUT: 10
         run: cargo t --release --test e2e --features e2e-test

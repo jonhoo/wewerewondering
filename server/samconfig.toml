@@ -29,12 +29,16 @@ resolve_s3 = true
 beta_features = true
 watch = true
 
+[default.local_invoke.parameters]
+add_host = ["host.docker.internal:host-gateway"]
+
 [default.local_start_api.parameters]
 warm_containers = "EAGER"
-# The command `sam local start-api` will be launch Lambda Runtime in a docker
-# container and so we need to make sure the DynamoDB Local is in the same network
-# (see `DYNAMODB_NETWORK_NAME` in `./run-dynamodb-local.sh`)
-docker_network = "wewerewondering"
+# The command `sam local start-api` will be launching Lambda Runtime in a docker
+# container and so we need to make sure the DynamoDB Local is accessible from 
+# within SAM local container
+add_host = ["host.docker.internal:host-gateway"]
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
+add_host = ["host.docker.internal:host-gateway"]

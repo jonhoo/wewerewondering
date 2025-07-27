@@ -1,6 +1,7 @@
 #![cfg(feature = "e2e-test")]
 
 use aws_sdk_dynamodb::types::AttributeValue;
+use axum_reverse_proxy::ReverseProxy;
 use fantoccini::wd::WebDriverCompatibleCommand;
 use fantoccini::Locator;
 use fantoccini::{elements::Element, error::CmdError};
@@ -17,6 +18,9 @@ use url::{ParseError, Url};
 type ServerTaskHandle = JoinHandle<Result<(), io::Error>>;
 
 const TESTRUN_SETUP_TIMEOUT: Duration = Duration::from_secs(5);
+// this is also configurable via `WAIT_TIMEOUT` environment variable:
+// when testing with SAM local setup - especially on shared CI runners - you
+// might want to increase this
 const DEFAULT_WAIT_TIMEOUT: Duration = Duration::from_secs(3);
 
 static WEBDRIVER_ADDRESS: LazyLock<String> = LazyLock::new(|| {
@@ -30,6 +34,7 @@ static WEBDRIVER_ADDRESS: LazyLock<String> = LazyLock::new(|| {
 pub(crate) struct Client {
     homepage: Url,
     fantoccini: fantoccini::Client,
+    wait_timeout: Duration,
 }
 
 impl Deref for Client {
@@ -54,7 +59,7 @@ impl Client {
     /// specified in the test module.
     pub(crate) async fn wait_for_element(&self, locator: Locator<'_>) -> Result<Element, CmdError> {
         self.wait()
-            .at_most(DEFAULT_WAIT_TIMEOUT)
+            .at_most(self.wait_timeout)
             .for_element(locator)
             .await
     }
@@ -141,7 +146,10 @@ async fn init_webdriver_client() -> fantoccini::Client {
 async fn init() -> (String, ServerTaskHandle) {
     let (tx, rx) = tokio::sync::oneshot::channel();
     let handle = tokio::spawn(async move {
-        let app = wewerewondering_api::new().await;
+        let app = match std::env::var("BACKEND_URL") {
+            Err(_) => wewerewondering_api::new().await,
+            Ok(url) => ReverseProxy::new("/api", &format!("{}/api", url)).into(),
+        };
         let app = app
             // similar to what AWS Cloudfront (see `infra/index-everywhere.js`)
             // does for us at edge
@@ -199,9 +207,15 @@ macro_rules! serial_test {
         async fn $test_fn() {
             let (app_addr, handle) = super::init().await;
             let fantoccini = super::init_webdriver_client().await;
+            let timeout = std::env::var("WAIT_TIMEOUT")
+                .ok()
+                .and_then(|value| value.parse::<u64>().ok())
+                .and_then(|v| Some(std::time::Duration::from_secs(v)))
+                .unwrap_or(super::DEFAULT_WAIT_TIMEOUT);
             let client = super::Client {
                 homepage: app_addr.parse().unwrap(),
                 fantoccini: fantoccini.clone(),
+                wait_timeout: timeout,
             };
             let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
             let ctx = super::TestContext {
@@ -424,46 +438,48 @@ async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: 
     c.send_alert_text(name).await.unwrap();
     c.accept_alert().await.unwrap();
 
-    // and the questions shows up
-    let question = c
-        .wait_for_element(Locator::Css("#pending-questions article"))
+    // let's make sure to await till question's details, such as text, creation
+    // time, author have been fetched;, and check this is the question they've
+    // entered into the prompt
+    assert!(c
+        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
         .await
-        .unwrap();
-
-    // if we now check how many questions have been added to the
-    // unanswered questions container, we can see one single question
-    assert_eq!(c.wait_for_pending_questions().await.unwrap().len(), 1);
-
-    // let's check this is the question they've entered into
-    // the prompt
-    assert!(question
+        .unwrap()
         .text()
         .await
         .unwrap()
         .to_lowercase()
         .contains(&q_submitted.to_lowercase()));
-    // and its attributed to them
-    assert!(question
+
+    // and also that it's attributed to them
+    assert!(c
+        .wait_for_element(Locator::Css("#pending-questions article .question__by"))
+        .await
+        .unwrap()
         .text()
         .await
         .unwrap()
         .to_lowercase()
         .contains(&name.to_lowercase()));
 
+    // let's also check how many questions have been added to the
+    // unanswered questions container, we can see one single question
+    assert_eq!(c.wait_for_pending_questions().await.unwrap().len(), 1);
+
     // ------------------------ host window ----------------------------------
     // let's check that the host can also see this question
     c.switch_to_window(host_window).await.unwrap();
-    let question = c
+    assert!(c
         .wait_for_element(Locator::Css("#pending-questions article"))
         .await
-        .unwrap();
-    assert_eq!(c.wait_for_pending_questions().await.unwrap().len(), 1);
-    assert!(question
+        .unwrap()
         .text()
         .await
         .unwrap()
         .to_lowercase()
         .contains(&q_submitted.to_lowercase()));
+    // again, it's one single question
+    assert_eq!(c.wait_for_pending_questions().await.unwrap().len(), 1);
 
     // --------------------------- database ----------------------------------
     // finally, let's verify that the question has been persisted

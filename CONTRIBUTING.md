@@ -146,3 +146,24 @@ run command:
 ```sh
 WEBDRIVER_PORT=<port_goes_here> USE_DYNAMODB=local cargo t --release --test e2e --features e2e-test
 ```
+
+### End-to-end Testing (SAM)
+
+Make sure chrome binaries are in your path and launch the driver process:
+
+```sh
+chromedriver --port=4444
+```
+
+Prepare the client distribution:
+
+```sh
+cd client && npm run build
+```
+
+Now launch [API Gateway Local](#api-gateway-local) and hit (assuming the SAM's 
+default port 3000):
+```sh
+BACKEND_URL=http://localhost:3000 \
+   WAIT_TIMEOUT=10 USE_DYNAMODB=local cargo t --release --test e2e --features e2e-test
+```

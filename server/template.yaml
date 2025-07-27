@@ -65,4 +65,4 @@ Resources:
         Variables:
           RUST_LOG: debug
           USE_DYNAMODB: local
-          AWS_ENDPOINT_URL: http://dynamodb-local:8000
+          AWS_ENDPOINT_URL: http://host.docker.internal:8000

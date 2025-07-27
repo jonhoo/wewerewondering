@@ -120,11 +120,11 @@
 			{#await q}
 				<p class="text-xl">loading...</p>
 			{:then q}
-				<p class="text-xl break-words" style="word-break:break-word">{q.text}</p>
+				<p class="question__text text-xl break-words" style="word-break:break-word">{q.text}</p>
 				<div class="pt-1 text-right text-slate-400">
-					<span>{since(q, now)}</span>
+					<span class="question__since">{since(q, now)}</span>
 					{#if q.who}
-						<span>by {q.who}</span>
+						<span class="question__by">by {q.who}</span>
 					{/if}
 					{#if $event.secret}
 						—
