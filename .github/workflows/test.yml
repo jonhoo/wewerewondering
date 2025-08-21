@@ -52,7 +52,7 @@ jobs:
           tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
           ls -lah dynamodb-local
       - name: Install Java SDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'oracle'
           java-version: '21'

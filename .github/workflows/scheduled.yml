@@ -53,7 +53,7 @@ jobs:
           ls -lah dynamodb-local
       - name: Install Java SDK
         if: hashFiles('server/Cargo.lock') != ''
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'oracle'
           java-version: '21'
