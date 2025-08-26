@@ -20,6 +20,16 @@ Resources:
       - x86_64
       Timeout: 29
       MemorySize: 512
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt DeadLetterQueue.Arn
+      KmsKeyArn: "PLACEHOLDER_FOR_YOUR_KMS_KEY_ARN"
+      ReservedConcurrentExecutions: 100
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-xxx
+        SubnetIds:
+          - subnet-xxx
       Events:
         FetchEvent:
           Type: HttpApi
@@ -66,3 +76,7 @@ Resources:
           RUST_LOG: debug
           USE_DYNAMODB: local
           AWS_ENDPOINT_URL: http://host.docker.internal:8000
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsMasterKeyId: alias/aws/sqs
