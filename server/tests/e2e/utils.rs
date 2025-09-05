@@ -201,14 +201,14 @@ macro_rules! serial_test {
         #[tokio::test(flavor = "multi_thread")]
         #[::serial_test::serial]
         async fn $test_fn() {
-            let (app_addr, handle) = super::utils::init().await;
-            let fantoccini = super::utils::init_webdriver_client().await;
+            let (app_addr, handle) = crate::utils::init().await;
+            let fantoccini = crate::utils::init_webdriver_client().await;
             let timeout = std::env::var("WAIT_TIMEOUT")
                 .ok()
                 .and_then(|value| value.parse::<u64>().ok())
                 .and_then(|v| Some(std::time::Duration::from_secs(v)))
-                .unwrap_or(super::utils::DEFAULT_WAIT_TIMEOUT);
-            let client = super::utils::Client {
+                .unwrap_or(crate::utils::DEFAULT_WAIT_TIMEOUT);
+            let client = crate::utils::Client {
                 homepage: app_addr.parse().unwrap(),
                 fantoccini: fantoccini.clone(),
                 wait_timeout: timeout,
