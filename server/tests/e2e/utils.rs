@@ -138,7 +138,7 @@ pub(crate) async fn init_webdriver_client() -> fantoccini::Client {
         .expect("web driver to be available")
 }
 
-pub(crate) async fn init() -> (String, ServerTaskHandle) {
+pub(crate) async fn init() -> (Url, ServerTaskHandle) {
     let (tx, rx) = tokio::sync::oneshot::channel();
     let handle = tokio::spawn(async move {
         let app = match std::env::var("BACKEND_URL") {
@@ -166,12 +166,16 @@ pub(crate) async fn init() -> (String, ServerTaskHandle) {
         .await
         .expect("test setup to not have timed out")
         .expect("socket address to have been received from the channel");
-    let app_addr = format!("http://localhost:{}", assigned_addr.port());
+    let app_addr = format!("http://localhost:{}", assigned_addr.port())
+        .parse()
+        .unwrap();
     (app_addr, handle)
 }
 
 pub(crate) struct TestContext {
-    pub client: Client,
+    pub host: Client,
+    pub guest1: Client,
+    pub guest2: Client,
     pub dynamo: aws_sdk_dynamodb::Client,
 }
 
@@ -202,26 +206,39 @@ macro_rules! serial_test {
         #[::serial_test::serial]
         async fn $test_fn() {
             let (app_addr, handle) = crate::utils::init().await;
-            let fantoccini = crate::utils::init_webdriver_client().await;
             let timeout = std::env::var("WAIT_TIMEOUT")
                 .ok()
                 .and_then(|value| value.parse::<u64>().ok())
                 .and_then(|v| Some(std::time::Duration::from_secs(v)))
                 .unwrap_or(crate::utils::DEFAULT_WAIT_TIMEOUT);
-            let client = crate::utils::Client {
-                homepage: app_addr.parse().unwrap(),
-                fantoccini: fantoccini.clone(),
+            let host = crate::utils::Client {
+                homepage: app_addr.clone(),
+                fantoccini: crate::utils::init_webdriver_client().await,
+                wait_timeout: timeout,
+            };
+            let guest1 = crate::utils::Client {
+                homepage: app_addr.clone(),
+                fantoccini: crate::utils::init_webdriver_client().await,
+                wait_timeout: timeout,
+            };
+            let guest2 = crate::utils::Client {
+                homepage: app_addr.clone(),
+                fantoccini: crate::utils::init_webdriver_client().await,
                 wait_timeout: timeout,
             };
             let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
             let ctx = super::TestContext {
-                client: client.clone(),
+                host: host.clone(),
+                guest1: guest1.clone(),
+                guest2: guest2.clone(),
                 dynamo: dynamodb_client,
             };
             // run the test as a task catching any errors
             let res = tokio::spawn(super::$test_fn(ctx)).await;
             // clean up and ...
-            client.into_inner().close().await.unwrap();
+            host.into_inner().close().await.unwrap();
+            guest1.into_inner().close().await.unwrap();
+            guest2.into_inner().close().await.unwrap();
             handle.abort();
             //  ... fail the test, if errors returned from the task
             if let Err(e) = res {

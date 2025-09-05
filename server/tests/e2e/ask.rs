@@ -4,12 +4,16 @@ use fantoccini::Locator;
 use std::collections::HashMap;
 use url::Url;
 
-async fn host_starts_new_q_and_a_session(TestContext { client: c, dynamo }: TestContext) {
+async fn host_starts_new_q_and_a_session(
+    TestContext {
+        host: h, dynamo, ..
+    }: TestContext,
+) {
     // the host navigates to the app's welcome page
-    c.goto_homepage().await;
+    h.goto_homepage().await;
 
-    assert_eq!(c.title().await.unwrap(), "Q&A");
-    let create_event_btn = c
+    assert_eq!(h.title().await.unwrap(), "Q&A");
+    let create_event_btn = h
         .wait_for_element(Locator::Id("create-event-button"))
         .await
         .unwrap();
@@ -18,11 +22,11 @@ async fn host_starts_new_q_and_a_session(TestContext { client: c, dynamo }: Test
     create_event_btn.click().await.unwrap();
 
     // ... gets redirected to the event's host view where they can ...
-    let share_event_btn = c
+    let share_event_btn = h
         .wait_for_element(Locator::Id("share-event-button"))
         .await
         .unwrap();
-    let event_url_for_host = c.current_url().await.unwrap();
+    let event_url_for_host = h.current_url().await.unwrap();
     let mut params = event_url_for_host.path_segments().unwrap();
     assert_eq!(params.next().unwrap(), "event");
     let event_id = params.next().unwrap();
@@ -31,8 +35,8 @@ async fn host_starts_new_q_and_a_session(TestContext { client: c, dynamo }: Test
 
     // ... grab the event's guest url to share it later with folks
     share_event_btn.click().await.unwrap();
-    c.issue_cmd(GrantClipboardReadCmd).await.unwrap();
-    let event_url_for_guest: Url = c
+    h.issue_cmd(GrantClipboardReadCmd).await.unwrap();
+    let event_url_for_guest: Url = h
         .execute_async(
             r#"
                 const [callback] = arguments;
@@ -55,14 +59,14 @@ async fn host_starts_new_q_and_a_session(TestContext { client: c, dynamo }: Test
 
     // and there are currently no pending, answered, or hidden questions
     // related to the newly created event
-    let pending_questions = c.wait_for_pending_questions().await.unwrap();
+    let pending_questions = h.wait_for_pending_questions().await.unwrap();
     assert!(pending_questions.is_empty());
-    assert!(c
+    assert!(h
         .find(Locator::Id("answered-questions"))
         .await
         .unwrap_err()
         .is_no_such_element());
-    assert!(c
+    assert!(h
         .find(Locator::Id("hidden-questions"))
         .await
         .unwrap_err()
@@ -103,16 +107,20 @@ async fn host_starts_new_q_and_a_session(TestContext { client: c, dynamo }: Test
     )
 }
 
-async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: TestContext) {
+async fn guest_asks_question_and_it_shows_up(
+    TestContext {
+        host: h, dynamo, ..
+    }: TestContext,
+) {
     // ------------------------ host window ----------------------------------
     // we've got a new event
-    let guest_url = c.create_event().await;
+    let guest_url = h.create_event().await;
     let event_id = guest_url.path_segments().unwrap().last().unwrap();
 
     // the host can see that nobody has asked
     // a question - at least not just yet
-    let host_window = c.window().await.unwrap();
-    assert!(c.wait_for_pending_questions().await.unwrap().is_empty());
+    let host_window = h.window().await.unwrap();
+    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
@@ -132,15 +140,15 @@ async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: 
 
     // ------------------------ guest window ---------------------------------
     // a guest visits the event's page and ...
-    let guest_window = c.new_window(false).await.unwrap();
-    c.switch_to_window(guest_window.handle).await.unwrap();
-    c.goto(&guest_url.as_str()).await.unwrap();
+    let guest_window = h.new_window(false).await.unwrap();
+    h.switch_to_window(guest_window.handle).await.unwrap();
+    h.goto(&guest_url.as_str()).await.unwrap();
 
     // they do not observe any questions either, so ...
-    assert!(c.wait_for_pending_questions().await.unwrap().is_empty());
+    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
 
     // ... they click the "Ask another question" button ...
-    c.wait_for_element(Locator::Id("ask-question-button"))
+    h.wait_for_element(Locator::Id("ask-question-button"))
         .await
         .unwrap()
         .click()
@@ -148,15 +156,15 @@ async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: 
         .unwrap();
 
     // they can see a prompt
-    let alert = c.get_alert_text().await.unwrap();
+    let alert = h.get_alert_text().await.unwrap();
     assert!(alert.to_lowercase().contains("question"));
 
     // ... and they decide to enter a single word
-    c.send_alert_text("What?").await.unwrap();
-    c.accept_alert().await.unwrap();
+    h.send_alert_text("What?").await.unwrap();
+    h.accept_alert().await.unwrap();
 
     // but the app asks them to enter at least a couple of words
-    assert!(c
+    assert!(h
         .get_alert_text()
         .await
         .unwrap()
@@ -164,10 +172,10 @@ async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: 
         .contains("at least two words"));
 
     // and they say ok ...
-    c.accept_alert().await.unwrap();
+    h.accept_alert().await.unwrap();
 
     // and the app show them the prompt again
-    assert!(c
+    assert!(h
         .get_alert_text()
         .await
         .unwrap()
@@ -176,20 +184,20 @@ async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: 
 
     // this time they enter a _few_ words ...
     let q_submitted = "What is this life, if, full of care, we have no time to stand and stare?";
-    c.send_alert_text(q_submitted).await.unwrap();
-    c.accept_alert().await.unwrap();
+    h.send_alert_text(q_submitted).await.unwrap();
+    h.accept_alert().await.unwrap();
 
     // ... and then they also leave they signature (which is optional btw)
     let name = "William Henry Davies";
-    let alert = c.get_alert_text().await.unwrap();
+    let alert = h.get_alert_text().await.unwrap();
     assert!(alert.to_ascii_lowercase().contains("signature"));
-    c.send_alert_text(name).await.unwrap();
-    c.accept_alert().await.unwrap();
+    h.send_alert_text(name).await.unwrap();
+    h.accept_alert().await.unwrap();
 
     // let's make sure to await till question's details, such as text, creation
     // time, author have been fetched;, and check this is the question they've
     // entered into the prompt
-    assert!(c
+    assert!(h
         .wait_for_element(Locator::Css("#pending-questions article .question__text"))
         .await
         .unwrap()
@@ -200,7 +208,7 @@ async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: 
         .contains(&q_submitted.to_lowercase()));
 
     // and also that it's attributed to them
-    assert!(c
+    assert!(h
         .wait_for_element(Locator::Css("#pending-questions article .question__by"))
         .await
         .unwrap()
@@ -212,12 +220,12 @@ async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: 
 
     // let's also check how many questions have been added to the
     // unanswered questions container, we can see one single question
-    assert_eq!(c.wait_for_pending_questions().await.unwrap().len(), 1);
+    assert_eq!(h.wait_for_pending_questions().await.unwrap().len(), 1);
 
     // ------------------------ host window ----------------------------------
     // let's check that the host can also see this question
-    c.switch_to_window(host_window).await.unwrap();
-    assert!(c
+    h.switch_to_window(host_window).await.unwrap();
+    assert!(h
         .wait_for_element(Locator::Css("#pending-questions article"))
         .await
         .unwrap()
@@ -227,7 +235,7 @@ async fn guest_asks_question_and_it_shows_up(TestContext { client: c, dynamo }: 
         .to_lowercase()
         .contains(&q_submitted.to_lowercase()));
     // again, it's one single question
-    assert_eq!(c.wait_for_pending_questions().await.unwrap().len(), 1);
+    assert_eq!(h.wait_for_pending_questions().await.unwrap().len(), 1);
 
     // --------------------------- database ----------------------------------
     // finally, let's verify that the question has been persisted
