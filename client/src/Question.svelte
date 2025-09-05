@@ -129,15 +129,15 @@
 					{#if $event.secret}
 						—
 						{#if question.answered}
-							<button onclick={answered}>Mark as not answered</button>
+							<button data-action="mark_not_answered" onclick={answered}>Mark as not answered</button>
 						{:else}
-							<button onclick={answered}>Mark as answered</button>
+							<button data-action="mark_answered" onclick={answered}>Mark as answered</button>
 						{/if}
 						|
 						{#if question.hidden}
-							<button onclick={hidden}>Unhide</button>
+							<button data-action="unhide"  onclick={hidden}>Unhide</button>
 						{:else}
-							<button onclick={hidden}>Hide</button>
+							<button data-action="hide" onclick={hidden}>Hide</button>
 						{/if}
 					{/if}
 				</div>
