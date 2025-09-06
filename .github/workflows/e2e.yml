@@ -85,4 +85,4 @@ jobs:
       - name: Run end-to-end tests
         env:
           BACKEND_URL: http://localhost:3000
-        run: cargo t --release --test e2e --features e2e-test -- --nocapture
+        run: cargo t --release --test e2e --features e2e-test

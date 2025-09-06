@@ -259,17 +259,6 @@ async fn guest_asks_question_and_host_hides_it(
     // just like in the "answer" scenario, let's wait until the changes
     // are sent to the server and synced back
     g1.wait_for_polling().await;
-    /*
-    assert!(g1
-        .wait_for_element(Locator::Css("#pending-questions h2"))
-        .await
-        .unwrap()
-        .text()
-        .await
-        .unwrap()
-        .to_lowercase()
-        .contains("no unanswered questions"));
-    */
     assert!(g1
         // NB: the host would see these questions in the hidden as tested above
         .wait_for_element(Locator::Id("hidden-questions"))
@@ -277,8 +266,7 @@ async fn guest_asks_question_and_host_hides_it(
         .is_err());
 
     // ------------------------ second guest window ----------------------
-    let source = g1.source().await.unwrap();
-    dbg!(source);
+    // the "question" disappears for the second guest
     assert!(g2
         .wait_for_element(Locator::Css("#pending-questions h2"))
         .await

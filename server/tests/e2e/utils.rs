@@ -13,9 +13,16 @@ use url::{ParseError, Url};
 pub(crate) type ServerTaskHandle = JoinHandle<Result<(), io::Error>>;
 
 pub(crate) const TESTRUN_SETUP_TIMEOUT: Duration = Duration::from_secs(5);
-// this is also configurable via `WAIT_TIMEOUT` environment variable:
-// when testing with SAM local setup - especially on shared CI runners - you
-// might want to increase this
+
+// When testing with SAM local setup - especially on shared CI runners - we
+// want to increase this. We also should account for the fact that we are using
+// a polling approach in our front-end (rather than, say, socket connection our
+// server-sent events) mainly to be able to use serverless architecture.
+// This implies that there is at least a polling interval delay
+// between one Q&A session participant upvoting a question and all others
+// see the counter go up. To "accelerate" the events, we are specifying a lower
+// polling interval when building the front-end for end-to-end test run. We are
+// also making sure to reduce the default max age setting at the back-end.
 pub(crate) const DEFAULT_WAIT_TIMEOUT: Duration = Duration::from_secs(3);
 
 static WEBDRIVER_ADDRESS: LazyLock<String> = LazyLock::new(|| {
@@ -38,18 +45,6 @@ pub(crate) struct Client {
     pub homepage: Url,
     pub fantoccini: fantoccini::Client,
     pub wait_timeout: Duration,
-
-    /// Front-end's poll interval.
-    ///
-    /// We are using a polling approach in our front-end (as opposed to socket connection
-    /// or server-sent events) mainly to be able to use serverless architecture.
-    /// This implies, for example, that there is at least a polling interval delay
-    /// between one Q&A session participant upvoting a question and all others
-    /// see the counter go up. To "accelerate" this, we are specifying a lower
-    /// polling interval when building the front-end for end-to-end test run.
-    /// We are storing this interval here to know how long (at the very least)
-    /// we should be awaiting prior to making assertions in some test scenarios.
-    pub poll_interval: Duration,
 }
 
 impl Deref for Client {
@@ -240,24 +235,20 @@ macro_rules! serial_test {
                 tokio::spawn($crate::utils::init_webdriver_client()),
                 tokio::spawn($crate::utils::init_webdriver_client()),
             );
-            let poll_interval = std::time::Duration::from_millis(1000);
             let host = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f1.unwrap(),
                 wait_timeout: *$crate::utils::WAIT_TIMEOUT,
-                poll_interval,
             };
             let guest1 = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f2.unwrap(),
                 wait_timeout: *$crate::utils::WAIT_TIMEOUT,
-                poll_interval,
             };
             let guest2 = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f3.unwrap(),
                 wait_timeout: *$crate::utils::WAIT_TIMEOUT,
-                poll_interval,
             };
             let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
             let ctx = super::TestContext {
