@@ -18,7 +18,5 @@ runs:
       working-directory: ./client
       shell: bash
       run: |
-        echo ${{ env.VITE_HOST_POLL_INTERVAL }}
-        echo ${{ env.VITE_GUEST_POLL_INTERVAL }}
         npm ci
         npm run ${{ inputs.script }}

@@ -198,11 +198,10 @@ async fn guest_asks_question_and_host_hides_it(
     // ------------------------ second guest window ----------------------
     // second guest sees the "question" ...
     g2.goto(guest_url.as_str()).await.unwrap();
-    let question = g2
-        .wait_for_element(Locator::Css("#pending-questions article"))
+    assert!(g2
+        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
         .await
-        .unwrap();
-    assert!(question
+        .unwrap()
         .text()
         .await
         .unwrap()

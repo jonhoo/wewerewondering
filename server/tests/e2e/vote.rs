@@ -88,6 +88,17 @@ async fn guest_asks_question_and_others_vote(
     // ------------------------ second guest window ----------------------
     // second guest sees the newly asked question and ...
     g2.goto(guest_url.as_str()).await.unwrap();
+    assert!(g2
+        // we are making sure this way the text content of the questions
+        // has been loaded rather than only the question item container
+        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&question_text.to_lowercase()));
     let question = g2
         .wait_for_element(Locator::Css("#pending-questions article"))
         .await
