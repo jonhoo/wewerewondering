@@ -16,7 +16,7 @@ pub(crate) const TESTRUN_SETUP_TIMEOUT: Duration = Duration::from_secs(5);
 // this is also configurable via `WAIT_TIMEOUT` environment variable:
 // when testing with SAM local setup - especially on shared CI runners - you
 // might want to increase this
-pub(crate) const DEFAULT_WAIT_TIMEOUT: Duration = Duration::from_millis(1500);
+pub(crate) const DEFAULT_WAIT_TIMEOUT: Duration = Duration::from_secs(3);
 
 static WEBDRIVER_ADDRESS: LazyLock<String> = LazyLock::new(|| {
     let port = std::env::var("WEBDRIVER_PORT")
