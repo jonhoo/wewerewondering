@@ -255,12 +255,17 @@ async fn guest_asks_question_and_host_hides_it(
             .len(),
         1
     );
+    let source = h.source().await.unwrap();
+    dbg!(source);
 
     // ---------------- first guest (not a gentle person) window -------------
     // just like in the "answer" scenario, let's wait until the changes
     // are sent to the server and synced back
     g1.wait_for_polling().await;
     // in the guest's window, their "question" is no longer there
+    tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+    let source = g1.source().await.unwrap();
+    dbg!(source);
     assert!(g1
         .wait_for_element(Locator::Css("#pending-questions h2"))
         .await
