@@ -16,13 +16,21 @@ pub(crate) const TESTRUN_SETUP_TIMEOUT: Duration = Duration::from_secs(5);
 // this is also configurable via `WAIT_TIMEOUT` environment variable:
 // when testing with SAM local setup - especially on shared CI runners - you
 // might want to increase this
-pub(crate) const DEFAULT_WAIT_TIMEOUT: Duration = Duration::from_secs(3);
+pub(crate) const DEFAULT_WAIT_TIMEOUT: Duration = Duration::from_millis(1500);
 
 static WEBDRIVER_ADDRESS: LazyLock<String> = LazyLock::new(|| {
     let port = std::env::var("WEBDRIVER_PORT")
         .ok()
         .unwrap_or("4444".into());
     format!("http://localhost:{}", port)
+});
+
+pub(crate) static WAIT_TIMEOUT: LazyLock<Duration> = LazyLock::new(|| {
+    std::env::var("WAIT_TIMEOUT")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .map(std::time::Duration::from_secs)
+        .unwrap_or(DEFAULT_WAIT_TIMEOUT)
 });
 
 #[derive(Debug, Clone)]
@@ -66,8 +74,7 @@ impl Client {
     /// scaled a bit to adjust for some latency and resource-constrained test
     /// runners.
     pub(crate) async fn wait_for_polling(&self) {
-        let timeout = self.poll_interval.as_secs_f64() * 1.5;
-        tokio::time::sleep(Duration::from_secs_f64(timeout)).await;
+        tokio::time::sleep(*WAIT_TIMEOUT).await;
     }
 
     /// Wait for an element with default timeout.
@@ -228,11 +235,6 @@ macro_rules! serial_test {
         #[::serial_test::serial]
         async fn $test_fn() {
             let (app_addr, handle) = $crate::utils::init().await;
-            let timeout = std::env::var("WAIT_TIMEOUT")
-                .ok()
-                .and_then(|value| value.parse::<u64>().ok())
-                .and_then(|v| Some(std::time::Duration::from_secs(v)))
-                .unwrap_or($crate::utils::DEFAULT_WAIT_TIMEOUT);
             let (f1, f2, f3) = tokio::join!(
                 tokio::spawn($crate::utils::init_webdriver_client()),
                 tokio::spawn($crate::utils::init_webdriver_client()),
@@ -242,19 +244,19 @@ macro_rules! serial_test {
             let host = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f1.unwrap(),
-                wait_timeout: timeout,
+                wait_timeout: *$crate::utils::WAIT_TIMEOUT,
                 poll_interval,
             };
             let guest1 = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f2.unwrap(),
-                wait_timeout: timeout,
+                wait_timeout: *$crate::utils::WAIT_TIMEOUT,
                 poll_interval,
             };
             let guest2 = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f3.unwrap(),
-                wait_timeout: timeout,
+                wait_timeout: *$crate::utils::WAIT_TIMEOUT,
                 poll_interval,
             };
             let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
