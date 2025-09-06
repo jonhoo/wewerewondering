@@ -25,6 +25,11 @@ env:
   AWS_DEFAULT_REGION: dead-poets-society-eu-east-1
   VITE_HOST_POLL_INTERVAL: 1000
   VITE_GUEST_POLL_INTERVAL: 1000
+  USE_DYNAMODB: local
+  HEADLESS: 1
+  WAIT_TIMEOUT: 10
+  HOST_CACHE_CONTROL_MAX_AGE: 0
+  GUEST_CACHE_CONTROL_MAX_AGE: 0
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -46,9 +51,6 @@ jobs:
         if: hashFiles('Cargo.lock') == ''
         run: cargo generate-lockfile
       - name: Run end-to-end tests
-        env:
-          USE_DYNAMODB: local
-          HEADLESS: 1
         run: cargo t --release --test e2e --features e2e-test
   awslike:
     runs-on: ubuntu-latest
@@ -82,10 +84,5 @@ jobs:
         run: cargo generate-lockfile
       - name: Run end-to-end tests
         env:
-          USE_DYNAMODB: local
-          HEADLESS: 1
           BACKEND_URL: http://localhost:3000
-          WAIT_TIMEOUT: 10
-          HOST_CACHE_CONTROL_MAX_AGE: 0
-          GUEST_CACHE_CONTROL_MAX_AGE: 0
         run: cargo t --release --test e2e --features e2e-test -- --nocapture
