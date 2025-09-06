@@ -26,9 +26,11 @@ static WEBDRIVER_ADDRESS: LazyLock<String> = LazyLock::new(|| {
 });
 
 pub(crate) static WAIT_TIMEOUT: LazyLock<Duration> = LazyLock::new(|| {
-    std::env::var("WAIT_TIMEOUT")
+    let wait_timeout_override = std::env::var("WAIT_TIMEOUT")
         .ok()
-        .and_then(|value| value.parse::<u64>().ok())
+        .and_then(|value| value.parse::<u64>().ok());
+    dbg!(wait_timeout_override);
+    wait_timeout_override
         .map(std::time::Duration::from_secs)
         .unwrap_or(DEFAULT_WAIT_TIMEOUT)
 });
@@ -83,6 +85,7 @@ impl Client {
     /// Internally, uses [`fantoccini::Client::wait_for`] with the timeout
     /// specified in the test module.
     pub(crate) async fn wait_for_element(&self, locator: Locator<'_>) -> Result<Element, CmdError> {
+        dbg!(self.wait_timeout);
         self.wait()
             .at_most(self.wait_timeout)
             .for_element(locator)
