@@ -74,6 +74,7 @@ impl Client {
     /// scaled a bit to adjust for some latency and resource-constrained test
     /// runners.
     pub(crate) async fn wait_for_polling(&self) {
+        dbg!(*WAIT_TIMEOUT);
         tokio::time::sleep(*WAIT_TIMEOUT).await;
     }
 

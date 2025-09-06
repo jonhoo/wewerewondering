@@ -88,4 +88,4 @@ jobs:
           WAIT_TIMEOUT: 10
           HOST_CACHE_CONTROL_MAX_AGE: 0
           GUEST_CACHE_CONTROL_MAX_AGE: 0
-        run: cargo t --release --test e2e --features e2e-test
+        run: cargo t --release --test e2e --features e2e-test -- --nocapture
