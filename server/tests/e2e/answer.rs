@@ -1,35 +1,33 @@
 use crate::utils::TestContext;
 use fantoccini::Locator;
 
-async fn guest_asks_question_and_host_answers(TestContext { host: h, .. }: TestContext) {
+async fn guest_asks_question_and_host_answers(
+    TestContext {
+        host: h, guest1: g, ..
+    }: TestContext,
+) {
     // ------------------------ host window ----------------------------------
     // host creates a new event
     let guest_url = h.create_event().await;
-    let host_window = h.window().await.unwrap();
-
     // initially no questions
     assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
 
     // ------------------------ guest window ---------------------------------
     // guest opens the link and ...
-    let guest_window = h.new_window(false).await.unwrap();
-    h.switch_to_window(guest_window.handle.clone())
-        .await
-        .unwrap();
-    h.goto(guest_url.as_str()).await.unwrap();
+    g.goto(guest_url.as_str()).await.unwrap();
     // ... asks a question, which ...
-    h.wait_for_element(Locator::Id("ask-question-button"))
+    g.wait_for_element(Locator::Id("ask-question-button"))
         .await
         .unwrap()
         .click()
         .await
         .unwrap();
     let question_text = "Did you attend Rust Forge conference in Wellington in 2025?";
-    h.send_alert_text(question_text).await.unwrap();
-    h.accept_alert().await.unwrap();
+    g.send_alert_text(question_text).await.unwrap();
+    g.accept_alert().await.unwrap();
     let question_author = "Tim";
-    h.send_alert_text(question_author).await.unwrap();
-    h.accept_alert().await.unwrap();
+    g.send_alert_text(question_author).await.unwrap();
+    g.accept_alert().await.unwrap();
     // ... appears on the screen
     assert!(h
         .wait_for_element(Locator::Css("#pending-questions article .question__text"))
@@ -41,11 +39,10 @@ async fn guest_asks_question_and_host_answers(TestContext { host: h, .. }: TestC
         .to_lowercase()
         .contains(&question_text.to_lowercase()));
     // sanity: and it's the only one pending question
-    assert_eq!(h.wait_for_pending_questions().await.unwrap().len(), 1);
+    assert_eq!(g.wait_for_pending_questions().await.unwrap().len(), 1);
 
     // ------------------------ host window ----------------------------------
     // host sees the newly asked question
-    h.switch_to_window(host_window.clone()).await.unwrap();
     assert!(h
         .wait_for_element(Locator::Css("#pending-questions article"))
         .await
@@ -109,8 +106,8 @@ async fn guest_asks_question_and_host_answers(TestContext { host: h, .. }: TestC
     // ------------------------ guest window ---------------------------------
     // let's switch to Tim's window for a sec and check they also observe their
     // question having been answered
-    h.switch_to_window(guest_window.handle).await.unwrap();
-    let guest_pending_questions = h
+    g.wait_for_polling().await;
+    let guest_pending_questions = g
         .wait_for_element(Locator::Css("#pending-questions"))
         .await
         .unwrap();
@@ -123,7 +120,7 @@ async fn guest_asks_question_and_host_answers(TestContext { host: h, .. }: TestC
     // sanity: probably obvious but let's actually check that the guest cannot
     // mark the question as unanswered, neither hide it; in fact they cannot do
     // much about the question they asked:
-    let guest_answered_section = h
+    let guest_answered_section = g
         .wait_for_element(Locator::Id("answered-questions"))
         .await
         .unwrap();
@@ -144,7 +141,6 @@ async fn guest_asks_question_and_host_answers(TestContext { host: h, .. }: TestC
     // ------------------------ host window ----------------------------------
     // ok let's hop back to the host window to see what actions they have
     // now available for the answered question
-    h.switch_to_window(host_window).await.unwrap();
     // they can either mark the already answered question as unanswered, or ...
     let _unanswer_button = host_answered_questions[0]
         .find(Locator::Css(r#"button[data-action="mark_not_answered"]"#))
@@ -158,37 +154,38 @@ async fn guest_asks_question_and_host_answers(TestContext { host: h, .. }: TestC
         .unwrap();
 }
 
-async fn guest_asks_question_and_host_hides_it(TestContext { host: h, .. }: TestContext) {
+async fn guest_asks_question_and_host_hides_it(
+    TestContext {
+        host: h,
+        guest1: g1,
+        guest2: g2,
+        ..
+    }: TestContext,
+) {
     // ------------------------ host window ----------------------------------
     // host creates a new event
     let guest_url = h.create_event().await;
-    let host_window = h.window().await.unwrap();
-
     // initially no questions
     assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
 
-    // ------------------------ guest window ---------------------------------
+    // ---------------- first guest (not a gentle person) window -------------
     // guest opens the link and ...
-    let guest_window = h.new_window(false).await.unwrap();
-    h.switch_to_window(guest_window.handle.clone())
-        .await
-        .unwrap();
-    h.goto(guest_url.as_str()).await.unwrap();
+    g1.goto(guest_url.as_str()).await.unwrap();
     // ... asks a question ... no, instead they write some toxic stuff
-    h.wait_for_element(Locator::Id("ask-question-button"))
+    g1.wait_for_element(Locator::Id("ask-question-button"))
         .await
         .unwrap()
         .click()
         .await
         .unwrap();
     let question_text = "I hate your streams and everything about you";
-    h.send_alert_text(question_text).await.unwrap();
-    h.accept_alert().await.unwrap();
+    g1.send_alert_text(question_text).await.unwrap();
+    g1.accept_alert().await.unwrap();
     let question_author = "Hater";
-    h.send_alert_text(question_author).await.unwrap();
-    h.accept_alert().await.unwrap();
+    g1.send_alert_text(question_author).await.unwrap();
+    g1.accept_alert().await.unwrap();
     // ... and well - this toxic stuff also appear on the screen, but ...
-    assert!(h
+    assert!(g1
         .wait_for_element(Locator::Css("#pending-questions article .question__text"))
         .await
         .unwrap()
@@ -198,10 +195,23 @@ async fn guest_asks_question_and_host_hides_it(TestContext { host: h, .. }: Test
         .to_lowercase()
         .contains(&question_text.to_lowercase()));
 
+    // ------------------------ second guest window ----------------------
+    // second guest sees the "question" ...
+    g2.goto(guest_url.as_str()).await.unwrap();
+    let question = g2
+        .wait_for_element(Locator::Css("#pending-questions article"))
+        .await
+        .unwrap();
+    assert!(question
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&question_text.to_lowercase()));
+
     // ------------------------ host window ----------------------------------
     // the host sees it and just decides to hide it: there is not much they
     // can do about it
-    h.switch_to_window(host_window.clone()).await.unwrap();
     assert!(h
         .wait_for_element(Locator::Css("#pending-questions article"))
         .await
@@ -233,37 +243,53 @@ async fn guest_asks_question_and_host_hides_it(TestContext { host: h, .. }: Test
         .to_lowercase()
         .contains("no unanswered questions"));
     // this "question" has been moved to a special container (not the one for
-    // ansered questions)
+    // answered questions)
     let host_hidden_section = h
         .wait_for_element(Locator::Id("hidden-questions"))
         .await
         .unwrap();
-    let guest_answered_questions = host_hidden_section
-        .find_all(Locator::Css("article"))
-        .await
-        .unwrap();
-    assert_eq!(guest_answered_questions.len(), 1);
+    assert_eq!(
+        host_hidden_section
+            .find_all(Locator::Css("article"))
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
 
-    // ------------------------ guest window ---------------------------------
-    // in the guest's window there are now no unanswered questions either
-    h.switch_to_window(guest_window.handle).await.unwrap();
-    let guest_pending_questions = h
-        .wait_for_element(Locator::Css("#pending-questions"))
+    // ---------------- first guest (not a gentle person) window -------------
+    // just like in the "answer" scenario, let's wait till the changes
+    // are sent to the server and sync'ed back
+    g1.wait_for_polling().await;
+    // in the guest's window, their "question" is still there
+    assert!(g1
+        .wait_for_element(Locator::Css("#pending-questions h2"))
         .await
-        .unwrap();
-    assert!(guest_pending_questions
+        .unwrap()
         .text()
         .await
         .unwrap()
         .to_lowercase()
         .contains("no unanswered questions"));
-    // actually no questions at all:
-    assert!(h
-        .wait_for_element(Locator::Id("answered-questions"))
+    assert!(g1
+        // NB: the host would see these questions in the hidden as tested above
+        .wait_for_element(Locator::Id("hidden-questions"))
         .await
         .is_err());
-    assert!(h
-        // NB: the host would see these questions as tested above
+
+    // ------------------------ second guest window ----------------------
+    assert!(g2
+        .wait_for_element(Locator::Css("#pending-questions h2"))
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains("no unanswered questions"));
+    assert!(g2
+        // NB: same as in the bad guy's case, the good guy will not see that
+        // the question got to the hidden section
         .wait_for_element(Locator::Id("hidden-questions"))
         .await
         .is_err());

@@ -109,17 +109,19 @@ async fn host_starts_new_q_and_a_session(
 
 async fn guest_asks_question_and_it_shows_up(
     TestContext {
-        host: h, dynamo, ..
+        host: h,
+        guest1: g,
+        dynamo,
+        ..
     }: TestContext,
 ) {
     // ------------------------ host window ----------------------------------
     // we've got a new event
     let guest_url = h.create_event().await;
-    let event_id = guest_url.path_segments().unwrap().last().unwrap();
+    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
 
     // the host can see that nobody has asked
     // a question - at least not just yet
-    let host_window = h.window().await.unwrap();
     assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
 
     // -------------------------- database -----------------------------------
@@ -140,15 +142,13 @@ async fn guest_asks_question_and_it_shows_up(
 
     // ------------------------ guest window ---------------------------------
     // a guest visits the event's page and ...
-    let guest_window = h.new_window(false).await.unwrap();
-    h.switch_to_window(guest_window.handle).await.unwrap();
-    h.goto(&guest_url.as_str()).await.unwrap();
+    g.goto(guest_url.as_str()).await.unwrap();
 
     // they do not observe any questions either, so ...
     assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
 
     // ... they click the "Ask another question" button ...
-    h.wait_for_element(Locator::Id("ask-question-button"))
+    g.wait_for_element(Locator::Id("ask-question-button"))
         .await
         .unwrap()
         .click()
@@ -156,15 +156,15 @@ async fn guest_asks_question_and_it_shows_up(
         .unwrap();
 
     // they can see a prompt
-    let alert = h.get_alert_text().await.unwrap();
+    let alert = g.get_alert_text().await.unwrap();
     assert!(alert.to_lowercase().contains("question"));
 
     // ... and they decide to enter a single word
-    h.send_alert_text("What?").await.unwrap();
-    h.accept_alert().await.unwrap();
+    g.send_alert_text("What?").await.unwrap();
+    g.accept_alert().await.unwrap();
 
     // but the app asks them to enter at least a couple of words
-    assert!(h
+    assert!(g
         .get_alert_text()
         .await
         .unwrap()
@@ -172,10 +172,10 @@ async fn guest_asks_question_and_it_shows_up(
         .contains("at least two words"));
 
     // and they say ok ...
-    h.accept_alert().await.unwrap();
+    g.accept_alert().await.unwrap();
 
     // and the app show them the prompt again
-    assert!(h
+    assert!(g
         .get_alert_text()
         .await
         .unwrap()
@@ -184,20 +184,20 @@ async fn guest_asks_question_and_it_shows_up(
 
     // this time they enter a _few_ words ...
     let q_submitted = "What is this life, if, full of care, we have no time to stand and stare?";
-    h.send_alert_text(q_submitted).await.unwrap();
-    h.accept_alert().await.unwrap();
+    g.send_alert_text(q_submitted).await.unwrap();
+    g.accept_alert().await.unwrap();
 
     // ... and then they also leave they signature (which is optional btw)
     let name = "William Henry Davies";
-    let alert = h.get_alert_text().await.unwrap();
+    let alert = g.get_alert_text().await.unwrap();
     assert!(alert.to_ascii_lowercase().contains("signature"));
-    h.send_alert_text(name).await.unwrap();
-    h.accept_alert().await.unwrap();
+    g.send_alert_text(name).await.unwrap();
+    g.accept_alert().await.unwrap();
 
     // let's make sure to await till question's details, such as text, creation
     // time, author have been fetched;, and check this is the question they've
     // entered into the prompt
-    assert!(h
+    assert!(g
         .wait_for_element(Locator::Css("#pending-questions article .question__text"))
         .await
         .unwrap()
@@ -208,7 +208,7 @@ async fn guest_asks_question_and_it_shows_up(
         .contains(&q_submitted.to_lowercase()));
 
     // and also that it's attributed to them
-    assert!(h
+    assert!(g
         .wait_for_element(Locator::Css("#pending-questions article .question__by"))
         .await
         .unwrap()
@@ -220,11 +220,10 @@ async fn guest_asks_question_and_it_shows_up(
 
     // let's also check how many questions have been added to the
     // unanswered questions container, we can see one single question
-    assert_eq!(h.wait_for_pending_questions().await.unwrap().len(), 1);
+    assert_eq!(g.wait_for_pending_questions().await.unwrap().len(), 1);
 
     // ------------------------ host window ----------------------------------
     // let's check that the host can also see this question
-    h.switch_to_window(host_window).await.unwrap();
     assert!(h
         .wait_for_element(Locator::Css("#pending-questions article"))
         .await

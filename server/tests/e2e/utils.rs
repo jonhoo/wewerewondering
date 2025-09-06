@@ -104,7 +104,7 @@ impl Client {
     /// client (see [`fantoccini::Client::current_url`]).
     pub(crate) async fn create_event(&self) -> Url {
         // go to homepage and create a new event
-        self.goto(&self.homepage.as_str()).await.unwrap();
+        self.goto(self.homepage.as_str()).await.unwrap();
         self.wait_for_element(Locator::Id("create-event-button"))
             .await
             .unwrap()
@@ -227,31 +227,31 @@ macro_rules! serial_test {
         #[tokio::test(flavor = "multi_thread")]
         #[::serial_test::serial]
         async fn $test_fn() {
-            let (app_addr, handle) = crate::utils::init().await;
+            let (app_addr, handle) = $crate::utils::init().await;
             let timeout = std::env::var("WAIT_TIMEOUT")
                 .ok()
                 .and_then(|value| value.parse::<u64>().ok())
                 .and_then(|v| Some(std::time::Duration::from_secs(v)))
-                .unwrap_or(crate::utils::DEFAULT_WAIT_TIMEOUT);
+                .unwrap_or($crate::utils::DEFAULT_WAIT_TIMEOUT);
             let (f1, f2, f3) = tokio::join!(
-                tokio::spawn(crate::utils::init_webdriver_client()),
-                tokio::spawn(crate::utils::init_webdriver_client()),
-                tokio::spawn(crate::utils::init_webdriver_client()),
+                tokio::spawn($crate::utils::init_webdriver_client()),
+                tokio::spawn($crate::utils::init_webdriver_client()),
+                tokio::spawn($crate::utils::init_webdriver_client()),
             );
             let poll_interval = std::time::Duration::from_millis(1000);
-            let host = crate::utils::Client {
+            let host = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f1.unwrap(),
                 wait_timeout: timeout,
                 poll_interval,
             };
-            let guest1 = crate::utils::Client {
+            let guest1 = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f2.unwrap(),
                 wait_timeout: timeout,
                 poll_interval,
             };
-            let guest2 = crate::utils::Client {
+            let guest2 = $crate::utils::Client {
                 homepage: app_addr.clone(),
                 fantoccini: f3.unwrap(),
                 wait_timeout: timeout,
