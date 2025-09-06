@@ -73,8 +73,8 @@ async fn guest_asks_question_and_host_answers(
     // marks the question as answered
     answer_button.click().await.unwrap();
 
-    // the host observes text "No unanswered questions." which might be
-    // satisfying, but also can be sad depends on the context and mood
+    // the host observes the text "No unanswered questions." which might be
+    // satisfying, but also can be sad depending on the context and mood
     let no_questions_text = h
         .wait_for_element(Locator::Css("#pending-questions h2"))
         .await
@@ -184,7 +184,7 @@ async fn guest_asks_question_and_host_hides_it(
     let question_author = "Hater";
     g1.send_alert_text(question_author).await.unwrap();
     g1.accept_alert().await.unwrap();
-    // ... and well - this toxic stuff also appear on the screen, but ...
+    // ... and well - this toxic stuff also appears on the screen, but ...
     assert!(g1
         .wait_for_element(Locator::Css("#pending-questions article .question__text"))
         .await
@@ -258,10 +258,10 @@ async fn guest_asks_question_and_host_hides_it(
     );
 
     // ---------------- first guest (not a gentle person) window -------------
-    // just like in the "answer" scenario, let's wait till the changes
-    // are sent to the server and sync'ed back
+    // just like in the "answer" scenario, let's wait until the changes
+    // are sent to the server and synced back
     g1.wait_for_polling().await;
-    // in the guest's window, their "question" is still there
+    // in the guest's window, their "question" is no longer there
     assert!(g1
         .wait_for_element(Locator::Css("#pending-questions h2"))
         .await

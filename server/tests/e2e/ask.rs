@@ -174,7 +174,7 @@ async fn guest_asks_question_and_it_shows_up(
     // and they say ok ...
     g.accept_alert().await.unwrap();
 
-    // and the app show them the prompt again
+    // and the app shows them the prompt again
     assert!(g
         .get_alert_text()
         .await
@@ -187,15 +187,15 @@ async fn guest_asks_question_and_it_shows_up(
     g.send_alert_text(q_submitted).await.unwrap();
     g.accept_alert().await.unwrap();
 
-    // ... and then they also leave they signature (which is optional btw)
+    // ... and then they also leave their signature (which is optional btw)
     let name = "William Henry Davies";
     let alert = g.get_alert_text().await.unwrap();
     assert!(alert.to_ascii_lowercase().contains("signature"));
     g.send_alert_text(name).await.unwrap();
     g.accept_alert().await.unwrap();
 
-    // let's make sure to await till question's details, such as text, creation
-    // time, author have been fetched;, and check this is the question they've
+    // let's make sure to await until question's details, such as text, creation
+    // time, author have been fetched, and check this is the question they've
     // entered into the prompt
     assert!(g
         .wait_for_element(Locator::Css("#pending-questions article .question__text"))

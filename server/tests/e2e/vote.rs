@@ -24,10 +24,10 @@ async fn guest_asks_question_and_others_vote(
         .click()
         .await
         .unwrap();
-    let question_text = "What are your thoughts on memory safety in systems programming?";
+    let question_text = "Are we web yet?";
     g1.send_alert_text(question_text).await.unwrap();
     g1.accept_alert().await.unwrap();
-    let question_author = "Sarah";
+    let question_author = "Steve";
     g1.send_alert_text(question_author).await.unwrap();
     g1.accept_alert().await.unwrap();
     // ... appears on the screen
@@ -46,7 +46,7 @@ async fn guest_asks_question_and_others_vote(
         .await
         .unwrap();
     // note that the question will have one vote by default, meaning we are
-    // upvoting our own qestion by default, and ...
+    // upvoting our own question by default, and ...
     assert_eq!(
         question
             .find(Locator::Css("[data-votes]"))
@@ -58,12 +58,12 @@ async fn guest_asks_question_and_others_vote(
         "1"
     );
     // ... we cannot upvote it twice; well, there are actually ways to "blow up"
-    // your qustion to make the host see it (tweaking the data in the local
+    // your question to make the host see it (tweaking the data in the local
     // storage and clearing it altogether, or opening another session on the same
-    // device or simply opeing the link on another device), but fair play is
+    // device or simply opening the link on another device), but fair play is
     // not something that the app guarantees and our next assertion is more for
     // demo purposes and we will show later on that other guest can upvote this
-    // question without any hacks rather withing the normal app flow
+    // question without any hacks rather within the normal app flow
     assert!(question
         .find(Locator::Css(r#"button[data-action="upvote"]"#))
         .await

@@ -33,9 +33,9 @@ pub(crate) struct Client {
 
     /// Front-end's poll interval.
     ///
-    /// We using polling approach in the our front-end (as opposed socket connection
+    /// We are using a polling approach in our front-end (as opposed to socket connection
     /// or server-sent events) mainly to be able to use serverless architecture.
-    /// This implies for example that there is at least a polling interval delay
+    /// This implies, for example, that there is at least a polling interval delay
     /// between one Q&A session participant upvoting a question and all others
     /// see the counter go up. To "accelerate" this, we are specifying a lower
     /// polling interval when building the front-end for end-to-end test run.
@@ -201,7 +201,7 @@ pub(crate) struct TestContext {
     pub dynamo: aws_sdk_dynamodb::Client,
 }
 
-/// With out tests setup, we've got isolated sessions and a dedicated
+/// With our test setup, we've got isolated sessions and a dedicated
 /// app per test but we still cannot run certain tests in parallel, e.g.
 /// we are currently missing clipboard isolation and need to run tests
 /// that are accessing `navigator.clipboard` _sequentially_.
