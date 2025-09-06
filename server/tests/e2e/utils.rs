@@ -30,6 +30,18 @@ pub(crate) struct Client {
     pub homepage: Url,
     pub fantoccini: fantoccini::Client,
     pub wait_timeout: Duration,
+
+    /// Front-end's poll interval.
+    ///
+    /// We using polling approach in the our front-end (as opposed socket connection
+    /// or server-sent events) mainly to be able to use serverless architecture.
+    /// This implies for example that there is at least a polling interval delay
+    /// between one Q&A session participant upvoting a question and all others
+    /// see the counter go up. To "accelerate" this, we are specifying a lower
+    /// polling interval when building the front-end for end-to-end test run.
+    /// We are storing this interval here to know how long (at the very least)
+    /// we should be awaiting prior to making assertions in some test scenarios.
+    pub poll_interval: Duration,
 }
 
 impl Deref for Client {
@@ -46,6 +58,16 @@ impl Client {
 
     pub(crate) async fn goto_homepage(&self) {
         self.goto(self.homepage.as_str()).await.unwrap();
+    }
+
+    /// Await one data polling interval.
+    ///
+    /// Internally, will call [`tokio::time::sleep`] with [`Client::poll_interval`]
+    /// scaled a bit to adjust for some latency and resource-constrained test
+    /// runners.
+    pub(crate) async fn wait_for_polling(&self) {
+        let timeout = self.poll_interval.as_secs_f64() * 1.5;
+        tokio::time::sleep(Duration::from_secs_f64(timeout)).await;
     }
 
     /// Wait for an element with default timeout.
@@ -211,20 +233,29 @@ macro_rules! serial_test {
                 .and_then(|value| value.parse::<u64>().ok())
                 .and_then(|v| Some(std::time::Duration::from_secs(v)))
                 .unwrap_or(crate::utils::DEFAULT_WAIT_TIMEOUT);
+            let (f1, f2, f3) = tokio::join!(
+                tokio::spawn(crate::utils::init_webdriver_client()),
+                tokio::spawn(crate::utils::init_webdriver_client()),
+                tokio::spawn(crate::utils::init_webdriver_client()),
+            );
+            let poll_interval = std::time::Duration::from_millis(1000);
             let host = crate::utils::Client {
                 homepage: app_addr.clone(),
-                fantoccini: crate::utils::init_webdriver_client().await,
+                fantoccini: f1.unwrap(),
                 wait_timeout: timeout,
+                poll_interval,
             };
             let guest1 = crate::utils::Client {
                 homepage: app_addr.clone(),
-                fantoccini: crate::utils::init_webdriver_client().await,
+                fantoccini: f2.unwrap(),
                 wait_timeout: timeout,
+                poll_interval,
             };
             let guest2 = crate::utils::Client {
                 homepage: app_addr.clone(),
-                fantoccini: crate::utils::init_webdriver_client().await,
+                fantoccini: f3.unwrap(),
                 wait_timeout: timeout,
+                poll_interval,
             };
             let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
             let ctx = super::TestContext {

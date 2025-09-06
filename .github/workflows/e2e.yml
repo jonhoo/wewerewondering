@@ -58,6 +58,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/local-dynamo
       - uses: ./.github/actions/client
+        env:
+          VITE_HOST_POLL_INTERVAL: 1000
+          VITE_GUEST_POLL_INTERVAL: 1000
       - name: Launch web driver in background
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
       - name: Install stable
@@ -84,4 +87,6 @@ jobs:
           HEADLESS: 1
           BACKEND_URL: http://localhost:3000
           WAIT_TIMEOUT: 10
+          HOST_CACHE_CONTROL_MAX_AGE: 0
+          GUEST_CACHE_CONTROL_MAX_AGE: 0
         run: cargo t --release --test e2e --features e2e-test

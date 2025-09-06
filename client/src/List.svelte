@@ -3,6 +3,24 @@
 	import { votedFor, localAdjustments, event } from "./store.js";
 	import { flip } from "svelte/animate";
 
+	// hosts should get relatively frequent updates
+	const HOST_POLL_INTERVAL_DEFAULT = 3000;
+	// guests can wait
+	const GUEST_POLL_INTERVAL_DEFAULT = 10_000;
+
+	// we are making those poll intervals configurable via variables that can be
+	// injected at build time, which is usefull, inter alia, for end-to-end testing;
+	// see: https://vite.dev/guide/env-and-mode.html#env-variables
+	const HOST_POLL_INTERVAL_OVERRIDE = parseInt(import.meta.env.VITE_HOST_POLL_INTERVAL);
+	const GUEST_POLL_INTERVAL_OVERRIDE = parseInt(import.meta.env.VITE_GUEST_POLL_INTERVAL);
+
+	const HOST_POLL_INTERVAL = Number.isNaN(HOST_POLL_INTERVAL_OVERRIDE)
+		? HOST_POLL_INTERVAL_DEFAULT
+		: HOST_POLL_INTERVAL_OVERRIDE;
+	const GUEST_POLL_INTERVAL = Number.isNaN(GUEST_POLL_INTERVAL_OVERRIDE)
+		? GUEST_POLL_INTERVAL_DEFAULT
+		: GUEST_POLL_INTERVAL_OVERRIDE;
+
 	let inactive_hits = 0;
 	function poll_time(e) {
 		if (document.hidden) {
@@ -26,15 +44,8 @@
 				return 20 * 60 * 1000;
 			}
 		}
-
 		inactive_hits = 0;
-		if (e.secret) {
-			// hosts should get relatively frequent updates
-			return 3000;
-		} else {
-			// guests can wait
-			return 10000;
-		}
+		return e.secret ? HOST_POLL_INTERVAL : GUEST_POLL_INTERVAL;
 	}
 
 	function visibilitychange() {

@@ -16,12 +16,32 @@ use http::{
 };
 use std::{
     collections::HashMap,
+    sync::LazyLock,
     time::{Duration, SystemTime},
 };
 use ulid::Ulid;
 
 #[allow(unused_imports)]
 use tracing::{debug, error, info, trace, warn};
+
+static HOST_CACHE_CONTROL: LazyLock<&str> = LazyLock::new(|| {
+    let max_age = std::env::var("HOST_CACHE_CONTROL_MAX_AGE")
+        .map(|val| val.parse::<usize>().ok())
+        .ok()
+        .flatten()
+        // hosts should be allowed to see more up-to-date views
+        .unwrap_or(3);
+    format!("max-age={}", max_age).leak()
+});
+static GUEST_CACHE_CONTROL: LazyLock<&str> = LazyLock::new(|| {
+    let max_age = std::env::var("GUEST_CACHE_CONTROL_MAX_AGE")
+        .map(|val| val.parse::<usize>().ok())
+        .ok()
+        .flatten()
+        // guests don't need super up-to-date, so cache for longer
+        .unwrap_or(10);
+    format!("max-age={}", max_age).leak()
+});
 
 // It's enough for the most-popular questions to get above the fold to answer.
 const TOP_N: usize = 5;
@@ -256,15 +276,13 @@ async fn list_inner(
                 subslice.sort_by_cached_key(|q| std::cmp::Reverse(score(q)));
             }
             questions.append(&mut answered_hidden);
-            let max_age = if has_secret {
-                // hosts should be allowed to see more up-to-date views
-                "max-age=3"
+            let cache_control = if has_secret {
+                *HOST_CACHE_CONTROL
             } else {
-                // guests don't need super up-to-date, so cache for longer
-                "max-age=10"
+                *GUEST_CACHE_CONTROL
             };
             (
-                AppendHeaders([(header::CACHE_CONTROL, max_age)]),
+                AppendHeaders([(header::CACHE_CONTROL, cache_control)]),
                 Ok(Json(serde_json::Value::from(questions))),
             )
         }
