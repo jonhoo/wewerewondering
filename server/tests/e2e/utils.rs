@@ -102,6 +102,26 @@ impl Client {
             .await
     }
 
+    /// Ask a question.
+    ///
+    /// Internally, we locate the `Ask another question` button and fill in
+    /// the alerts with the question's text and signature (author's name or nickname).
+    /// The latter is optional: guest can ask questions anonymously.
+    pub(crate) async fn ask(&self, qtext: &str, qauthor: Option<&str>) -> Result<(), CmdError> {
+        self.wait_for_element(Locator::Id("ask-question-button"))
+            .await?
+            .click()
+            .await?;
+        self.send_alert_text(qtext).await?;
+        self.accept_alert().await?;
+        if let Some(name) = qauthor {
+            self.send_alert_text(name).await?;
+            self.accept_alert().await
+        } else {
+            self.dismiss_alert().await
+        }
+    }
+
     /// Awaits till questions' details are loaded and returns the list of questions.
     ///
     /// Internally, makes sure that the questions's details (text first of all)

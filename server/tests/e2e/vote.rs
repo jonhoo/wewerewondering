@@ -15,35 +15,25 @@ async fn guest_asks_question_and_others_vote(
     assert!(h.expect_questions(QuestionState::Pending).await.is_err());
 
     // ------------------------ first guest window -----------------------
-    // first guest opens the link and ...
+    // first guest opens the link and asks a question, which ...
     g1.goto(guest_url.as_str()).await.unwrap();
-    // ... asks a question, which ...
-    g1.wait_for_element(Locator::Id("ask-question-button"))
-        .await
-        .unwrap()
-        .click()
-        .await
-        .unwrap();
-    let question_text = "Are we web yet?";
-    g1.send_alert_text(question_text).await.unwrap();
-    g1.accept_alert().await.unwrap();
-    let question_author = "Steve";
-    g1.send_alert_text(question_author).await.unwrap();
-    g1.accept_alert().await.unwrap();
+    let (qtext, qauthor) = ("Are we web yet?", "Steve");
+    g1.ask(qtext, Some(qauthor)).await.unwrap();
+
     // ... appears on the screen
-    let pending_questions = g1.expect_questions(QuestionState::Pending).await.unwrap();
-    assert_eq!(pending_questions.len(), 1);
-    assert!(pending_questions[0]
+    let pending = g1.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending.len(), 1);
+    assert!(pending[0]
         .text()
         .await
         .unwrap()
         .to_lowercase()
-        .contains(&question_text.to_lowercase()));
+        .contains(&qtext.to_lowercase()));
 
     // note that the question will have one vote by default, meaning we are
     // upvoting our own question by default, and ...
     assert_eq!(
-        pending_questions[0]
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -59,7 +49,7 @@ async fn guest_asks_question_and_others_vote(
     // not something that the app guarantees and our next assertion is more for
     // demo purposes and we will show later on that other guest can upvote this
     // question without any hacks rather within the normal app flow
-    assert!(pending_questions[0]
+    assert!(pending[0]
         .find(Locator::Css(r#"button[data-action="upvote"]"#))
         .await
         .is_err());
@@ -81,16 +71,16 @@ async fn guest_asks_question_and_others_vote(
     // ------------------------ second guest window ----------------------
     // second guest sees the newly asked question and ...
     g2.goto(guest_url.as_str()).await.unwrap();
-    let pending_questions = g2.expect_questions(QuestionState::Pending).await.unwrap();
-    assert_eq!(pending_questions.len(), 1);
-    assert!(pending_questions[0]
+    let pending = g2.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending.len(), 1);
+    assert!(pending[0]
         .text()
         .await
         .unwrap()
         .to_lowercase()
-        .contains(&question_text.to_lowercase()));
+        .contains(&qtext.to_lowercase()));
     assert_eq!(
-        pending_questions[0]
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -101,7 +91,7 @@ async fn guest_asks_question_and_others_vote(
     );
 
     // .. they upvote it
-    pending_questions[0]
+    pending[0]
         .find(Locator::Css(r#"button[data-action="upvote"]"#))
         .await
         .unwrap()
@@ -117,7 +107,7 @@ async fn guest_asks_question_and_others_vote(
     // avoid flakiness plus it's not the optimistic update that we are testing here
     g2.wait_for_polling().await;
     assert_eq!(
-        pending_questions[0]
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -141,9 +131,9 @@ async fn guest_asks_question_and_others_vote(
 
     // -------------------------- host window --------------------------
     // host can now also see there are 2 votes for this question
-    let pending_questions = h.expect_questions(QuestionState::Pending).await.unwrap();
+    let pending = h.expect_questions(QuestionState::Pending).await.unwrap();
     assert_eq!(
-        pending_questions[0]
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -156,7 +146,7 @@ async fn guest_asks_question_and_others_vote(
     // and btw the host can also upvote this question (maybe for their future
     // self to remember which questions they wanted to answer - even if this
     // is not the most popular one)
-    pending_questions[0]
+    pending[0]
         .find(Locator::Css(r#"button[data-action="upvote"]"#))
         .await
         .unwrap()
@@ -166,7 +156,7 @@ async fn guest_asks_question_and_others_vote(
 
     g2.wait_for_polling().await;
     assert_eq!(
-        pending_questions[0]
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
