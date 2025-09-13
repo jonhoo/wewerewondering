@@ -11,17 +11,16 @@ async fn guest_asks_question_and_others_vote(
 ) {
     // ------------------------ host window ----------------------------------
     // host creates a new event
-    let guest_url = h.create_event().await;
+    let (eid, url) = h.create_event().await;
     assert!(h.expect_questions(QuestionState::Pending).await.is_err());
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
-    assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
+    assert_eq!(d.event_questions(eid).await.unwrap().count, 0);
 
     // ------------------------ first guest window -----------------------
     // first guest opens the link and asks a question, which ...
-    g1.goto(guest_url.as_str()).await.unwrap();
+    g1.goto(url.as_str()).await.unwrap();
     let (qtext, qauthor) = ("Are we web yet?", "Steve");
     g1.ask(qtext, Some(qauthor)).await.unwrap();
 
@@ -75,7 +74,7 @@ async fn guest_asks_question_and_others_vote(
 
     // ------------------------ second guest window ----------------------
     // second guest sees the newly asked question and ...
-    g2.goto(guest_url.as_str()).await.unwrap();
+    g2.goto(url.as_str()).await.unwrap();
     let pending = g2.expect_questions(QuestionState::Pending).await.unwrap();
     assert_eq!(pending.len(), 1);
     assert!(pending[0]

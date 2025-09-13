@@ -11,18 +11,17 @@ async fn guest_asks_question_and_host_answers(
 ) {
     // ------------------------ host window ----------------------------------
     // host creates a new event
-    let guest_url = h.create_event().await;
+    let (eid, url) = h.create_event().await;
     // initially no questions
     assert!(h.expect_questions(QuestionState::Pending).await.is_err());
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
-    assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
+    assert_eq!(d.event_questions(eid).await.unwrap().count, 0);
 
     // ------------------------ guest window ---------------------------------
     // guest opens the link and ...
-    g1.goto(guest_url.as_str()).await.unwrap();
+    g1.goto(url.as_str()).await.unwrap();
     // ... asks a question, which ...
     let (qtext, qauthor) = (
         "Did you attend Rust Forge conference in Wellington in 2025?",
@@ -42,7 +41,7 @@ async fn guest_asks_question_and_host_answers(
 
     // ------------------------ second guest window ----------------------
     // second guest can also see the question
-    g2.goto(guest_url.as_str()).await.unwrap();
+    g2.goto(url.as_str()).await.unwrap();
     let pending = g2.expect_questions(QuestionState::Pending).await.unwrap();
     assert_eq!(pending.len(), 1);
     assert!(pending[0]
@@ -160,13 +159,12 @@ async fn guest_asks_question_and_host_hides_it(
 ) {
     // ------------------------ host window ----------------------------------
     // host creates a new event
-    let guest_url = h.create_event().await;
+    let (event_id, guest_url) = h.create_event().await;
     // initially no questions
     assert!(h.expect_questions(QuestionState::Pending).await.is_err());
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
     assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
 
     // ---------------- first guest (not a gentle person) window -------------

@@ -1,7 +1,6 @@
 use crate::utils::{GrantClipboardReadCmd, QuestionState, TestContext};
 use aws_sdk_dynamodb::types::AttributeValue;
 use fantoccini::Locator;
-use std::collections::HashMap;
 use url::Url;
 
 async fn host_starts_new_q_and_a_session(
@@ -117,8 +116,7 @@ async fn guest_asks_question_and_it_shows_up(
 ) {
     // ------------------------ host window ----------------------------------
     // we've got a new event
-    let guest_url = h.create_event().await;
-    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
+    let (eid, url) = h.create_event().await;
 
     // the host can see that nobody has asked
     // a question - at least not just yet
@@ -129,11 +127,11 @@ async fn guest_asks_question_and_it_shows_up(
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
+    assert_eq!(d.event_questions(&eid).await.unwrap().count, 0);
 
     // ------------------------ guest window ---------------------------------
     // a guest visits the event's page and ...
-    g.goto(guest_url.as_str()).await.unwrap();
+    g.goto(url.as_str()).await.unwrap();
 
     // they do not observe any questions either, so ...
     g.expect_questions(QuestionState::Pending)
@@ -221,7 +219,7 @@ async fn guest_asks_question_and_it_shows_up(
 
     // --------------------------- database ----------------------------------
     // finally, let's verify that the question has been persisted
-    let questions = d.event_questions(event_id).await.unwrap();
+    let questions = d.event_questions(eid).await.unwrap();
     assert_eq!(questions.count, 1); // NB
     let qid = questions.items().first().unwrap().get("id").unwrap();
     let q_stored = d.question_by_id(qid.to_owned()).await.unwrap();

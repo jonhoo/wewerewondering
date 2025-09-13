@@ -167,7 +167,7 @@ impl Client {
     /// The client will end up in the newly created event's _host_ page, so if
     /// you need the url with the host's secret, just call `current_url` on the
     /// client (see [`fantoccini::Client::current_url`]).
-    pub(crate) async fn create_event(&self) -> Url {
+    pub(crate) async fn create_event(&self) -> (String, Url) {
         // go to homepage and create a new event
         self.goto(self.homepage.as_str()).await.unwrap();
         self.wait_for_element(Locator::Id("create-event-button"))
@@ -185,19 +185,27 @@ impl Client {
             .unwrap();
         // figure the guests' url
         self.issue_cmd(GrantClipboardReadCmd).await.unwrap();
-        self.execute_async(
-            r#"
+        let guest_url: Url = self
+            .execute_async(
+                r#"
                 const [callback] = arguments;
                 navigator.clipboard.readText().then((text) => callback(text));
             "#,
-            vec![],
-        )
-        .await
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .parse()
-        .unwrap()
+                vec![],
+            )
+            .await
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let event_id = guest_url
+            .path_segments()
+            .unwrap()
+            .next_back()
+            .unwrap()
+            .to_owned();
+        (event_id, guest_url)
     }
 }
 
