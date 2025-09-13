@@ -1,4 +1,4 @@
-use crate::utils::{GrantClipboardReadCmd, TestContext};
+use crate::utils::{GrantClipboardReadCmd, QuestionState, TestContext};
 use aws_sdk_dynamodb::types::AttributeValue;
 use fantoccini::Locator;
 use std::collections::HashMap;
@@ -59,18 +59,18 @@ async fn host_starts_new_q_and_a_session(
 
     // and there are currently no pending, answered, or hidden questions
     // related to the newly created event
-    let pending_questions = h.wait_for_pending_questions().await.unwrap();
-    assert!(pending_questions.is_empty());
-    assert!(h
-        .find(Locator::Id("answered-questions"))
+    h.expect_questions(QuestionState::Pending)
         .await
         .unwrap_err()
-        .is_no_such_element());
-    assert!(h
-        .find(Locator::Id("hidden-questions"))
+        .is_timeout();
+    h.expect_questions(QuestionState::Answered)
         .await
         .unwrap_err()
-        .is_no_such_element());
+        .is_timeout();
+    h.expect_questions(QuestionState::Hidden)
+        .await
+        .unwrap_err()
+        .is_timeout();
 
     // let's make sure we are persisting the event...
     let event = dynamo
@@ -122,7 +122,10 @@ async fn guest_asks_question_and_it_shows_up(
 
     // the host can see that nobody has asked
     // a question - at least not just yet
-    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
+    h.expect_questions(QuestionState::Pending)
+        .await
+        .unwrap_err()
+        .is_timeout();
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
@@ -145,7 +148,10 @@ async fn guest_asks_question_and_it_shows_up(
     g.goto(guest_url.as_str()).await.unwrap();
 
     // they do not observe any questions either, so ...
-    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
+    g.expect_questions(QuestionState::Pending)
+        .await
+        .unwrap_err()
+        .is_timeout();
 
     // ... they click the "Ask another question" button ...
     g.wait_for_element(Locator::Id("ask-question-button"))
@@ -194,22 +200,18 @@ async fn guest_asks_question_and_it_shows_up(
     g.send_alert_text(name).await.unwrap();
     g.accept_alert().await.unwrap();
 
-    // let's make sure to await until question's details, such as text, creation
-    // time, author have been fetched, and check this is the question they've
-    // entered into the prompt
-    assert!(g
-        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
-        .await
-        .unwrap()
+    // and we they see their (and the only one) question on the screen
+    let pending_questions = g.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending_questions.len(), 1);
+    assert!(pending_questions[0]
         .text()
         .await
         .unwrap()
         .to_lowercase()
         .contains(&q_submitted.to_lowercase()));
-
-    // and also that it's attributed to them
-    assert!(g
-        .wait_for_element(Locator::Css("#pending-questions article .question__by"))
+    // sanity: let's make sure the question is attributed to them
+    assert!(pending_questions[0]
+        .find(Locator::Css(".question__by"))
         .await
         .unwrap()
         .text()
@@ -218,23 +220,16 @@ async fn guest_asks_question_and_it_shows_up(
         .to_lowercase()
         .contains(&name.to_lowercase()));
 
-    // let's also check how many questions have been added to the
-    // unanswered questions container, we can see one single question
-    assert_eq!(g.wait_for_pending_questions().await.unwrap().len(), 1);
-
     // ------------------------ host window ----------------------------------
     // let's check that the host can also see this question
-    assert!(h
-        .wait_for_element(Locator::Css("#pending-questions article"))
-        .await
-        .unwrap()
+    let pending_questions = h.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending_questions.len(), 1);
+    assert!(pending_questions[0]
         .text()
         .await
         .unwrap()
         .to_lowercase()
         .contains(&q_submitted.to_lowercase()));
-    // again, it's one single question
-    assert_eq!(h.wait_for_pending_questions().await.unwrap().len(), 1);
 
     // --------------------------- database ----------------------------------
     // finally, let's verify that the question has been persisted

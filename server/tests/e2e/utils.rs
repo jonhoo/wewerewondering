@@ -2,6 +2,7 @@ use axum_reverse_proxy::ReverseProxy;
 use fantoccini::wd::WebDriverCompatibleCommand;
 use fantoccini::Locator;
 use fantoccini::{elements::Element, error::CmdError};
+use std::fmt::Display;
 use std::io;
 use std::ops::Deref;
 use std::sync::LazyLock;
@@ -54,6 +55,24 @@ impl Deref for Client {
     }
 }
 
+#[derive(Debug)]
+pub(crate) enum QuestionState {
+    Pending,
+    Answered,
+    Hidden,
+}
+
+impl Display for QuestionState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let state = match self {
+            QuestionState::Pending => "pending",
+            QuestionState::Answered => "answered",
+            QuestionState::Hidden => "hidden",
+        };
+        f.write_str(state)
+    }
+}
+
 impl Client {
     pub(crate) fn into_inner(self) -> fantoccini::Client {
         self.fantoccini
@@ -83,15 +102,33 @@ impl Client {
             .await
     }
 
-    /// Wait for pending questions on the current page.
+    /// Awaits till questions' details are loaded and returns the list of questions.
     ///
-    /// Internally, uses [`Client::wait_for_element`] specifying the identifier
-    /// of the unanswered questions container and selecting the items it holds.
-    pub(crate) async fn wait_for_pending_questions(&self) -> Result<Vec<Element>, CmdError> {
-        self.wait_for_element(Locator::Id("pending-questions"))
+    /// Internally, makes sure that the questions's details (text first of all)
+    /// are loaded and then - on this "fully-loaded" page - finds all the questions
+    /// with [`fantoccini::Client::find_all`].
+    ///
+    /// Note that this will error, if not a single question of the provided [`QuestionState`]
+    /// appears on the screen within the [`Client::wait_timeout`].
+    pub(crate) async fn expect_questions(
+        &self,
+        state: QuestionState,
+    ) -> Result<Vec<Element>, CmdError> {
+        let questions_section_selector = format!("#{}-questions", state);
+        let question_item_selector = format!("{} article", &questions_section_selector);
+        let _ = self
+            .wait_for_element(Locator::Css(&format!(
+                // this way we are making sure that the question's details are
+                // actually loaded, without this step the questions will be there
+                // on the page jsut fine, but they will have "loading.." placeholder
+                // instead of the actual text
+                "{} .question__text",
+                &question_item_selector
+            )))
             .await?
-            .find_all(Locator::Css("article"))
-            .await
+            .text()
+            .await?;
+        self.find_all(Locator::Css(&question_item_selector)).await
     }
 
     /// Creates a new Q&A session and returns a guest link.
