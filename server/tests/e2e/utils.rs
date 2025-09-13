@@ -157,7 +157,7 @@ impl Client {
         self.find_all(Locator::Css(&question_item_selector)).await
     }
 
-    /// Creates a new Q&A session and returns a guest link.
+    /// Creates a new Q&A session and returns its ID and guest link.
     ///
     /// Internally, will navigate to the app's homepage, locate and click
     /// the "Open new Q&A session" button, then - in the event's page already -
