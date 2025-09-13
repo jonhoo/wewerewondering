@@ -251,6 +251,17 @@ async fn guest_asks_question_and_host_hides_it(
     // just like in the "answer" scenario, let's wait until the changes
     // are sent to the server and synced back
     g1.wait_for_polling().await;
+    // they skill see their "question" on the screen even though it has been
+    // hidden by the host (later in this test we are demonstrating that the
+    // question gets hidden from _other_ guests)
+    let pending = h.expect_questions(QuestionState::Hidden).await.unwrap();
+    assert_eq!(pending.len(), 1);
+    assert!(pending[0]
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&qtext.to_lowercase()));
     // NB: the host would see these questions in the hidden as tested above
     assert!(g1.expect_questions(QuestionState::Hidden).await.is_err());
 
