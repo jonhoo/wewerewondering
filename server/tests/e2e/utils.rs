@@ -41,20 +41,6 @@ pub(crate) static WAIT_TIMEOUT: LazyLock<Duration> = LazyLock::new(|| {
         .unwrap_or(DEFAULT_WAIT_TIMEOUT)
 });
 
-#[derive(Debug, Clone)]
-pub(crate) struct Client {
-    pub homepage: Url,
-    pub fantoccini: fantoccini::Client,
-    pub wait_timeout: Duration,
-}
-
-impl Deref for Client {
-    type Target = fantoccini::Client;
-    fn deref(&self) -> &Self::Target {
-        &self.fantoccini
-    }
-}
-
 #[derive(Debug)]
 pub(crate) enum QuestionState {
     Pending,
@@ -70,6 +56,20 @@ impl Display for QuestionState {
             QuestionState::Hidden => "hidden",
         };
         f.write_str(state)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Client {
+    pub homepage: Url,
+    pub fantoccini: fantoccini::Client,
+    pub wait_timeout: Duration,
+}
+
+impl Deref for Client {
+    type Target = fantoccini::Client;
+    fn deref(&self) -> &Self::Target {
+        &self.fantoccini
     }
 }
 
@@ -253,11 +253,29 @@ pub(crate) async fn init() -> (Url, ServerTaskHandle) {
     (app_addr, handle)
 }
 
+pub(crate) struct Dynamo {
+    client: aws_sdk_dynamodb::Client,
+}
+
+impl Dynamo {
+    pub async fn init() -> Self {
+        let c = wewerewondering_api::init_dynamodb_client().await;
+        Self { client: c }
+    }
+}
+
+impl Deref for Dynamo {
+    type Target = aws_sdk_dynamodb::Client;
+    fn deref(&self) -> &Self::Target {
+        &self.client
+    }
+}
+
 pub(crate) struct TestContext {
     pub host: Client,
     pub guest1: Client,
     pub guest2: Client,
-    pub dynamo: aws_sdk_dynamodb::Client,
+    pub dynamo: Dynamo,
 }
 
 /// With our test setup, we've got isolated sessions and a dedicated
@@ -307,12 +325,12 @@ macro_rules! serial_test {
                 fantoccini: f3.unwrap(),
                 wait_timeout: *$crate::utils::WAIT_TIMEOUT,
             };
-            let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
+            let dynamo = $crate::utils::Dynamo::init().await;
             let ctx = super::TestContext {
                 host: host.clone(),
                 guest1: guest1.clone(),
                 guest2: guest2.clone(),
-                dynamo: dynamodb_client,
+                dynamo,
             };
             // run the test as a task catching any errors
             let res = tokio::spawn(super::$test_fn(ctx)).await;
