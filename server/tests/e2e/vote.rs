@@ -16,7 +16,7 @@ async fn guest_asks_question_and_others_vote(
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    assert_eq!(d.event_questions(eid).await.unwrap().count, 0);
+    assert_eq!(d.event_questions(&eid).await.unwrap().count, 0);
 
     // ------------------------ first guest window -----------------------
     // first guest opens the link and asks a question, which ...
@@ -196,6 +196,18 @@ async fn guest_asks_question_and_others_vote(
             .unwrap(),
         "3"
     );
+
+    // --------------------------- database ----------------------------------
+    let questions = d.event_questions(eid).await.unwrap();
+    assert_eq!(questions.count, 1);
+    let qid = questions.items().first().unwrap().get("id").unwrap();
+    let q = d.question_by_id(qid.to_owned()).await.unwrap();
+    let q = q.item().unwrap();
+    assert!(!q.get("hidden").unwrap().as_bool().unwrap());
+    assert!(q.get("answered").is_none());
+    assert_eq!(q.get("who").unwrap().as_s().unwrap(), qauthor);
+    assert_eq!(q.get("text").unwrap().as_s().unwrap(), qtext);
+    assert_eq!(q.get("votes").unwrap().as_n().unwrap(), "3");
 }
 
 mod tests {

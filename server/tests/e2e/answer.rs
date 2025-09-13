@@ -17,7 +17,7 @@ async fn guest_asks_question_and_host_answers(
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    assert_eq!(d.event_questions(eid).await.unwrap().count, 0);
+    assert_eq!(d.event_questions(&eid).await.unwrap().count, 0);
 
     // ------------------------ guest window ---------------------------------
     // guest opens the link and ...
@@ -147,6 +147,18 @@ async fn guest_asks_question_and_host_answers(
         .find(Locator::Css(r#"button[data-action="hide"]"#))
         .await
         .unwrap();
+
+    // --------------------------- database ----------------------------------
+    let questions = d.event_questions(eid).await.unwrap();
+    assert_eq!(questions.count, 1);
+    let qid = questions.items().first().unwrap().get("id").unwrap();
+    let q = d.question_by_id(qid.to_owned()).await.unwrap();
+    let q = q.item().unwrap();
+    assert_eq!(q.get("who").unwrap().as_s().unwrap(), qauthor);
+    assert_eq!(q.get("text").unwrap().as_s().unwrap(), qtext);
+    assert_eq!(q.get("votes").unwrap().as_n().unwrap(), "1");
+    assert!(q.get("answered").is_some());
+    assert!(!q.get("hidden").unwrap().as_bool().unwrap());
 }
 
 async fn guest_asks_question_and_host_hides_it(
@@ -159,17 +171,17 @@ async fn guest_asks_question_and_host_hides_it(
 ) {
     // ------------------------ host window ----------------------------------
     // host creates a new event
-    let (event_id, guest_url) = h.create_event().await;
+    let (eid, url) = h.create_event().await;
     // initially no questions
     assert!(h.expect_questions(QuestionState::Pending).await.is_err());
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
+    assert_eq!(d.event_questions(&eid).await.unwrap().count, 0);
 
     // ---------------- first guest (not a gentle person) window -------------
     // guest opens the link and ...
-    g1.goto(guest_url.as_str()).await.unwrap();
+    g1.goto(url.as_str()).await.unwrap();
     // ... asks a question ... no, instead they write some toxic stuff
     let qtext = "I hate your streams and everything about you";
     g1.ask(qtext, None).await.unwrap();
@@ -186,7 +198,7 @@ async fn guest_asks_question_and_host_hides_it(
 
     // ------------------------ second guest window ----------------------
     // second guest sees the "question" ...
-    g2.goto(guest_url.as_str()).await.unwrap();
+    g2.goto(url.as_str()).await.unwrap();
     assert!(
         g2.expect_questions(QuestionState::Pending).await.unwrap()[0]
             .text()
@@ -257,6 +269,20 @@ async fn guest_asks_question_and_host_hides_it(
     // NB: same as in the bad guy's case, the good guy will not see that
     // the question got to the hidden section
     assert!(g2.expect_questions(QuestionState::Hidden).await.is_err());
+
+    // --------------------------- database ----------------------------------
+    let questions = d.event_questions(eid).await.unwrap();
+    assert_eq!(questions.count, 1);
+    let qid = questions.items().first().unwrap().get("id").unwrap();
+    let q = d.question_by_id(qid.to_owned()).await.unwrap();
+    let q = q.item().unwrap();
+    assert_eq!(q.get("text").unwrap().as_s().unwrap(), qtext);
+    assert_eq!(q.get("votes").unwrap().as_n().unwrap(), "1");
+    // Notice how skipped providing a signature when we were "asking a question"
+    // (reminder: proding your name/nickname is optional)
+    assert!(q.get("who").is_none());
+    assert!(q.get("hidden").unwrap().as_bool().unwrap()); // NB
+    assert!(q.get("answered").is_none());
 }
 
 mod tests {
