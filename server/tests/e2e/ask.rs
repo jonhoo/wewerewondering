@@ -111,7 +111,7 @@ async fn guest_asks_question_and_it_shows_up(
     TestContext {
         host: h,
         guest1: g,
-        dynamo,
+        dynamo: d,
         ..
     }: TestContext,
 ) {
@@ -129,19 +129,7 @@ async fn guest_asks_question_and_it_shows_up(
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    assert_eq!(
-        dynamo
-            .query()
-            .table_name("questions")
-            .index_name("top")
-            .key_condition_expression("eid = :eid")
-            .expression_attribute_values(":eid", AttributeValue::S(event_id.into()))
-            .send()
-            .await
-            .unwrap()
-            .count,
-        0
-    );
+    assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
 
     // ------------------------ guest window ---------------------------------
     // a guest visits the event's page and ...
@@ -233,27 +221,10 @@ async fn guest_asks_question_and_it_shows_up(
 
     // --------------------------- database ----------------------------------
     // finally, let's verify that the question has been persisted
-    let questions = dynamo
-        .query()
-        .table_name("questions")
-        .index_name("top")
-        .key_condition_expression("eid = :eid")
-        .expression_attribute_values(":eid", AttributeValue::S(event_id.into()))
-        .projection_expression("id,answered,#hidden")
-        .expression_attribute_names("#hidden", "hidden")
-        .send()
-        .await
-        .unwrap();
+    let questions = d.event_questions(event_id).await.unwrap();
     assert_eq!(questions.count, 1); // NB
     let qid = questions.items().first().unwrap().get("id").unwrap();
-
-    let q_stored = dynamo
-        .get_item()
-        .table_name("questions")
-        .set_key(Some(HashMap::from([(String::from("id"), qid.to_owned())])))
-        .send()
-        .await
-        .unwrap();
+    let q_stored = d.question_by_id(qid.to_owned()).await.unwrap();
 
     // For reference. The GetItem output will have the following shape:
     //

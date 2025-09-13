@@ -6,7 +6,7 @@ async fn guest_asks_question_and_host_answers(
         host: h,
         guest1: g1,
         guest2: g2,
-        ..
+        dynamo: d,
     }: TestContext,
 ) {
     // ------------------------ host window ----------------------------------
@@ -14,6 +14,11 @@ async fn guest_asks_question_and_host_answers(
     let guest_url = h.create_event().await;
     // initially no questions
     assert!(h.expect_questions(QuestionState::Pending).await.is_err());
+
+    // -------------------------- database -----------------------------------
+    // sanity check: we do not have any questions for this event in db
+    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
+    assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
 
     // ------------------------ guest window ---------------------------------
     // guest opens the link and ...
@@ -150,7 +155,7 @@ async fn guest_asks_question_and_host_hides_it(
         host: h,
         guest1: g1,
         guest2: g2,
-        ..
+        dynamo: d,
     }: TestContext,
 ) {
     // ------------------------ host window ----------------------------------
@@ -158,6 +163,11 @@ async fn guest_asks_question_and_host_hides_it(
     let guest_url = h.create_event().await;
     // initially no questions
     assert!(h.expect_questions(QuestionState::Pending).await.is_err());
+
+    // -------------------------- database -----------------------------------
+    // sanity check: we do not have any questions for this event in db
+    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
+    assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
 
     // ---------------- first guest (not a gentle person) window -------------
     // guest opens the link and ...

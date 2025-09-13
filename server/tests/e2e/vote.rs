@@ -6,13 +6,18 @@ async fn guest_asks_question_and_others_vote(
         host: h,
         guest1: g1,
         guest2: g2,
-        ..
+        dynamo: d,
     }: TestContext,
 ) {
     // ------------------------ host window ----------------------------------
     // host creates a new event
     let guest_url = h.create_event().await;
     assert!(h.expect_questions(QuestionState::Pending).await.is_err());
+
+    // -------------------------- database -----------------------------------
+    // sanity check: we do not have any questions for this event in db
+    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
+    assert_eq!(d.event_questions(event_id).await.unwrap().count, 0);
 
     // ------------------------ first guest window -----------------------
     // first guest opens the link and asks a question, which ...

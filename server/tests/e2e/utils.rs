@@ -1,7 +1,13 @@
+use aws_sdk_dynamodb::error::SdkError;
+use aws_sdk_dynamodb::operation::get_item::{GetItemError, GetItemOutput};
+use aws_sdk_dynamodb::operation::query::{QueryError, QueryOutput};
+use aws_sdk_dynamodb::types::AttributeValue;
+use aws_smithy_runtime_api::http::Response;
 use axum_reverse_proxy::ReverseProxy;
 use fantoccini::wd::WebDriverCompatibleCommand;
 use fantoccini::Locator;
 use fantoccini::{elements::Element, error::CmdError};
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::io;
 use std::ops::Deref;
@@ -261,6 +267,38 @@ impl Dynamo {
     pub async fn init() -> Self {
         let c = wewerewondering_api::init_dynamodb_client().await;
         Self { client: c }
+    }
+
+    pub async fn event_questions<S>(
+        &self,
+        eid: S,
+    ) -> Result<QueryOutput, SdkError<QueryError, Response>>
+    where
+        S: Into<String>,
+    {
+        self.query()
+            .table_name("questions")
+            .index_name("top")
+            .key_condition_expression("eid = :eid")
+            .expression_attribute_values(":eid", AttributeValue::S(eid.into()))
+            .projection_expression("id,answered,#hidden")
+            .expression_attribute_names("#hidden", "hidden")
+            .send()
+            .await
+    }
+
+    pub async fn question_by_id<V>(
+        &self,
+        qid: V,
+    ) -> Result<GetItemOutput, SdkError<GetItemError, Response>>
+    where
+        V: Into<AttributeValue>,
+    {
+        self.get_item()
+            .table_name("questions")
+            .set_key(Some(HashMap::from([(String::from("id"), qid.into())])))
+            .send()
+            .await
     }
 }
 
