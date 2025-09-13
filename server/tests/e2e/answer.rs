@@ -3,7 +3,10 @@ use fantoccini::Locator;
 
 async fn guest_asks_question_and_host_answers(
     TestContext {
-        host: h, guest1: g, ..
+        host: h,
+        guest1: g1,
+        guest2: g2,
+        ..
     }: TestContext,
 ) {
     // ------------------------ host window ----------------------------------
@@ -14,20 +17,20 @@ async fn guest_asks_question_and_host_answers(
 
     // ------------------------ guest window ---------------------------------
     // guest opens the link and ...
-    g.goto(guest_url.as_str()).await.unwrap();
+    g1.goto(guest_url.as_str()).await.unwrap();
     // ... asks a question, which ...
-    g.wait_for_element(Locator::Id("ask-question-button"))
+    g1.wait_for_element(Locator::Id("ask-question-button"))
         .await
         .unwrap()
         .click()
         .await
         .unwrap();
     let question_text = "Did you attend Rust Forge conference in Wellington in 2025?";
-    g.send_alert_text(question_text).await.unwrap();
-    g.accept_alert().await.unwrap();
+    g1.send_alert_text(question_text).await.unwrap();
+    g1.accept_alert().await.unwrap();
     let question_author = "Tim";
-    g.send_alert_text(question_author).await.unwrap();
-    g.accept_alert().await.unwrap();
+    g1.send_alert_text(question_author).await.unwrap();
+    g1.accept_alert().await.unwrap();
     // ... appears on the screen
     assert!(h
         .wait_for_element(Locator::Css("#pending-questions article .question__text"))
@@ -39,7 +42,20 @@ async fn guest_asks_question_and_host_answers(
         .to_lowercase()
         .contains(&question_text.to_lowercase()));
     // sanity: and it's the only one pending question
-    assert_eq!(g.wait_for_pending_questions().await.unwrap().len(), 1);
+    assert_eq!(g1.wait_for_pending_questions().await.unwrap().len(), 1);
+
+    // ------------------------ second guest window ----------------------
+    // second guest can also see the question
+    g2.goto(guest_url.as_str()).await.unwrap();
+    assert!(g2
+        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&question_text.to_lowercase()));
 
     // ------------------------ host window ----------------------------------
     // host sees the newly asked question
@@ -106,8 +122,8 @@ async fn guest_asks_question_and_host_answers(
     // ------------------------ guest window ---------------------------------
     // let's switch to Tim's window for a sec and check they also observe their
     // question having been answered
-    g.wait_for_polling().await;
-    let guest_pending_questions = g
+    g1.wait_for_polling().await;
+    let guest_pending_questions = g1
         .wait_for_element(Locator::Css("#pending-questions"))
         .await
         .unwrap();
@@ -120,7 +136,7 @@ async fn guest_asks_question_and_host_answers(
     // sanity: probably obvious but let's actually check that the guest cannot
     // mark the question as unanswered, neither hide it; in fact they cannot do
     // much about the question they asked:
-    let guest_answered_section = g
+    let guest_answered_section = g1
         .wait_for_element(Locator::Id("answered-questions"))
         .await
         .unwrap();
