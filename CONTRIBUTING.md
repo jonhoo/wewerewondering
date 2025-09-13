@@ -7,17 +7,23 @@ So, you want to help improve the site — great!
 Local setup is fairly straightforward:
 
 1. Run the server (you'll need [Rust](https://www.rust-lang.org/)):
+
    ```console
-   $ cd server && cargo run
+   cd server && cargo run
    ```
+
 2. Install the client components (you'll need [npm](https://www.npmjs.com/)):
+
    ```console
-   $ cd client && npm install
+   cd client && npm install
    ```
+
 3. Run the client:
+
    ```console
-   $ cd client && npm run dev
+   cd client && npm run dev
    ```
+
 4. Open <http://localhost:5173/>.
 
 If you modify the files under `client/`, the browser view should
@@ -40,8 +46,8 @@ you got [`docker`](https://docs.docker.com/engine/install/) and
 [`AWS CLI`](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) installed, then hit:
 
 ```console
-$ cd server
-$ ./run-dynamodb-local.sh
+cd server
+./run-dynamodb-local.sh
 ```
 
 This will also spin a [Web UI](https://github.com/aaronshaf/dynamodb-admin?tab=readme-ov-file)
@@ -124,7 +130,7 @@ chromedriver --port=4444
 Prepare the client distribution first:
 
 ```sh
-cd client && npm run build
+cd client && VITE_HOST_POLL_INTERVAL=1000 VITE_GUEST_POLL_INTERVAL=1000 npm run build
 ```
 
 Now, to run the e2e test suite, go to the `server` directory and issue:
@@ -158,12 +164,17 @@ chromedriver --port=4444
 Prepare the client distribution:
 
 ```sh
-cd client && npm run build
+cd client && VITE_HOST_POLL_INTERVAL=1000 VITE_GUEST_POLL_INTERVAL=1000 npm run build
 ```
 
-Now launch [API Gateway Local](#api-gateway-local) and hit (assuming the SAM's 
+Now launch [API Gateway Local](#api-gateway-local) and hit (assuming the SAM's
 default port 3000):
+
 ```sh
 BACKEND_URL=http://localhost:3000 \
-   WAIT_TIMEOUT=10 USE_DYNAMODB=local cargo t --release --test e2e --features e2e-test
+  HOST_CACHE_CONTROL_MAX_AGE=0 \
+  GUEST_CACHE_CONTROL_MAX_AGE=0 \
+  WAIT_TIMEOUT=10 \
+  USE_DYNAMODB=local \
+  cargo t --release --test e2e --features e2e-test
 ```

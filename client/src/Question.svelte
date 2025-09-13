@@ -110,11 +110,20 @@
 	<div class="flex items-center">
 		<div class="mr-4 w-8 shrink-0 grow-0 text-center">
 			{#if liked}
-				<button class="hover:opacity-50" title="Retract vote" onclick={vote}>▲</button>
+				<button data-action="downvote" class="hover:opacity-50" title="Retract vote" onclick={vote}
+					>▲</button
+				>
 			{:else}
-				<button class="opacity-30 hover:opacity-100" title="Vote" onclick={vote}>△</button>
+				<button
+					data-action="upvote"
+					class="opacity-30 hover:opacity-100"
+					title="Vote"
+					onclick={vote}>△</button
+				>
 			{/if}
-			<div class="font-bold text-black dark:text-slate-300">{question.votes}</div>
+			<div data-votes={question.votes} class="font-bold text-black dark:text-slate-300">
+				{question.votes}
+			</div>
 		</div>
 		<div class="flex-1 pr-4">
 			{#await q}
@@ -129,15 +138,17 @@
 					{#if $event.secret}
 						—
 						{#if question.answered}
-							<button onclick={answered}>Mark as not answered</button>
+							<button data-action="mark_not_answered" onclick={answered}
+								>Mark as not answered</button
+							>
 						{:else}
-							<button onclick={answered}>Mark as answered</button>
+							<button data-action="mark_answered" onclick={answered}>Mark as answered</button>
 						{/if}
 						|
 						{#if question.hidden}
-							<button onclick={hidden}>Unhide</button>
+							<button data-action="unhide" onclick={hidden}>Unhide</button>
 						{:else}
-							<button onclick={hidden}>Hide</button>
+							<button data-action="hide" onclick={hidden}>Hide</button>
 						{/if}
 					{/if}
 				</div>
