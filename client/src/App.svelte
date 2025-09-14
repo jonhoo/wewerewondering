@@ -1,7 +1,7 @@
 <script>
 	import "./main.css";
 	import { onMount } from "svelte";
-	import { event } from "./store";
+	import { event, initEventStore } from "./store";
 	import List from "./List.svelte";
 
 	let problum = $state();
@@ -23,6 +23,7 @@
 					id: id
 				};
 			}
+			initEventStore(id);
 			if (new_event != $event) {
 				let r = await fetch(`/api/event/${new_event.id}`).catch((e) => {
 					problum = e;

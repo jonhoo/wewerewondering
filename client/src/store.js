@@ -1,51 +1,75 @@
 import { writable } from "svelte/store";
 
 export const event = writable(null);
+export const votedFor = writable(null);
+export const localAdjustments = writable(null);
+export const questionCache = writable(null);
 
-const storedVotedFor = JSON.parse(localStorage.getItem("votedFor"));
-export const votedFor = writable(!storedVotedFor ? {} : storedVotedFor);
-votedFor.subscribe((value) => {
-	if (value) {
-		localStorage.setItem("votedFor", JSON.stringify(value));
-	} else {
-		localStorage.removeItem("votedFor");
-	}
-});
+/**
+ * Initialize event store.
+ *
+ * Given the `eid`, this will costruct a local storage key for the current
+ * event (e.g. `event::01K542Z5KKR8YJ5DX9GQN7VV1S` for guest whereas for host -
+ * `event::01K542Z5KKR8YJ5DX9GQN7VV1S/mSgwnC12sDhlNLzzej38ClSrSWWYfN`) and read
+ * existing event data (if any) from disk into the app's memory.
+ *
+ * Internally, we are also creating subscribtions per slice (e.g. `votedFor`,
+ * `questions`, `localAdjustments`) and persisting any mutations of those slices
+ * back onto disk.
+ *
+ * The event data has got the following shape:
+ * ```json
+ *  {
+ *    "votedFor": {},
+ *    "localAdjustments": { "newQuestions":[],"remap":{}},
+ *    "questions": {
+ *      "01K542ZQASKKGEEXV696D3X515":{"text":"new session","when":1757852720}
+ *    }
+ *  }
+ * ```
+ *
+ * @param {string} eid
+ */
+export function initEventStore(eid) {
+	const storedEventDataKey = `event::${eid}`;
 
-const storedLocalAdjustments = JSON.parse(localStorage.getItem("localAdjustments"));
-export const localAdjustments = writable(
-	!storedLocalAdjustments
-		? {
-				newQuestions: [
-					// qid
-				],
-				remap: {
-					// qid => {
-					//   hidden: bool,
-					//   answered: {action: "unset"} | {action: "set", value: number},
-					//   voted_when: int
-					// }
-				}
+	/**
+	 * @param {import("svelte/store").Writable} storeSlice
+	 * @param {"votedFor" | "localAdjustments" | "questions"} eventDataKey
+	 */
+	function subscribe(storeSlice, eventDataKey) {
+		storeSlice.subscribe((value) => {
+			const data = JSON.parse(localStorage.getItem(storedEventDataKey)) ?? {};
+			if (value) {
+				data[eventDataKey] = value;
+			} else {
+				data[eventDataKey] = undefined;
 			}
-		: storedLocalAdjustments
-);
-localAdjustments.subscribe((value) => {
-	if (value) {
-		localStorage.setItem("localAdjustments", JSON.stringify(value));
-	} else {
-		localStorage.removeItem("localAdjustments");
+			localStorage.setItem(storedEventDataKey, JSON.stringify(data));
+		});
 	}
-});
 
-const storedQs = JSON.parse(localStorage.getItem("questions"));
-export const questionCache = writable(!storedQs ? {} : storedQs);
-questionCache.subscribe((value) => {
-	if (value) {
-		localStorage.setItem("questions", JSON.stringify(value));
-	} else {
-		localStorage.removeItem("questions");
-	}
-});
+	const storedEventData = JSON.parse(localStorage.getItem(storedEventDataKey)) ?? {};
+	votedFor.set(storedEventData.votedFor ?? {});
+	subscribe(votedFor, "votedFor");
+	localAdjustments.set(
+		storedEventData.localAdjustments ?? {
+			newQuestions: [
+				// qid
+			],
+			remap: {
+				// qid => {
+				//   hidden: bool,
+				//   answered: {action: "unset"} | {action: "set", value: number},
+				//   voted_when: int
+				// }
+			}
+		}
+	);
+	subscribe(localAdjustments, "localAdjustments");
+	questionCache.set(storedEventData.questions ?? {});
+	subscribe(questionCache, "questions");
+}
 
 let batch = {};
 let fetching = {};
@@ -167,13 +191,3 @@ export async function questionData(qid, qs) {
 
 	return await promise;
 }
-
-window.addEventListener("storage", (e) => {
-	if (e.key == "votedFor") {
-		votedFor.set(JSON.parse(e.newValue));
-	} else if (e.key == "questions") {
-		questionCache.set(JSON.parse(e.newValue));
-	} else if (e.key == "localAdjustments") {
-		localAdjustments.set(JSON.parse(e.newValue));
-	}
-});
