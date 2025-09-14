@@ -211,6 +211,7 @@ async fn guest_asks_question_and_host_hides_it(
     // ------------------------ host window ----------------------------------
     // the host sees it and just decides to hide it: there is not much they
     // can do about it
+    h.wait_for_polling().await;
     assert!(h
         .wait_for_element(Locator::Css("#pending-questions article"))
         .await

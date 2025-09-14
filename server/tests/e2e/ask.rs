@@ -224,6 +224,7 @@ async fn guest_asks_question_and_it_shows_up(
 
     // ------------------------ host window ----------------------------------
     // let's check that the host can also see this question
+    h.wait_for_polling().await;
     assert!(h
         .wait_for_element(Locator::Css("#pending-questions article"))
         .await
