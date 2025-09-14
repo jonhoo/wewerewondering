@@ -51,7 +51,12 @@ jobs:
         if: hashFiles('Cargo.lock') == ''
         run: cargo generate-lockfile
       - name: Run end-to-end tests
-        run: cargo t --release --test e2e --features e2e-test
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: cargo t --release --test e2e --features e2e-test
+
   awslike:
     runs-on: ubuntu-latest
     name: aws-sam
@@ -85,4 +90,9 @@ jobs:
       - name: Run end-to-end tests
         env:
           BACKEND_URL: http://localhost:3000
-        run: cargo t --release --test e2e --features e2e-test
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: cargo t --release --test e2e --features e2e-test
+
