@@ -290,6 +290,49 @@ async fn guest_asks_question_and_it_shows_up(
         .as_s()
         .unwrap();
     assert_eq!(text, q_submitted);
+
+    // ----------------------- ANOTHER EVENT ----------------------------------
+    // ----------------------- host window ------------------------------------
+    // say, the host now creates another event ...
+    let new_guest_url = h.create_event().await;
+    let new_event_id = new_guest_url.path_segments().unwrap().next_back().unwrap();
+    // since this is a brand new event, there are no questions on the screen
+    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
+
+    // -------------------------- database ------------------------------------
+    // ... nor in the database
+    assert_eq!(
+        dynamo
+            .query()
+            .table_name("questions")
+            .index_name("top")
+            .key_condition_expression("eid = :eid")
+            .expression_attribute_values(":eid", AttributeValue::S(new_event_id.into()))
+            .send()
+            .await
+            .unwrap()
+            .count,
+        0 // NB
+    );
+
+    // ------------------------ guest window ---------------------------------
+    // same for the guest: they are not seeing the question the ask during
+    // the ealier event
+    g.goto(new_guest_url.as_str()).await.unwrap();
+    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
+
+    // but if they decide to visit the earlier event again ...
+    g.goto(guest_url.as_str()).await.unwrap();
+    // ... they will see their earlier question
+    assert!(g
+        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&q_submitted.to_lowercase()));
 }
 
 mod tests {
