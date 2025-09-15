@@ -267,18 +267,8 @@ async fn guest_asks_question_and_it_shows_up(
 
     // -------------------------- database ------------------------------------
     // ... nor in the database
-    assert_eq!(
-        d.query()
-            .table_name("questions")
-            .index_name("top")
-            .key_condition_expression("eid = :eid")
-            .expression_attribute_values(":eid", AttributeValue::S(new_eid))
-            .send()
-            .await
-            .unwrap()
-            .count,
-        0 // NB
-    );
+    let questions = d.event_questions(new_eid).await.unwrap();
+    assert_eq!(questions.count, 0); // NB
 
     // ------------------------ guest window ---------------------------------
     // same for the guest: they are not seeing the question the ask during
