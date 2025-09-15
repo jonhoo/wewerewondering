@@ -1,4 +1,4 @@
-use crate::utils::TestContext;
+use crate::utils::{QuestionState, TestContext};
 use fantoccini::Locator;
 
 async fn guest_asks_question_and_others_vote(
@@ -6,49 +6,38 @@ async fn guest_asks_question_and_others_vote(
         host: h,
         guest1: g1,
         guest2: g2,
-        ..
+        dynamo: d,
     }: TestContext,
 ) {
     // ------------------------ host window ----------------------------------
     // host creates a new event
-    let guest_url = h.create_event().await;
-    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
+    let (eid, url) = h.create_event().await;
+    assert!(h.expect_questions(QuestionState::Pending).await.is_err());
+
+    // -------------------------- database -----------------------------------
+    // sanity check: we do not have any questions for this event in db
+    assert_eq!(d.event_questions(&eid).await.unwrap().count, 0);
 
     // ------------------------ first guest window -----------------------
-    // first guest opens the link and ...
-    g1.goto(guest_url.as_str()).await.unwrap();
-    // ... asks a question, which ...
-    g1.wait_for_element(Locator::Id("ask-question-button"))
-        .await
-        .unwrap()
-        .click()
-        .await
-        .unwrap();
-    let question_text = "Are we web yet?";
-    g1.send_alert_text(question_text).await.unwrap();
-    g1.accept_alert().await.unwrap();
-    let question_author = "Steve";
-    g1.send_alert_text(question_author).await.unwrap();
-    g1.accept_alert().await.unwrap();
+    // first guest opens the link and asks a question, which ...
+    g1.goto(url.as_str()).await.unwrap();
+    let (qtext, qauthor) = ("Are we web yet?", "Steve");
+    g1.ask(qtext, Some(qauthor)).await.unwrap();
+
     // ... appears on the screen
-    assert!(g1
-        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
-        .await
-        .unwrap()
+    let pending = g1.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending.len(), 1);
+    assert!(pending[0]
         .text()
         .await
         .unwrap()
         .to_lowercase()
-        .contains(&question_text.to_lowercase()));
-    // we now know that question details have all been fetched
-    let question = g1
-        .wait_for_element(Locator::Css("#pending-questions article"))
-        .await
-        .unwrap();
+        .contains(&qtext.to_lowercase()));
+
     // note that the question will have one vote by default, meaning we are
     // upvoting our own question by default, and ...
     assert_eq!(
-        question
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -64,7 +53,7 @@ async fn guest_asks_question_and_others_vote(
     // not something that the app guarantees and our next assertion is more for
     // demo purposes and we will show later on that other guest can upvote this
     // question without any hacks rather within the normal app flow
-    assert!(question
+    assert!(pending[0]
         .find(Locator::Css(r#"button[data-action="upvote"]"#))
         .await
         .is_err());
@@ -73,9 +62,7 @@ async fn guest_asks_question_and_others_vote(
     // host can see the newly added question and also that there is one vote
     // for this question (the default one from the question's author)
     assert_eq!(
-        h.wait_for_element(Locator::Css("#pending-questions article"))
-            .await
-            .unwrap()
+        h.expect_questions(QuestionState::Pending).await.unwrap()[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -87,42 +74,34 @@ async fn guest_asks_question_and_others_vote(
 
     // ------------------------ second guest window ----------------------
     // second guest sees the newly asked question and ...
-    g2.goto(guest_url.as_str()).await.unwrap();
-    assert!(g2
-        // we are making sure this way the text content of the questions
-        // has been loaded rather than only the question item container
-        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
-        .await
-        .unwrap()
+    g2.goto(url.as_str()).await.unwrap();
+    let pending = g2.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending.len(), 1);
+    assert!(pending[0]
         .text()
         .await
         .unwrap()
         .to_lowercase()
-        .contains(&question_text.to_lowercase()));
-    let question = g2
-        .wait_for_element(Locator::Css("#pending-questions article"))
-        .await
-        .unwrap();
-    let vote_count = question
-        .find(Locator::Css("[data-votes]"))
-        .await
-        .unwrap()
-        .text()
-        .await
-        .unwrap();
-    assert!(vote_count.contains("1"));
-    assert!(question
-        .text()
-        .await
-        .unwrap()
-        .to_lowercase()
-        .contains(&question_text.to_lowercase()));
+        .contains(&qtext.to_lowercase()));
+    assert_eq!(
+        pending[0]
+            .find(Locator::Css("[data-votes]"))
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap(),
+        "1"
+    );
+
     // .. they upvote it
-    let upvote_button = question
+    pending[0]
         .find(Locator::Css(r#"button[data-action="upvote"]"#))
         .await
+        .unwrap()
+        .click()
+        .await
         .unwrap();
-    upvote_button.click().await.unwrap();
 
     // we are giving the front-end some time to poll for question details changes
     // from the back-end, in this case the number of votes have changed; one could
@@ -132,7 +111,7 @@ async fn guest_asks_question_and_others_vote(
     // avoid flakiness plus it's not the optimistic update that we are testing here
     g2.wait_for_polling().await;
     assert_eq!(
-        question
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -144,9 +123,7 @@ async fn guest_asks_question_and_others_vote(
 
     // ------------------------ first guest window -----------------------
     assert_eq!(
-        g1.wait_for_element(Locator::Css("#pending-questions article"))
-            .await
-            .unwrap()
+        g1.expect_questions(QuestionState::Pending).await.unwrap()[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -158,12 +135,9 @@ async fn guest_asks_question_and_others_vote(
 
     // -------------------------- host window --------------------------
     // host can now also see there are 2 votes for this question
-    let question = h
-        .wait_for_element(Locator::Css("#pending-questions article"))
-        .await
-        .unwrap();
+    let pending = h.expect_questions(QuestionState::Pending).await.unwrap();
     assert_eq!(
-        question
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -172,17 +146,21 @@ async fn guest_asks_question_and_others_vote(
             .unwrap(),
         "2"
     );
+
     // and btw the host can also upvote this question (maybe for their future
     // self to remember which questions they wanted to answer - even if this
     // is not the most popular one)
-    let upvote_button = question
+    pending[0]
         .find(Locator::Css(r#"button[data-action="upvote"]"#))
         .await
+        .unwrap()
+        .click()
+        .await
         .unwrap();
-    upvote_button.click().await.unwrap();
+
     g2.wait_for_polling().await;
     assert_eq!(
-        question
+        pending[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -197,9 +175,7 @@ async fn guest_asks_question_and_others_vote(
     // session voted for this question
     // ------------------------ first guest window -----------------------
     assert_eq!(
-        g1.wait_for_element(Locator::Css("#pending-questions article"))
-            .await
-            .unwrap()
+        g1.expect_questions(QuestionState::Pending).await.unwrap()[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -208,11 +184,10 @@ async fn guest_asks_question_and_others_vote(
             .unwrap(),
         "3"
     );
+
     // ------------------------ second guest window -----------------------
     assert_eq!(
-        g2.wait_for_element(Locator::Css("#pending-questions article"))
-            .await
-            .unwrap()
+        g2.expect_questions(QuestionState::Pending).await.unwrap()[0]
             .find(Locator::Css("[data-votes]"))
             .await
             .unwrap()
@@ -221,6 +196,18 @@ async fn guest_asks_question_and_others_vote(
             .unwrap(),
         "3"
     );
+
+    // --------------------------- database ----------------------------------
+    let questions = d.event_questions(eid).await.unwrap();
+    assert_eq!(questions.count, 1);
+    let qid = questions.items().first().unwrap().get("id").unwrap();
+    let q = d.question_by_id(qid.to_owned()).await.unwrap();
+    let q = q.item().unwrap();
+    assert!(!q.get("hidden").unwrap().as_bool().unwrap());
+    assert!(q.get("answered").is_none());
+    assert_eq!(q.get("who").unwrap().as_s().unwrap(), qauthor);
+    assert_eq!(q.get("text").unwrap().as_s().unwrap(), qtext);
+    assert_eq!(q.get("votes").unwrap().as_n().unwrap(), "3"); // NB
 }
 
 mod tests {

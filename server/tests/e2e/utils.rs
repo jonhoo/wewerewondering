@@ -1,7 +1,14 @@
+use aws_sdk_dynamodb::error::SdkError;
+use aws_sdk_dynamodb::operation::get_item::{GetItemError, GetItemOutput};
+use aws_sdk_dynamodb::operation::query::{QueryError, QueryOutput};
+use aws_sdk_dynamodb::types::AttributeValue;
+use aws_smithy_runtime_api::http::Response;
 use axum_reverse_proxy::ReverseProxy;
 use fantoccini::wd::WebDriverCompatibleCommand;
 use fantoccini::Locator;
 use fantoccini::{elements::Element, error::CmdError};
+use std::collections::HashMap;
+use std::fmt::Display;
 use std::io;
 use std::ops::Deref;
 use std::sync::LazyLock;
@@ -39,6 +46,24 @@ pub(crate) static WAIT_TIMEOUT: LazyLock<Duration> = LazyLock::new(|| {
         .map(std::time::Duration::from_secs)
         .unwrap_or(DEFAULT_WAIT_TIMEOUT)
 });
+
+#[derive(Debug)]
+pub(crate) enum QuestionState {
+    Pending,
+    Answered,
+    Hidden,
+}
+
+impl Display for QuestionState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let state = match self {
+            QuestionState::Pending => "pending",
+            QuestionState::Answered => "answered",
+            QuestionState::Hidden => "hidden",
+        };
+        f.write_str(state)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct Client {
@@ -83,18 +108,56 @@ impl Client {
             .await
     }
 
-    /// Wait for pending questions on the current page.
+    /// Ask a question.
     ///
-    /// Internally, uses [`Client::wait_for_element`] specifying the identifier
-    /// of the unanswered questions container and selecting the items it holds.
-    pub(crate) async fn wait_for_pending_questions(&self) -> Result<Vec<Element>, CmdError> {
-        self.wait_for_element(Locator::Id("pending-questions"))
+    /// Internally, we locate the `Ask another question` button and fill in
+    /// the alerts with the question's text and signature (author's name or nickname).
+    /// The latter is optional: guest can ask questions anonymously.
+    pub(crate) async fn ask(&self, qtext: &str, qauthor: Option<&str>) -> Result<(), CmdError> {
+        self.wait_for_element(Locator::Id("ask-question-button"))
             .await?
-            .find_all(Locator::Css("article"))
-            .await
+            .click()
+            .await?;
+        self.send_alert_text(qtext).await?;
+        self.accept_alert().await?;
+        if let Some(name) = qauthor {
+            self.send_alert_text(name).await?;
+            self.accept_alert().await
+        } else {
+            self.dismiss_alert().await
+        }
     }
 
-    /// Creates a new Q&A session and returns a guest link.
+    /// Awaits till questions' details are loaded and returns the list of questions.
+    ///
+    /// Internally, makes sure that the questions's details (text first of all)
+    /// are loaded and then - on this "fully-loaded" page - finds all the questions
+    /// with [`fantoccini::Client::find_all`].
+    ///
+    /// Note that this will error, if not a single question of the provided [`QuestionState`]
+    /// appears on the screen within the [`Client::wait_timeout`].
+    pub(crate) async fn expect_questions(
+        &self,
+        state: QuestionState,
+    ) -> Result<Vec<Element>, CmdError> {
+        let questions_section_selector = format!("#{}-questions", state);
+        let question_item_selector = format!("{} article", &questions_section_selector);
+        let _ = self
+            .wait_for_element(Locator::Css(&format!(
+                // this way we are making sure that the question's details are
+                // actually loaded, without this step the questions will be there
+                // on the page jsut fine, but they will have "loading.." placeholder
+                // instead of the actual text
+                "{} .question__text",
+                &question_item_selector
+            )))
+            .await?
+            .text()
+            .await?;
+        self.find_all(Locator::Css(&question_item_selector)).await
+    }
+
+    /// Creates a new Q&A session and returns its ID and guest link.
     ///
     /// Internally, will navigate to the app's homepage, locate and click
     /// the "Open new Q&A session" button, then - in the event's page already -
@@ -104,7 +167,7 @@ impl Client {
     /// The client will end up in the newly created event's _host_ page, so if
     /// you need the url with the host's secret, just call `current_url` on the
     /// client (see [`fantoccini::Client::current_url`]).
-    pub(crate) async fn create_event(&self) -> Url {
+    pub(crate) async fn create_event(&self) -> (String, Url) {
         // go to homepage and create a new event
         self.goto(self.homepage.as_str()).await.unwrap();
         self.wait_for_element(Locator::Id("create-event-button"))
@@ -122,19 +185,27 @@ impl Client {
             .unwrap();
         // figure the guests' url
         self.issue_cmd(GrantClipboardReadCmd).await.unwrap();
-        self.execute_async(
-            r#"
+        let guest_url: Url = self
+            .execute_async(
+                r#"
                 const [callback] = arguments;
                 navigator.clipboard.readText().then((text) => callback(text));
             "#,
-            vec![],
-        )
-        .await
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .parse()
-        .unwrap()
+                vec![],
+            )
+            .await
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let event_id = guest_url
+            .path_segments()
+            .unwrap()
+            .next_back()
+            .unwrap()
+            .to_owned();
+        (event_id, guest_url)
     }
 }
 
@@ -196,11 +267,61 @@ pub(crate) async fn init() -> (Url, ServerTaskHandle) {
     (app_addr, handle)
 }
 
+pub(crate) struct Dynamo {
+    client: aws_sdk_dynamodb::Client,
+}
+
+impl Dynamo {
+    pub async fn init() -> Self {
+        let c = wewerewondering_api::init_dynamodb_client().await;
+        Self { client: c }
+    }
+
+    pub async fn event_questions<S>(
+        &self,
+        eid: S,
+    ) -> Result<QueryOutput, SdkError<QueryError, Response>>
+    where
+        S: Into<String>,
+    {
+        self.query()
+            .table_name("questions")
+            .index_name("top")
+            .key_condition_expression("eid = :eid")
+            .expression_attribute_values(":eid", AttributeValue::S(eid.into()))
+            .projection_expression("id,answered,#hidden")
+            .expression_attribute_names("#hidden", "hidden")
+            .send()
+            .await
+    }
+
+    pub async fn question_by_id<V>(
+        &self,
+        qid: V,
+    ) -> Result<GetItemOutput, SdkError<GetItemError, Response>>
+    where
+        V: Into<AttributeValue>,
+    {
+        self.get_item()
+            .table_name("questions")
+            .set_key(Some(HashMap::from([(String::from("id"), qid.into())])))
+            .send()
+            .await
+    }
+}
+
+impl Deref for Dynamo {
+    type Target = aws_sdk_dynamodb::Client;
+    fn deref(&self) -> &Self::Target {
+        &self.client
+    }
+}
+
 pub(crate) struct TestContext {
     pub host: Client,
     pub guest1: Client,
     pub guest2: Client,
-    pub dynamo: aws_sdk_dynamodb::Client,
+    pub dynamo: Dynamo,
 }
 
 /// With our test setup, we've got isolated sessions and a dedicated
@@ -250,12 +371,12 @@ macro_rules! serial_test {
                 fantoccini: f3.unwrap(),
                 wait_timeout: *$crate::utils::WAIT_TIMEOUT,
             };
-            let dynamodb_client = wewerewondering_api::init_dynamodb_client().await;
+            let dynamo = $crate::utils::Dynamo::init().await;
             let ctx = super::TestContext {
                 host: host.clone(),
                 guest1: guest1.clone(),
                 guest2: guest2.clone(),
-                dynamo: dynamodb_client,
+                dynamo,
             };
             // run the test as a task catching any errors
             let res = tokio::spawn(super::$test_fn(ctx)).await;
