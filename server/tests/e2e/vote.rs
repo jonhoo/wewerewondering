@@ -12,7 +12,7 @@ async fn guest_asks_question_and_others_vote(
     // ------------------------ host window ----------------------------------
     // host creates a new event
     let (eid, url) = h.create_event().await;
-    assert!(h.expect_questions(QuestionState::Pending).await.is_err());
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db

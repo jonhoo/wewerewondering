@@ -58,18 +58,9 @@ async fn host_starts_new_q_and_a_session(
 
     // and there are currently no pending, answered, or hidden questions
     // related to the newly created event
-    h.expect_questions(QuestionState::Pending)
-        .await
-        .unwrap_err()
-        .is_timeout();
-    h.expect_questions(QuestionState::Answered)
-        .await
-        .unwrap_err()
-        .is_timeout();
-    h.expect_questions(QuestionState::Hidden)
-        .await
-        .unwrap_err()
-        .is_timeout();
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
+    assert!(h.await_questions(QuestionState::Answered).await.is_empty());
+    assert!(h.await_questions(QuestionState::Hidden).await.is_empty());
 
     // let's make sure we are persisting the event...
     let event = dynamo
@@ -120,10 +111,7 @@ async fn guest_asks_question_and_it_shows_up(
 
     // the host can see that nobody has asked
     // a question - at least not just yet
-    h.expect_questions(QuestionState::Pending)
-        .await
-        .unwrap_err()
-        .is_timeout();
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
@@ -134,10 +122,7 @@ async fn guest_asks_question_and_it_shows_up(
     g.goto(url.as_str()).await.unwrap();
 
     // they do not observe any questions either, so ...
-    g.expect_questions(QuestionState::Pending)
-        .await
-        .unwrap_err()
-        .is_timeout();
+    assert!(g.await_questions(QuestionState::Pending).await.is_empty());
 
     // ... they click the "Ask another question" button ...
     g.wait_for_element(Locator::Id("ask-question-button"))
@@ -260,10 +245,7 @@ async fn guest_asks_question_and_it_shows_up(
     // say, the host now creates another event ...
     let (new_eid, new_url) = h.create_event().await;
     // since this is a brand new event, there are no questions on the screen
-    h.expect_questions(QuestionState::Pending)
-        .await
-        .unwrap_err()
-        .is_timeout();
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
 
     // -------------------------- database ------------------------------------
     // ... nor in the database
@@ -271,13 +253,10 @@ async fn guest_asks_question_and_it_shows_up(
     assert_eq!(questions.count, 0); // NB
 
     // ------------------------ guest window ---------------------------------
-    // same for the guest: they are not seeing the question the ask during
+    // same for the guest: they are not seeing the question the asked during
     // the earlier event
     g.goto(new_url.as_str()).await.unwrap();
-    h.expect_questions(QuestionState::Pending)
-        .await
-        .unwrap_err()
-        .is_timeout();
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
 
     // but if they decide to visit the earlier event again ...
     g.goto(url.as_str()).await.unwrap();

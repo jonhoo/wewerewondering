@@ -157,6 +157,22 @@ impl Client {
         self.find_all(Locator::Css(&question_item_selector)).await
     }
 
+    /// Awaits questions.
+    ///
+    /// Internally, awaits one polling interval (to make sure the latest
+    /// data is available on the client) and returns a list of questions.
+    ///
+    /// Unlike [`Client::expect_questions`], this will not fail with a timeout
+    /// if the questions are not there, instead - an empty list will be returned.
+    pub(crate) async fn await_questions(&self, state: QuestionState) -> Vec<Element> {
+        self.wait_for_polling().await;
+        let questions_section_selector = format!("#{}-questions", state);
+        let question_item_selector = format!("{} article", &questions_section_selector);
+        self.find_all(Locator::Css(&question_item_selector))
+            .await
+            .expect("Command to succeed")
+    }
+
     /// Creates a new Q&A session and returns its ID and guest link.
     ///
     /// Internally, will navigate to the app's homepage, locate and click
