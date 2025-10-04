@@ -5,15 +5,18 @@ export const votedFor = writable(null);
 export const localAdjustments = writable(null);
 export const questionCache = writable(null);
 
+let storedEventDataKey;
+
 /**
  * Initialize event store.
  *
- * Given the `eid`, this will costruct a local storage key for the current
- * event (e.g. `event::01K542Z5KKR8YJ5DX9GQN7VV1S` for guest whereas for host -
+ * Given the `id`, this will costruct a local storage key for the current
+ * event (e.g. `event::01K542Z5KKR8YJ5DX9GQN7VV1S` for guest whereas for host
+ * `id` can be a combination of the event's id and the host's secret, i.e.
  * `event::01K542Z5KKR8YJ5DX9GQN7VV1S/mSgwnC12sDhlNLzzej38ClSrSWWYfN`) and read
  * existing event data (if any) from disk into the app's memory.
  *
- * Internally, we are also creating subscribtions per slice (e.g. `votedFor`,
+ * Internally, we are also creating subscriptions per slice (e.g. `votedFor`,
  * `questions`, `localAdjustments`) and persisting any mutations of those slices
  * back onto disk.
  *
@@ -28,10 +31,10 @@ export const questionCache = writable(null);
  *  }
  * ```
  *
- * @param {string} eid
+ * @param {string} id
  */
-export function initEventStore(eid) {
-	const storedEventDataKey = `event::${eid}`;
+export function initEventStore(id) {
+	storedEventDataKey = `event::${id}`;
 
 	/**
 	 * @param {import("svelte/store").Writable} storeSlice
@@ -191,3 +194,15 @@ export async function questionData(qid, qs) {
 
 	return await promise;
 }
+
+// if a user has multiple tabs open, we want to ensure that each tab learns
+// about changes to the local storage of the other, so that they don't end up
+// overwriting that data
+window.addEventListener("storage", (e) => {
+	if (e.key == storedEventDataKey) {
+		const eventData = JSON.parse(e.newValue);
+		votedFor.set(eventData.votedFor);
+		questionCache.set(eventData.questions);
+		localAdjustments.set(eventData.localAdjustments);
+	}
+});
