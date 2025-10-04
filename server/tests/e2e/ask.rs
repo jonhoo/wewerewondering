@@ -272,7 +272,7 @@ async fn guest_asks_question_and_it_shows_up(
 
     // ------------------------ guest window ---------------------------------
     // same for the guest: they are not seeing the question the ask during
-    // the ealier event
+    // the earlier event
     g.goto(new_url.as_str()).await.unwrap();
     h.expect_questions(QuestionState::Pending)
         .await

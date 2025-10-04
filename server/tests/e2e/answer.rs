@@ -255,9 +255,9 @@ async fn guest_asks_question_and_host_hides_it(
     // they still see their "question" on the screen even though it has been
     // hidden by the host (later in this test we are demonstrating that the
     // question gets hidden from _other_ guests)
-    let pending = h.expect_questions(QuestionState::Hidden).await.unwrap();
-    assert_eq!(pending.len(), 1);
-    assert!(pending[0]
+    let hidden = h.expect_questions(QuestionState::Hidden).await.unwrap();
+    assert_eq!(hidden.len(), 1);
+    assert!(hidden[0]
         .text()
         .await
         .unwrap()
