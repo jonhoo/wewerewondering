@@ -253,7 +253,7 @@ async fn guest_asks_question_and_it_shows_up(
     assert_eq!(questions.count, 0); // NB
 
     // ------------------------ guest window ---------------------------------
-    // same for the guest: they are not seeing the question the asked during
+    // same for the guest: they are not seeing the question they asked during
     // the earlier event
     g.goto(new_url.as_str()).await.unwrap();
     assert!(h.await_questions(QuestionState::Pending).await.is_empty());
