@@ -11,10 +11,8 @@ let storedEventDataKey;
  * Initialize event store.
  *
  * Given the `id`, this will costruct a local storage key for the current
- * event (e.g. `event::01K542Z5KKR8YJ5DX9GQN7VV1S` for guest whereas for host
- * `id` can be a combination of the event's id and the host's secret, i.e.
- * `event::01K542Z5KKR8YJ5DX9GQN7VV1S/mSgwnC12sDhlNLzzej38ClSrSWWYfN`) and read
- * existing event data (if any) from disk into the app's memory.
+ * event (e.g. `event::01K542Z5KKR8YJ5DX9GQN7VV1S`) and read event data (if any)
+ * from disk into the app's memory.
  *
  * Internally, we are also creating subscriptions per slice (e.g. `votedFor`,
  * `questions`, `localAdjustments`) and persisting any mutations of those slices

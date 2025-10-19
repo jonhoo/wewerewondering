@@ -23,7 +23,10 @@
 					id: id
 				};
 			}
-			initEventStore(id);
+
+			const [eid, _maybeSecret] = id.split("/");
+			initEventStore(eid);
+
 			if (new_event != $event) {
 				let r = await fetch(`/api/event/${new_event.id}`).catch((e) => {
 					problum = e;
