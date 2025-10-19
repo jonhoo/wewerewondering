@@ -1,7 +1,6 @@
-use crate::utils::{GrantClipboardReadCmd, TestContext};
+use crate::utils::{GrantClipboardReadCmd, QuestionState, TestContext};
 use aws_sdk_dynamodb::types::AttributeValue;
 use fantoccini::Locator;
-use std::collections::HashMap;
 use url::Url;
 
 async fn host_starts_new_q_and_a_session(
@@ -59,18 +58,9 @@ async fn host_starts_new_q_and_a_session(
 
     // and there are currently no pending, answered, or hidden questions
     // related to the newly created event
-    let pending_questions = h.wait_for_pending_questions().await.unwrap();
-    assert!(pending_questions.is_empty());
-    assert!(h
-        .find(Locator::Id("answered-questions"))
-        .await
-        .unwrap_err()
-        .is_no_such_element());
-    assert!(h
-        .find(Locator::Id("hidden-questions"))
-        .await
-        .unwrap_err()
-        .is_no_such_element());
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
+    assert!(h.await_questions(QuestionState::Answered).await.is_empty());
+    assert!(h.await_questions(QuestionState::Hidden).await.is_empty());
 
     // let's make sure we are persisting the event...
     let event = dynamo
@@ -111,41 +101,28 @@ async fn guest_asks_question_and_it_shows_up(
     TestContext {
         host: h,
         guest1: g,
-        dynamo,
+        dynamo: d,
         ..
     }: TestContext,
 ) {
     // ------------------------ host window ----------------------------------
     // we've got a new event
-    let guest_url = h.create_event().await;
-    let event_id = guest_url.path_segments().unwrap().next_back().unwrap();
+    let (eid, url) = h.create_event().await;
 
     // the host can see that nobody has asked
     // a question - at least not just yet
-    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
 
     // -------------------------- database -----------------------------------
     // sanity check: we do not have any questions for this event in db
-    assert_eq!(
-        dynamo
-            .query()
-            .table_name("questions")
-            .index_name("top")
-            .key_condition_expression("eid = :eid")
-            .expression_attribute_values(":eid", AttributeValue::S(event_id.into()))
-            .send()
-            .await
-            .unwrap()
-            .count,
-        0
-    );
+    assert_eq!(d.event_questions(&eid).await.unwrap().count, 0);
 
     // ------------------------ guest window ---------------------------------
     // a guest visits the event's page and ...
-    g.goto(guest_url.as_str()).await.unwrap();
+    g.goto(url.as_str()).await.unwrap();
 
     // they do not observe any questions either, so ...
-    assert!(h.wait_for_pending_questions().await.unwrap().is_empty());
+    assert!(g.await_questions(QuestionState::Pending).await.is_empty());
 
     // ... they click the "Ask another question" button ...
     g.wait_for_element(Locator::Id("ask-question-button"))
@@ -194,22 +171,18 @@ async fn guest_asks_question_and_it_shows_up(
     g.send_alert_text(name).await.unwrap();
     g.accept_alert().await.unwrap();
 
-    // let's make sure to await until question's details, such as text, creation
-    // time, author have been fetched, and check this is the question they've
-    // entered into the prompt
-    assert!(g
-        .wait_for_element(Locator::Css("#pending-questions article .question__text"))
-        .await
-        .unwrap()
+    // and we they see their (and the only one) question on the screen
+    let pending_questions = g.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending_questions.len(), 1);
+    assert!(pending_questions[0]
         .text()
         .await
         .unwrap()
         .to_lowercase()
         .contains(&q_submitted.to_lowercase()));
-
-    // and also that it's attributed to them
-    assert!(g
-        .wait_for_element(Locator::Css("#pending-questions article .question__by"))
+    // sanity: let's make sure the question is attributed to them
+    assert!(pending_questions[0]
+        .find(Locator::Css(".question__by"))
         .await
         .unwrap()
         .text()
@@ -218,47 +191,24 @@ async fn guest_asks_question_and_it_shows_up(
         .to_lowercase()
         .contains(&name.to_lowercase()));
 
-    // let's also check how many questions have been added to the
-    // unanswered questions container, we can see one single question
-    assert_eq!(g.wait_for_pending_questions().await.unwrap().len(), 1);
-
     // ------------------------ host window ----------------------------------
     // let's check that the host can also see this question
-    assert!(h
-        .wait_for_element(Locator::Css("#pending-questions article"))
-        .await
-        .unwrap()
+    h.wait_for_polling().await;
+    let pending_questions = h.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending_questions.len(), 1);
+    assert!(pending_questions[0]
         .text()
         .await
         .unwrap()
         .to_lowercase()
         .contains(&q_submitted.to_lowercase()));
-    // again, it's one single question
-    assert_eq!(h.wait_for_pending_questions().await.unwrap().len(), 1);
 
     // --------------------------- database ----------------------------------
     // finally, let's verify that the question has been persisted
-    let questions = dynamo
-        .query()
-        .table_name("questions")
-        .index_name("top")
-        .key_condition_expression("eid = :eid")
-        .expression_attribute_values(":eid", AttributeValue::S(event_id.into()))
-        .projection_expression("id,answered,#hidden")
-        .expression_attribute_names("#hidden", "hidden")
-        .send()
-        .await
-        .unwrap();
+    let questions = d.event_questions(eid).await.unwrap();
     assert_eq!(questions.count, 1); // NB
     let qid = questions.items().first().unwrap().get("id").unwrap();
-
-    let q_stored = dynamo
-        .get_item()
-        .table_name("questions")
-        .set_key(Some(HashMap::from([(String::from("id"), qid.to_owned())])))
-        .send()
-        .await
-        .unwrap();
+    let q_stored = d.question_by_id(qid.to_owned()).await.unwrap();
 
     // For reference. The GetItem output will have the following shape:
     //
@@ -289,6 +239,36 @@ async fn guest_asks_question_and_it_shows_up(
         .as_s()
         .unwrap();
     assert_eq!(text, q_submitted);
+
+    // ----------------------- ANOTHER EVENT ----------------------------------
+    // ----------------------- host window ------------------------------------
+    // say, the host now creates another event ...
+    let (new_eid, new_url) = h.create_event().await;
+    // since this is a brand new event, there are no questions on the screen
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
+
+    // -------------------------- database ------------------------------------
+    // ... nor in the database
+    let questions = d.event_questions(new_eid).await.unwrap();
+    assert_eq!(questions.count, 0); // NB
+
+    // ------------------------ guest window ---------------------------------
+    // same for the guest: they are not seeing the question they asked during
+    // the earlier event
+    g.goto(new_url.as_str()).await.unwrap();
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
+
+    // but if they decide to visit the earlier event again ...
+    g.goto(url.as_str()).await.unwrap();
+    // ... they will see their earlier question
+    let pending_questions = g.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending_questions.len(), 1);
+    assert!(pending_questions[0]
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&q_submitted.to_lowercase()));
 }
 
 mod tests {
