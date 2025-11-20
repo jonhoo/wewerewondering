@@ -42,7 +42,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Node ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v6
