@@ -60,12 +60,7 @@ where
 
     fn call(&mut self, req: lambda_http::Request) -> Self::Future {
         let (parts, body) = req.into_parts();
-        let body = match body {
-            lambda_http::Body::Empty => axum::body::Body::default(),
-            lambda_http::Body::Text(t) => t.into(),
-            lambda_http::Body::Binary(v) => v.into(),
-        };
-
+        let body = axum::body::Body::new(body);
         let request = axum::http::Request::from_parts(parts, body);
 
         let fut = self.inner.call(request);
