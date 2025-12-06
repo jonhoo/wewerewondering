@@ -38,7 +38,7 @@ jobs:
       run:
         working-directory: ./server
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - uses: ./.github/actions/local-dynamo
@@ -59,7 +59,7 @@ jobs:
       run:
         working-directory: ./server
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/local-dynamo
       - uses: ./.github/actions/client
       - name: Launch web driver in background
