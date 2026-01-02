@@ -271,7 +271,126 @@ async fn guest_asks_question_and_it_shows_up(
         .contains(&q_submitted.to_lowercase()));
 }
 
+/// This is checking that the user does not observe questions that are asked
+/// while they (the user) have got updates paused, but this also serves as a
+/// regression test for `https://github.com/jonhoo/wewerewondering/issues/290`.
+async fn user_pauses_and_resumes_updates(
+    TestContext {
+        host: h, guest1: g, ..
+    }: TestContext,
+) {
+    // ------------------------ host window -----------------------------------
+    let (_eid, url) = h.create_event().await;
+    assert!(h.await_questions(QuestionState::Pending).await.is_empty());
+    // ------------------------ guest window ----------------------------------
+    // guest opens the link and asks a question ...
+    g.goto(url.as_str()).await.unwrap();
+    let (qtext, qauthor) = (
+        "Why did not they try to keep the Zig community on GitHub?",
+        "Andrew",
+    );
+    g.ask(qtext, Some(qauthor)).await.unwrap();
+    // ... and it shows up (as the only one)
+    let pending = g.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending.len(), 1);
+    assert!(pending[0]
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&qtext.to_lowercase()));
+    // ------------------------ host window ----------------------------------
+    // host sees this question...
+    let pending = h.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending.len(), 1);
+    assert!(pending[0]
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&qtext.to_lowercase()));
+    // ... and decides to pause updates (reminder: pausing updates is not the
+    // host's privilege rather every user can do this)
+    let toggle_updates_btn = h
+        .find(Locator::Id("toggle-updates-button"))
+        .await
+        .expect("toggle updates button to be on the screen");
+    assert!(toggle_updates_btn
+        .text()
+        .await
+        .unwrap()
+        // used to offer pause ...
+        .eq_ignore_ascii_case("pause updates"));
+    // ... but after click ...
+    toggle_updates_btn.click().await.unwrap();
+    assert!(toggle_updates_btn
+        .text()
+        .await
+        .unwrap()
+        // ... suggests to "resume"
+        .eq_ignore_ascii_case("resume updates"));
+
+    // the host now switches to another tab
+    let host_app_tab = h.window().await.unwrap();
+    let host_not_app_tab = h
+        .new_window(true)
+        .await
+        .expect("new tab to have been created")
+        .handle;
+    h.switch_to_window(host_not_app_tab)
+        .await
+        .expect("to have switched to the new tab just fine");
+
+    // ------------------------ guest window ----------------------------------
+    // in the meantime, the guest asks another question
+    // (it's actually same user, they are just using a different signature this time)
+    let (next_qtext, next_qauthor) = ("Does the wind still blow over Savannah?", "Charles B.");
+    g.ask(next_qtext, Some(next_qauthor)).await.unwrap();
+    let pending_questions = g.await_questions(QuestionState::Pending).await;
+    assert_eq!(pending_questions.len(), 2);
+
+    // ------------------------ host window ----------------------------------
+    // the host now switches back to the app's tab ...
+    h.switch_to_window(host_app_tab)
+        .await
+        .expect("to have switched back to the app's tab");
+    // ... and observes the quiestion list, but a stale one,
+    // becase they still got updates disabled
+    let pending = h.expect_questions(QuestionState::Pending).await.unwrap();
+    assert_eq!(pending.len(), 1);
+    assert!(pending[0]
+        .text()
+        .await
+        .unwrap()
+        .to_lowercase()
+        .contains(&qtext.to_lowercase()));
+
+    // let's now resume updates ...
+    let toggle_updates_btn = h
+        .find(Locator::Id("toggle-updates-button"))
+        .await
+        .expect("toggle updates button to be on the screen");
+    assert!(toggle_updates_btn
+        .text()
+        .await
+        .unwrap()
+        // the updates are still paused
+        .eq_ignore_ascii_case("resume updates"));
+    toggle_updates_btn.click().await.unwrap();
+    assert!(toggle_updates_btn
+        .text()
+        .await
+        .unwrap()
+        // back to initial button text
+        .eq_ignore_ascii_case("pause updates"));
+
+    // ... and verify thet the list is up-to-date
+    let pending_quesions = h.await_questions(QuestionState::Pending).await;
+    assert_eq!(pending_quesions.len(), 2);
+}
+
 mod tests {
     crate::serial_test!(host_starts_new_q_and_a_session);
     crate::serial_test!(guest_asks_question_and_it_shows_up);
+    crate::serial_test!(user_pauses_and_resumes_updates);
 }
