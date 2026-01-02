@@ -52,7 +52,9 @@
 
 	function visibilitychange() {
 		// immediately refresh when we become visible
-		if (!document.hidden) {
+		// but only if the updates have not been paused
+		if (!document.hidden && !paused) {
+			dbg("document visible again and updates are not paused, so resetting event");
 			event.set($event);
 		}
 	}
