@@ -6,6 +6,7 @@
  * this will return `null`, otherwise an observer is being created with the
  * provied `callback` and `options`, and set to observe the `target` element.
  * The utility will return a cleanup function calling which will unobserve
+ * the target element and let the observer itself to be garbage collected.
  *
  *
  * If no options get passed, intersection with the device's viewport will be
@@ -33,7 +34,10 @@ export function installIntersectionObserver(target, callback, options = undefine
 	if (!target) return null;
 	let observer = new IntersectionObserver(callback, options);
 	observer.observe(targetElem);
-	return () => observer.unobserve(targetElem);
+	return () => {
+		observer.unobserve(targetElem);
+		observer = null;
+	};
 }
 
 /**
