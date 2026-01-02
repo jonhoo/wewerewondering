@@ -2,6 +2,8 @@
 	import Question from "./Question.svelte";
 	import { votedFor, localAdjustments, event } from "./store.js";
 	import { flip } from "svelte/animate";
+	import UpdatesToggle from "./UpdatesToggle.svelte";
+	import { dbg } from "./utils";
 
 	// hosts should get relatively frequent updates
 	const HOST_POLL_INTERVAL_DEFAULT = 3000;
@@ -56,7 +58,22 @@
 	}
 
 	let paused = $state(false);
+	let pausedDueToVisibility = $state(false);
 	let interval;
+
+	/**
+	 * @typedef Event
+	 * @property {string} id
+	 * @property {string | undefined} secret
+	 *
+	 * @typedef Question
+	 * @property {boolean} hidden
+	 * @property {string} qid - ID in ulid format e.g. "01KDZ9BPJF9G0DBNGPDYNA95VX"
+	 * @property {number} votes
+	 *
+	 * @param {Event} e
+	 * @returns {Promise<Question[] | undefined>} - resolves to `undefined` if updates are paused
+	 */
 	async function loadQuestions(e) {
 		if (interval) {
 			clearTimeout(interval);
@@ -100,7 +117,7 @@
 	event.subscribe((e) => {
 		loadQuestions(e)
 			.then((qs) => {
-				rawQuestions = qs;
+				if (qs !== undefined) rawQuestions = qs;
 				problum = null;
 			})
 			.catch((r) => {
@@ -260,6 +277,26 @@
 		}
 	}
 
+	/**
+	 * @param {boolean} isIntersecting
+	 * @returns {void}
+	 */
+	function togglePausedOnViewportIntersection(isIntersecting) {
+		if (isIntersecting) {
+			if (paused && pausedDueToVisibility) {
+				dbg("button got into viewport, resuming updates that were auto-paused previously");
+				togglePaused();
+				pausedDueToVisibility = false;
+			}
+		} else {
+			if (!paused) {
+				dbg("button left viewport, auto-pausing updates");
+				togglePaused();
+				pausedDueToVisibility = true;
+			}
+		}
+	}
+
 	let original_share_text = "Share event";
 	let share_text = original_share_text;
 	let reset;
@@ -305,12 +342,11 @@
 			</button>
 		{/if}
 		<div class="w-1/6">
-			<button
-				class="cursor-pointer text-slate-300 underline hover:text-slate-400"
+			<UpdatesToggle
+				{paused}
 				onclick={togglePaused}
-			>
-				{paused ? "Resume" : "Pause"} Updates
-			</button>
+				onviewportintersection={togglePausedOnViewportIntersection}
+			/>
 		</div>
 	</div>
 
