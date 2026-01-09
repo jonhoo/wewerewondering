@@ -3,7 +3,7 @@
 	import { votedFor, localAdjustments, event } from "./store.js";
 	import { flip } from "svelte/animate";
 	import UpdatesToggle from "./UpdatesToggle.svelte";
-	import { dbg } from "./utils";
+	import { dbg, sameQuestions } from "./utils";
 
 	// hosts should get relatively frequent updates
 	const HOST_POLL_INTERVAL_DEFAULT = 3000;
@@ -64,17 +64,10 @@
 	let interval;
 
 	/**
-	 * @typedef Event
-	 * @property {string} id
-	 * @property {string | undefined} secret
+	 * Resolves to `undefined` if updates are paused.
 	 *
-	 * @typedef Question
-	 * @property {boolean} hidden
-	 * @property {string} qid - ID in ulid format e.g. "01KDZ9BPJF9G0DBNGPDYNA95VX"
-	 * @property {number} votes
-	 *
-	 * @param {Event} e
-	 * @returns {Promise<Question[] | undefined>} - resolves to `undefined` if updates are paused
+	 * @param {import("./types").Event} e
+	 * @returns {Promise<import("./types").Question[] | undefined>}
 	 */
 	async function loadQuestions(e) {
 		if (interval) {
@@ -115,11 +108,12 @@
 	}
 
 	let problum = $state();
-	let rawQuestions = $state();
+	let rawQuestions = $state([]);
 	event.subscribe((e) => {
 		loadQuestions(e)
 			.then((qs) => {
-				if (qs !== undefined) rawQuestions = qs;
+				const updatedPaused = qs === undefined;
+				if (!updatedPaused && !sameQuestions(rawQuestions, qs)) rawQuestions = qs;
 				problum = null;
 			})
 			.catch((r) => {
