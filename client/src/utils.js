@@ -41,7 +41,7 @@ export function installIntersectionObserver(target, callback, options = undefine
 }
 
 /**
- * Emit `debug` log if we are in `development` mode.
+ * Emits `debug` log if we are in `development` mode.
  *
  * @param {...*} args
  * @returns {void}
@@ -50,4 +50,36 @@ export function dbg(...args) {
 	if (import.meta.env.MODE === "development") {
 		console.debug(...args);
 	}
+}
+
+/**
+ * Compares two arrays of questions and returns `true` if
+ * length, ordering and each question's properties are equal.
+ *
+ * @param {import("./types").Question[]} a
+ * @param {import("./types").Question[]} b
+ * @returns {boolean}
+ */
+export function sameQuestions(a, b) {
+	// these should be arrays of the same length ...
+	if (a.length !== b.length) return false;
+	// ... and the order of elements matters
+	for (let i = 0; i < a.length; i++) {
+		const aQuest = a[i];
+		const aQuestKeys = Object.keys(a[i]).toSorted();
+		const bQuest = b[i];
+		const bQuestKeys = Object.keys(b[i]).toSorted();
+		// the number of keys in questions from the same question pair
+		// should be same (their ordering is ignored)
+		if (aQuestKeys.length !== bQuestKeys.length) return false;
+		// finally, we are checking that both the keys and values
+		// associted with those keys are the same
+		for (let j = 0; j < aQuestKeys.length; j++) {
+			const aQuestKey = aQuestKeys[j];
+			const bQuestKey = bQuestKeys[j];
+			if (aQuestKey !== bQuestKey) return false;
+			if (aQuest[aQuestKey] !== bQuest[bQuestKey]) return false;
+		}
+	}
+	return true;
 }
