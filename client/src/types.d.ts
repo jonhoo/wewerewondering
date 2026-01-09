@@ -22,7 +22,7 @@ export type Question = {
 	/**
 	 * When the event's host marked this question as answered.
 	 *
-	 * This value is in unix time  format, e.g.: 1767956971.
+	 * This value is in unix time format, e.g.: 1767956971.
 	 */
 	answered?: number;
 };

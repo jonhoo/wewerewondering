@@ -112,8 +112,8 @@
 	event.subscribe((e) => {
 		loadQuestions(e)
 			.then((qs) => {
-				const updatedPaused = qs === undefined;
-				if (!updatedPaused && !sameQuestions(rawQuestions, qs)) rawQuestions = qs;
+				const updatesPaused = qs === undefined;
+				if (!updatesPaused && !sameQuestions(rawQuestions, qs)) rawQuestions = qs;
 				problum = null;
 			})
 			.catch((r) => {

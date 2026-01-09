@@ -13,11 +13,11 @@
 	let { onviewportintersection, onclick, paused } = $props();
 
 	onMount(() => {
-		const unobserve = installIntersectionObserver(
+		const uninstall = installIntersectionObserver(
 			"#toggle-updates-button",
 			([{ isIntersecting }]) => onviewportintersection(isIntersecting)
 		);
-		return () => unobserve?.();
+		return () => uninstall?.();
 	});
 </script>
 
