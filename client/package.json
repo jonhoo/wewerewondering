@@ -8,7 +8,8 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"lint": "prettier --plugin=prettier-plugin-svelte --plugin=prettier-plugin-tailwindcss --check . && eslint .",
-		"format": "prettier --plugin=prettier-plugin-svelte --plugin=prettier-plugin-tailwindcss --write ."
+		"format": "prettier --plugin=prettier-plugin-svelte --plugin=prettier-plugin-tailwindcss --write .",
+		"test": "node --test"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.0",
