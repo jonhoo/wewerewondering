@@ -354,7 +354,7 @@ async fn user_pauses_and_resumes_updates(
     h.switch_to_window(host_app_tab)
         .await
         .expect("to have switched back to the app's tab");
-    // ... and observes the quiestion list, but a stale one,
+    // ... and observes the question list, but a stale one,
     // becase they still got updates disabled
     let pending = h.expect_questions(QuestionState::Pending).await.unwrap();
     assert_eq!(pending.len(), 1);
