@@ -2,6 +2,8 @@
 	import Question from "./Question.svelte";
 	import { votedFor, localAdjustments, event } from "./store.js";
 	import { flip } from "svelte/animate";
+	import UpdatesToggle from "./UpdatesToggle.svelte";
+	import { dbg, sameQuestions } from "./utils";
 
 	// hosts should get relatively frequent updates
 	const HOST_POLL_INTERVAL_DEFAULT = 3000;
@@ -50,13 +52,23 @@
 
 	function visibilitychange() {
 		// immediately refresh when we become visible
-		if (!document.hidden) {
+		// but only if the updates have not been paused
+		if (!document.hidden && !paused) {
+			dbg("document visible again and updates are not paused, so resetting event");
 			event.set($event);
 		}
 	}
 
 	let paused = $state(false);
+	let pausedDueToVisibility = $state(false);
 	let interval;
+
+	/**
+	 * Resolves to `undefined` if updates are paused.
+	 *
+	 * @param {import("./types").Event} e
+	 * @returns {Promise<import("./types").Question[] | undefined>}
+	 */
 	async function loadQuestions(e) {
 		if (interval) {
 			clearTimeout(interval);
@@ -96,11 +108,12 @@
 	}
 
 	let problum = $state();
-	let rawQuestions = $state();
+	let rawQuestions = $state([]);
 	event.subscribe((e) => {
 		loadQuestions(e)
 			.then((qs) => {
-				rawQuestions = qs;
+				const updatesPaused = qs === undefined;
+				if (!updatesPaused && !sameQuestions(rawQuestions, qs)) rawQuestions = qs;
 				problum = null;
 			})
 			.catch((r) => {
@@ -260,6 +273,26 @@
 		}
 	}
 
+	/**
+	 * @param {boolean} isIntersecting
+	 * @returns {void}
+	 */
+	function togglePausedOnViewportIntersection(isIntersecting) {
+		if (isIntersecting) {
+			if (paused && pausedDueToVisibility) {
+				dbg("button got into viewport, resuming updates that were auto-paused previously");
+				togglePaused();
+				pausedDueToVisibility = false;
+			}
+		} else {
+			if (!paused) {
+				dbg("button left viewport, auto-pausing updates");
+				togglePaused();
+				pausedDueToVisibility = true;
+			}
+		}
+	}
+
 	let original_share_text = "Share event";
 	let share_text = original_share_text;
 	let reset;
@@ -305,12 +338,11 @@
 			</button>
 		{/if}
 		<div class="w-1/6">
-			<button
-				class="cursor-pointer text-slate-300 underline hover:text-slate-400"
+			<UpdatesToggle
+				{paused}
 				onclick={togglePaused}
-			>
-				{paused ? "Resume" : "Pause"} Updates
-			</button>
+				onviewportintersection={togglePausedOnViewportIntersection}
+			/>
 		</div>
 	</div>
 
