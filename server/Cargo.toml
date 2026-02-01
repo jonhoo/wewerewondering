@@ -17,7 +17,7 @@ aws-config = { version = "1.8.12", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.101.0"
 aws-smithy-types = "1.0.1"
 aws-smithy-runtime-api = "1.8.0"
-aws-smithy-http = "0.62.1"
+aws-smithy-http = "0.63.3"
 axum = "0.8.8"
 http = "1.0"
 http-body-util = "0.1.3"
