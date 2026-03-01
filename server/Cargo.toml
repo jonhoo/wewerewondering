@@ -13,11 +13,11 @@ default = []
 e2e-test = []
 
 [dependencies]
-aws-config = { version = "1.8.12", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = "1.101.0"
+aws-config = { version = "1.8.13", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.104.0"
 aws-smithy-types = "1.4.3"
 aws-smithy-runtime-api = "1.10.0"
-aws-smithy-http = "0.63.3"
+aws-smithy-http = "0.63.5"
 axum = "0.8.8"
 http = "1.0"
 http-body-util = "0.1.3"
@@ -36,9 +36,9 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 ulid = { version = "1.2.1", features = ["serde"] }
 
 [dev-dependencies]
-axum-reverse-proxy = "1.1.1"
-fantoccini = "0.22.0"
-serial_test = "3.3.1"
+axum-reverse-proxy = "1.1.2"
+fantoccini = "0.22.1"
+serial_test = "3.4.0"
 tower-http = { version = "0.6", features = ["limit", "trace", "fs"] }
 url = "2.5.8"
 
