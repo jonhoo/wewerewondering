@@ -19,6 +19,13 @@ updates:
           - "svelte"
           - "eslint-plugin-svelte"
           - "prettier-plugin-svelte"
+      eslint:
+        applies-to: version-updates
+        update-types:
+          - "major"
+        patterns:
+          - "eslint"
+          - "@eslint/js"
       npm-bump:
         applies-to: version-updates
         update-types:
