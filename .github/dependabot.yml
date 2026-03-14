@@ -19,6 +19,7 @@ updates:
           - "svelte"
           - "eslint-plugin-svelte"
           - "prettier-plugin-svelte"
+          - "@tailwindcss/vite"
       eslint:
         applies-to: version-updates
         update-types:
