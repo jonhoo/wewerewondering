@@ -25,6 +25,7 @@ updates:
           - "major"
         patterns:
           - "eslint"
+          - "@eslint/js"
       npm-bump:
         applies-to: version-updates
         update-types:
