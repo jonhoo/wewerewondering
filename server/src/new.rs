@@ -9,7 +9,7 @@ use axum::extract::State;
 use axum::response::Json;
 use http::StatusCode;
 use rand::distr::Alphanumeric;
-use rand::{rng, Rng};
+use rand::{rng, RngExt};
 use std::time::SystemTime;
 use ulid::Ulid;
 
