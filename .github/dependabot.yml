@@ -26,6 +26,7 @@ updates:
         patterns:
           - "eslint"
           - "@eslint/js"
+          - "@babel/eslint-parser" # https://github.com/eslint/eslint/discussions/20587
       npm-bump:
         applies-to: version-updates
         update-types:
