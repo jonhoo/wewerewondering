@@ -12,20 +12,20 @@
 		"test": "node --test"
 	},
 	"devDependencies": {
-		"@eslint/compat": "^2.0.4",
+		"@eslint/compat": "^2.0.5",
 		"@eslint/js": "^10.0.1",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
-		"@tailwindcss/vite": "^4.2.2",
-		"eslint": "^10.2.0",
+		"@tailwindcss/vite": "^4.2.4",
+		"eslint": "^10.3.0",
 		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-svelte": "^3.17.0",
-		"globals": "^17.4.0",
-		"prettier": "^3.8.1",
+		"eslint-plugin-svelte": "^3.17.1",
+		"globals": "^17.6.0",
+		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^3.5.1",
-		"prettier-plugin-tailwindcss": "^0.7.2",
-		"svelte": "^5.55.1",
+		"prettier-plugin-tailwindcss": "^0.8.0",
+		"svelte": "^5.55.5",
 		"tailwindcss": "^4.0.4",
-		"vite": "^8.0.3"
+		"vite": "^8.0.10"
 	},
 	"engines": {
 		"node": "22"
