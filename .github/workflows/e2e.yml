@@ -66,7 +66,7 @@ jobs:
         run: chromedriver --port=${{ env.WEBDRIVER_PORT}} &
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
-      - uses: aws-actions/setup-sam@v2
+      - uses: aws-actions/setup-sam@v3
         with:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
