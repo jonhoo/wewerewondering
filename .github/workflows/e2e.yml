@@ -71,7 +71,7 @@ jobs:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: cargo install cargo-lambda
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.3
         with:
           tool: cargo-lambda@1
       - name: Install zig for cargo-lambda
