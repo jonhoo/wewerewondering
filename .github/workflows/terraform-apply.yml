@@ -61,7 +61,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: cargo install cargo-lambda
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.5
         with:
           tool: cargo-lambda@1
 
