@@ -104,7 +104,7 @@ impl Backend {
 pub(super) async fn new(
     State(dynamo): State<Backend>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let eid = ulid::Ulid::new();
+    let eid = ulid::Ulid::generate();
     let secret: String = rng()
         .sample_iter(&Alphanumeric)
         .take(30)

@@ -116,7 +116,7 @@ pub(crate) async fn seed(backend: &mut Backend) -> Vec<Ulid> {
             // first create questions ...
             let mut qs = Vec::new();
             for q in seed {
-                let qid = ulid::Ulid::new();
+                let qid = ulid::Ulid::generate();
                 backend
                     .ask(
                         &seed_e,

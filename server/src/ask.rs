@@ -89,7 +89,7 @@ pub async fn ask(
     }
 
     // TODO: check that eid actually exists
-    let qid = ulid::Ulid::new();
+    let qid = ulid::Ulid::generate();
     match dynamo.ask(&eid, &qid, q.0).await {
         Ok(_) => {
             debug!(%eid, %qid, "created question");
