@@ -1,7 +1,14 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directory: /
+    # "/" is a magic value for this ecosystem, not a literal path: it covers
+    # .github/workflows plus a root action.yml. Composite actions in
+    # subdirectories are invisible to it, so each one needs its own entry
+    # (there is no wildcard; globstars produce duplicate PRs).
+    directories:
+      - /
+      - /.github/actions/client
+      - /.github/actions/local-dynamo
     schedule:
       interval: daily
   - package-ecosystem: npm
