@@ -6,11 +6,12 @@ runs:
     - name: Download DynamoDB Local
       shell: bash
       run: |
-        wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz
-        wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.tar.gz.sha256
-        sha256sum --check dynamodb_local_latest.tar.gz.sha256
-        mkdir dynamodb-local
-        tar xfv dynamodb_local_latest.tar.gz --directory=dynamodb-local
+        # The v3.x .tar.gz has returned 403 since early September 2026,
+        # while the .zip next to it is still served.
+        wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.zip
+        wget https://d1ni2b6xgvw0s0.cloudfront.net/v3.x/dynamodb_local_latest.zip.sha256
+        sha256sum --check dynamodb_local_latest.zip.sha256
+        unzip dynamodb_local_latest.zip -d dynamodb-local
         ls -lah dynamodb-local
     - name: Install Java SDK
       uses: actions/setup-java@v6
