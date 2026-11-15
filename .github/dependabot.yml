@@ -10,7 +10,13 @@ updates:
       - /.github/actions/client
       - /.github/actions/local-dynamo
     schedule:
-      interval: daily
+      interval: monthly
+    groups:
+      gha-bump:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+          - "minor"
   - package-ecosystem: npm
     directory: /client
     schedule:
